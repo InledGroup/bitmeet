@@ -1,43 +1,72 @@
-# Astro Starter Kit: Minimal
 
-```sh
-npm create astro@latest -- --template minimal
+# 🚀 BitMeet: Decentralized Serverless Video Conferencing
+
+BitMeet is a professional-grade, peer-to-peer video conferencing application built with **Astro**, **React**, and **WebRTC**. It uses **Firebase Firestore** as a signaling channel for participant discovery, ensuring a truly serverless experience for the developer and high privacy for the users.
+
+## ✨ Features
+
+- **Full Mesh WebRTC**: Direct P2P connections between all participants.
+- **No Server Infrastructure**: Uses Firebase for discovery and PeerJS for signaling.
+- **Dynamic Layout**: Smart video grid that adapts to the number of participants.
+- **Screen Sharing**: High-quality display capture and sharing.
+- **Media Controls**: Professional mute/unmute and camera toggle.
+- **Infinite Rooms**: Create unique meetings with a single click.
+- **SSR Enabled**: Built with Astro SSR for dynamic room routing.
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Astro 5.0, React 19.
+- **Communication**: WebRTC (PeerJS).
+- **Signaling/Discovery**: Firebase Firestore.
+- **Icons**: Lucide React.
+- **Styling**: Pure CSS (Modern Variables, Flexbox, Grid).
+
+## 🚀 Getting Started
+
+### 1. Clone and Install
+```bash
+npm install
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+### 2. Configure Firebase
+Create a project in [Firebase Console](https://console.firebase.google.com/) and enable **Cloud Firestore**.
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+Copy `.env.example` to `.env` and fill in your credentials:
+```bash
+cp .env.example .env
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Required variables:
+- `PUBLIC_FIREBASE_API_KEY`
+- `PUBLIC_FIREBASE_PROJECT_ID`
+- ... (see `.env.example`)
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+### 3. Firestore Rules
+Ensure your Firestore rules allow reading/writing to the `rooms` collection:
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{roomId}/participants/{participantId} {
+      allow read, write: if true; // In production, add proper validation
+    }
+  }
+}
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+### 4. Run Development Server
+```bash
+npm run dev
+```
 
-## 🧞 Commands
+### 5. Build for Production
+```bash
+npm run build
+node ./dist/server/entry.mjs
+```
 
-All commands are run from the root of the project, from a terminal:
+## 🔐 Privacy & Security
+BitMeet uses WebRTC to encrypt media streams end-to-end. Firebase only stores temporary metadata (PeerIDs and presence status) required for participants to find each other. No audio or video data ever touches a server.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+---
+**Built with ❤️ for decentralized communication.**

@@ -1,17 +1,61 @@
----
 
+---
+import '../styles/global.css';
 ---
 
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<title>BitMeet | Decentralized Video Calls</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 	</head>
 	<body>
-		<h1>Astro</h1>
+		<main class="container">
+			<section class="hero">
+        <div class="badge" style="background: var(--card-bg); color: var(--accent); padding: 8px 16px; border-radius: 20px; font-weight: 600; margin-bottom: 1rem;">
+          SECURE & DECENTRALIZED
+        </div>
+				<h1>Connect Freely with <span style="color: var(--accent)">BitMeet</span></h1>
+				<p>High-quality video conferencing without servers. Join instantly via link. No tracking, no latency, just Peer-to-Peer.</p>
+				
+        <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center; width: 100%;">
+          <div class="input-group">
+            <input type="text" id="roomInput" placeholder="Enter Room ID or paste link..." />
+            <button class="btn btn-primary" id="joinBtn">Join Meeting</button>
+          </div>
+          <span style="color: var(--text-secondary); font-size: 0.875rem;">OR</span>
+          <button class="btn btn-primary" id="createBtn" style="padding: 1rem 3rem; font-size: 1.125rem;">Create New Meeting</button>
+        </div>
+			</section>
+		</main>
+
+    <script>
+      import { nanoid } from 'nanoid';
+
+      const createBtn = document.getElementById('createBtn');
+      const joinBtn = document.getElementById('joinBtn');
+      const roomInput = document.getElementById('roomInput') as HTMLInputElement;
+
+      createBtn?.addEventListener('click', () => {
+        const id = nanoid(10);
+        window.location.href = `/room/${id}`;
+      });
+
+      joinBtn?.addEventListener('click', () => {
+        const value = roomInput.value.trim();
+        if (value) {
+          if (value.includes('/room/')) {
+            window.location.href = value;
+          } else {
+            window.location.href = `/room/${value}`;
+          }
+        }
+      });
+    </script>
 	</body>
 </html>
