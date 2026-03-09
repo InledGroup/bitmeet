@@ -3,6 +3,7 @@ import Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
 import { db, joinRoom, leaveRoom, updatePresence, updateName } from '../../lib/firebase';
 import { onSnapshot, collection, serverTimestamp } from 'firebase/firestore';
+import { encryptText, decryptText } from '../../lib/crypto';
 import VideoGrid from './VideoGrid';
 import Controls from './Controls';
 import ChatPanel from './ChatPanel';
@@ -163,17 +164,32 @@ export default function MeetingContainer({ roomId }: Props) {
       connectionsRef.current[conn.peer] = conn;
     });
 
-    conn.on('data', (data: any) => {
+    conn.on('data', async (data: any) => {
       if (data.type === 'chat') {
-        setMessages(prev => [...prev, data.message]);
+        let decryptedText = data.message.text;
+        if (data.message.encrypted) {
+          try {
+            decryptedText = await decryptText(data.message.text, data.message.iv, roomId);
+          } catch (e) {
+            console.error("Failed to decrypt message", e);
+            decryptedText = "🔒 [Mensaje cifrado ilegible]";
+          }
+        }
+        
+        const receivedMessage = {
+          ...data.message,
+          text: decryptedText
+        };
+
+        setMessages(prev => [...prev, receivedMessage]);
         playNotification();
         
         // Mostrar popup si el chat está cerrado y no es un mensaje propio
-        if (!isChatOpen && data.message.senderId !== myParticipantId.current) {
-          setActivePopup(data.message);
+        if (!isChatOpen && receivedMessage.senderId !== myParticipantId.current) {
+          setActivePopup(receivedMessage);
           // Auto-cerrar popup tras 8 segundos
           setTimeout(() => setActivePopup(current => 
-            current?.id === data.message.id ? null : current
+            current?.id === receivedMessage.id ? null : current
           ), 8000);
         }
       }
@@ -242,7 +258,7 @@ export default function MeetingContainer({ roomId }: Props) {
     } : p));
   };
 
-  const sendMessage = (text: string) => {
+  const sendMessage = async (text: string) => {
     const localPart = participants.find(p => p.isLocal);
     const newMessage: Message = {
       id: nanoid(),
@@ -255,12 +271,24 @@ export default function MeetingContainer({ roomId }: Props) {
     setMessages(prev => [...prev, newMessage]);
     setActivePopup(null); // Cerrar popup si respondes
 
-    // Broadcast WebRTC
-    Object.values(connectionsRef.current).forEach(conn => {
-      if (conn.open) {
-        conn.send({ type: 'chat', message: newMessage });
-      }
-    });
+    try {
+      const { ciphertext, iv } = await encryptText(text, roomId);
+      const payload = {
+        ...newMessage,
+        text: ciphertext,
+        iv,
+        encrypted: true
+      };
+
+      // Broadcast WebRTC
+      Object.values(connectionsRef.current).forEach(conn => {
+        if (conn.open) {
+          conn.send({ type: 'chat', message: payload });
+        }
+      });
+    } catch (e) {
+      console.error("Failed to encrypt message", e);
+    }
   };
 
   const updateUserName = (newName: string) => {
@@ -336,6 +364,9 @@ export default function MeetingContainer({ roomId }: Props) {
   return (
     <div className={`meeting-app ${isChatOpen ? 'chat-open' : ''}`}>
       <div className="main-content">
+        <div className="e2ee-badge">
+          🔒 E2EE
+        </div>
         <VideoGrid participants={participants} />
         <Controls 
           onToggleAudio={toggleAudio} 
