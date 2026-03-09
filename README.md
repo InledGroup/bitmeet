@@ -69,4 +69,4 @@ node ./dist/server/entry.mjs
 BitMeet uses WebRTC to encrypt media streams end-to-end. Firebase only stores temporary metadata (PeerIDs and presence status) required for participants to find each other. No audio or video data ever touches a server.
 
 ---
-**Built with ❤️ for decentralized communication.**
+**Hecho con ❤️ por JaimeGH. Made in Spain**
