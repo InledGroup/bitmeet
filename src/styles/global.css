@@ -683,3 +683,144 @@ body {
   pointer-events: none;
   z-index: 4;
 }
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .video-grid.spotlight-mode {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 180px;
+  }
+  
+  .video-grid.spotlight-mode .secondary-videos {
+    flex-direction: row;
+    padding-right: 0;
+    padding-top: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  .secondary-videos .video-wrapper {
+    width: 280px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+  
+  .lobby-card {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .lobby-card h1 {
+    font-size: 1.75rem;
+  }
+
+  .meeting-app {
+    flex-direction: column;
+  }
+
+  .meeting-app.chat-open .chat-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100%;
+    z-index: 200;
+  }
+
+  .controls-bar {
+    bottom: 1rem;
+    padding: 0.5rem 1rem;
+    gap: 0.75rem;
+    width: 95%;
+    justify-content: center;
+  }
+
+  .btn-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .video-grid {
+    height: calc(100vh - 80px);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    padding: 0.5rem;
+  }
+  
+  .video-grid.spotlight-mode .secondary-videos {
+    height: 150px;
+  }
+  
+  .secondary-videos .video-wrapper {
+    width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero h1 {
+    font-size: 2rem;
+  }
+  
+  .container {
+    padding: 1rem;
+  }
+  
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .controls-bar {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+  
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .btn-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .participant-name {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+  }
+  
+  .e2ee-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+}
+
+.hide-mobile {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  .invite-btn {
+    padding: 0.5rem !important;
+    width: 40px;
+    height: 40px;
+    border-radius: 50% !important;
+  }
+  
+  .invite-btn .btn-text {
+    display: none;
+  }
+}

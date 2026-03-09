@@ -40,12 +40,12 @@ export default function Controls({
 
   return (
     <div className="controls-bar">
-      <div className="participants-count" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+      <div className="participants-count hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
         <Users size={20} />
         <span>{participants.length}</span>
       </div>
 
-      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--card-bg)' }} />
+      <div className="hide-mobile" style={{ width: '1px', height: '24px', backgroundColor: 'var(--card-bg)' }} />
 
       <button 
         className={`btn btn-icon ${!localParticipant?.audioEnabled ? 'btn-danger' : 'btn-primary'}`}
@@ -64,7 +64,7 @@ export default function Controls({
       </button>
 
       <button 
-        className={`btn btn-icon ${isScreenSharing ? 'btn-success' : 'btn-primary'}`}
+        className={`btn btn-icon ${isScreenSharing ? 'btn-success' : 'btn-primary'} hide-mobile`}
         style={{ backgroundColor: isScreenSharing ? 'var(--success)' : '' }}
         onClick={onToggleScreenShare}
         title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
@@ -97,11 +97,11 @@ export default function Controls({
         <PhoneOff size={24} />
       </button>
 
-      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--card-bg)' }} />
+      <div className="hide-mobile" style={{ width: '1px', height: '24px', backgroundColor: 'var(--card-bg)' }} />
 
-      <button className="btn btn-primary" onClick={copyLink}>
+      <button className="btn btn-primary invite-btn" onClick={copyLink}>
         {copied ? <Check size={18} /> : <Copy size={18} />}
-        {copied ? 'Copied!' : 'Invite Link'}
+        <span className="btn-text">{copied ? 'Copied!' : 'Invite Link'}</span>
       </button>
     </div>
   );
