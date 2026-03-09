@@ -1,0 +1,113 @@
+
+---
+import '../styles/global.css';
+const { title } = Astro.props;
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} | BitMeet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+	</head>
+	<body>
+    <header class="header">
+      <div class="container nav-content">
+        <a href="/" class="logo">Bit<span style="color: var(--accent)">Meet</span></a>
+        <a href="/" class="btn btn-primary" style="padding: 0.5rem 1rem;">Volver</a>
+      </div>
+    </header>
+
+		<main class="container legal-content">
+      <slot />
+		</main>
+
+    <footer class="footer">
+      <div class="container footer-content">
+        <p>&copy; {new Date().getFullYear()} Inled Group. Code licensed under GNU GPLv3.0.</p>
+        <nav class="footer-links">
+          <a href="/legal/aviso-legal">Aviso Legal</a>
+          <a href="/legal/privacidad">Privacidad</a>
+          <a href="/legal/terminos">Términos</a>
+        </nav>
+      </div>
+    </footer>
+
+    <style>
+      .header {
+        padding: 1.5rem 0;
+        border-bottom: 1px solid var(--card-bg);
+      }
+      .nav-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: white;
+        text-decoration: none;
+      }
+      .legal-content {
+        max-width: 800px;
+        margin-top: 4rem;
+        margin-bottom: 6rem;
+        line-height: 1.7;
+      }
+      :global(.legal-content h1) {
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+        color: white;
+      }
+      :global(.legal-content h2) {
+        font-size: 1.5rem;
+        margin-top: 2.5rem;
+        margin-bottom: 1rem;
+        color: var(--accent);
+      }
+      :global(.legal-content p) {
+        margin-bottom: 1.25rem;
+        color: var(--text-secondary);
+      }
+      :global(.legal-content ul) {
+        margin-bottom: 1.25rem;
+        padding-left: 1.5rem;
+        color: var(--text-secondary);
+      }
+      :global(.legal-content li) {
+        margin-bottom: 0.5rem;
+      }
+
+      .footer {
+        padding: 2rem 0;
+        border-top: 1px solid var(--card-bg);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+      .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+      .footer-links {
+        display: flex;
+        gap: 2rem;
+      }
+      .footer-links a {
+        color: var(--text-secondary);
+        text-decoration: none;
+      }
+      .footer-links a:hover {
+        color: var(--accent);
+      }
+    </style>
+	</body>
+</html>

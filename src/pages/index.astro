@@ -1,4 +1,3 @@
-
 ---
 import '../styles/global.css';
 ---
@@ -18,7 +17,7 @@ import '../styles/global.css';
 		<main class="container">
 			<section class="hero">
         <div class="badge" style="background: var(--card-bg); color: var(--accent); padding: 8px 16px; border-radius: 20px; font-weight: 600; margin-bottom: 1rem;">
-          SECURE & DECENTRALIZED
+          BETA
         </div>
 				<h1>Connect Freely with <span style="color: var(--accent)">BitMeet</span></h1>
 				<p>High-quality video conferencing without servers. Join instantly via link. No tracking, no latency, just Peer-to-Peer.</p>
@@ -31,8 +30,273 @@ import '../styles/global.css';
           <span style="color: var(--text-secondary); font-size: 0.875rem;">OR</span>
           <button class="btn btn-primary" id="createBtn" style="padding: 1rem 3rem; font-size: 1.125rem;">Create New Meeting</button>
         </div>
-			</section>
-		</main>
+      </section>
+
+      <section class="features-section">
+        <div class="section-header">
+          <h2>Absolute Privacy & Freedom</h2>
+          <p>Designed to be secure, fast, and unrestricted.</p>
+        </div>
+        
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h3>Absolute Privacy</h3>
+            <p><strong>P2P</strong> connections via <strong>WebRTC</strong> with end-to-end encryption (E2EE). Your data never touches a central server.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>
+            </div>
+            <h3>Unlimited Connection</h3>
+            <p>No time limits on your calls. Talk as much as you need without interruptions or subscriptions.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <h3>Unlimited Participants</h3>
+            <p>Invite as many participants as your connection and device allow. True decentralization has no limits.</p>
+          </div>
+        </div>
+
+        <div class="image-preview">
+          <img src="/vistageneral.png" alt="BitMeet Interface" class="floating-img" />
+        </div>
+      </section>
+
+      <section class="functions-section">
+        <div class="section-header">
+          <h2>Premium Features for Everyone</h2>
+          <p>All the tools you need for your professional and personal meetings.</p>
+        </div>
+
+        <div class="functions-container">
+          <div class="image-preview">
+            <img src="/lobby.png" alt="BitMeet Lobby" class="floating-img" />
+          </div>
+          
+          <div class="functions-list">
+            <div class="function-item">
+              <div class="function-check">✓</div>
+              <div>
+                <h4>HD Audio & Video</h4>
+                <p>High-fidelity camera and microphone with instant controls.</p>
+              </div>
+            </div>
+            <div class="function-item">
+              <div class="function-check">✓</div>
+              <div>
+                <h4>Screen Sharing</h4>
+                <p>Present your ideas, documents, or code with a single click.</p>
+              </div>
+            </div>
+            <div class="function-item">
+              <div class="function-check">✓</div>
+              <div>
+                <h4>Encrypted Messages</h4>
+                <p>Real-time chat protected by the same end-to-end encryption.</p>
+              </div>
+            </div>
+            <div class="function-item">
+              <div class="function-check">✓</div>
+              <div>
+                <h4>Waiting Room</h4>
+                <p>Set up yout microphone and camera before joining the meeting.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-content">
+        <p>&copy; {new Date().getFullYear()} Inled Group. Code licensed under GNU GPLv3.0.</p>
+        <nav class="footer-links">
+          <a href="/legal/aviso-legal">Legal Notice</a>
+          <a href="/legal/privacidad">Privacy Policy</a>
+          <a href="/legal/terminos">Terms of Service</a>
+        </nav>
+      </div>
+    </footer>
+
+    <style>
+      .features-section, .functions-section {
+        padding: 4rem 0;
+        display: flex;
+        flex-direction: column;
+        gap: 3rem;
+      }
+
+      .section-header {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .section-header h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .section-header p {
+        color: var(--text-secondary);
+        font-size: 1.125rem;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+
+      .feature-card {
+        background-color: var(--bg-secondary);
+        padding: 2.5rem;
+        border-radius: 24px;
+        border: 1px solid var(--card-bg);
+        transition: transform 0.3s ease, border-color 0.3s ease;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--accent);
+      }
+
+      .feature-icon {
+        color: var(--accent);
+        margin-bottom: 1.5rem;
+        background: rgba(79, 70, 229, 0.1);
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+      }
+
+      .feature-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .feature-card p {
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      .image-preview {
+        width: 100%;
+        max-width: 900px;
+        margin: 2rem auto;
+        position: relative;
+      }
+
+      .floating-img {
+        width: 100%;
+        border-radius: 20px;
+        border: 1px solid var(--card-bg);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      }
+
+      .functions-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+      }
+
+      .functions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .function-item {
+        display: flex;
+        gap: 1.5rem;
+        align-items: flex-start;
+      }
+
+      .function-check {
+        background: var(--accent);
+        color: white;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-weight: bold;
+        font-size: 0.875rem;
+      }
+
+      .function-item h4 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .function-item p {
+        color: var(--text-secondary);
+      }
+
+      @media (max-width: 1024px) {
+        .functions-container {
+          grid-template-columns: 1fr;
+        }
+        
+        .functions-container .image-preview {
+          order: 2;
+        }
+      }
+
+      .footer {
+        padding: 2rem 0;
+        border-top: 1px solid var(--card-bg);
+        margin-top: 4rem;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+      }
+
+      .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 2rem;
+      }
+
+      .footer-links a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .footer-links a:hover {
+        color: var(--accent);
+      }
+
+      @media (max-width: 640px) {
+        .footer-content {
+          flex-direction: column;
+          text-align: center;
+        }
+      }
+    </style>
 
     <script>
       import { nanoid } from 'nanoid';

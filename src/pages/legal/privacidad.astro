@@ -1,0 +1,40 @@
+
+---
+import LegalLayout from '../../layouts/LegalLayout.astro';
+---
+
+<LegalLayout title="Política de Privacidad">
+  <h1>Política de Privacidad</h1>
+
+  <p>En BitMeet, la privacidad de tus comunicaciones es nuestra prioridad absoluta. Esta Política de Privacidad describe cómo manejamos la información cuando utilizas nuestro servicio, en estricto cumplimiento del <strong>Reglamento General de Protección de Datos (RGPD) de la UE</strong> y la <strong>Ley Orgánica 3/2018 (LOPDGDD)</strong> de España.</p>
+
+  <h2>1. Responsable del Tratamiento</h2>
+  <p>El responsable del tratamiento de los datos es Jaime González Herráiz (Inled Group), con email de contacto hi@inled.es.</p>
+
+  <h2>2. Datos que Recopilamos y Base Legitimadora</h2>
+  <p>En cumplimiento con el principio de <strong>Minimización de Datos</strong>, BitMeet procesa los siguientes datos técnicos:</p>
+  <ul>
+    <li><strong>Identificadores Técnicos (Peer IDs e IPs):</strong> Para establecer la conexión Punto a Punto mediante WebRTC.</li>
+    <li><strong>Identificador de Sala y Nombre de Participante:</strong> Datos temporales para la organización de la sesión.</li>
+  </ul>
+  <p><strong>Base legal:</strong> El tratamiento es estrictamente necesario para la prestación del servicio de comunicaciones solicitado (Art. 6.1.b RGPD). <strong>No se recogen datos con fines publicitarios, analíticos ni de rastreo comercial.</strong></p>
+
+  <h2>3. Cifrado de Extremo a Extremo (E2EE)</h2>
+  <p>BitMeet implementa un diseño de <strong>Privacidad por Defecto</strong>:</p>
+  <ul>
+    <li><strong>Media (Audio y Vídeo):</strong> Se transmite directamente entre navegadores (P2P) y nunca pasa por los servidores de BitMeet.</li>
+    <li><strong>Datos de Sesión (Chat y Señalización):</strong> Cifrados con AES-GCM 256-bit. Las claves de cifrado se generan localmente en tu dispositivo y nunca se transmiten al servidor. <strong>Es técnicamente imposible que el titular acceda al contenido de tus comunicaciones.</strong></li>
+  </ul>
+
+  <h2>4. Destinatarios y Transferencias Internacionales</h2>
+  <p>Utilizamos <strong>Firebase (Google Cloud)</strong> para la señalización técnica. Al ser una plataforma global, los metadatos de conexión técnica podrían procesarse fuera de la UE. Esta transferencia está regulada por el <strong>Marco de Privacidad de Datos UE-EE.UU.</strong> y Cláusulas Contractuales Tipo, garantizando un nivel de protección adecuado según el RGPD.</p>
+
+  <h2>5. Plazo de Conservación y Retención de Datos</h2>
+  <p>No almacenamos ni grabamos tus llamadas. Todos los metadatos técnicos de señalización son <strong>efímeros</strong> y se eliminan automáticamente tras finalizar la sesión. BitMeet <strong>no retiene registros de actividad</strong> de quién se comunicó con quién una vez finalizada la sesión técnica necesaria para la conexión.</p>
+
+  <h2>6. Derechos de los Usuarios</h2>
+  <p>Tienes derecho a acceder, rectificar o suprimir tus datos. Dado que BitMeet no vincula sesiones a identidades reales permanentes, la supresión se ejerce automáticamente al cerrar el navegador o la sala. Puedes contactar con hi@inled.es para cualquier consulta o dirigirte a la <strong>Agencia Española de Protección de Datos (AEPD)</strong> para presentar una reclamación.</p>
+
+  <h2>7. Cookies</h2>
+  <p>BitMeet <strong>no utiliza cookies de seguimiento ni publicidad</strong>. Únicamente empleamos el almacenamiento local del navegador (LocalStorage) para fines técnicos (Art. 22.2 LSSICE), como recordar el estado de tu micrófono/cámara durante la sesión. No se requiere banner de cookies al ser uso estrictamente técnico.</p>
+</LegalLayout>
