@@ -38,7 +38,7 @@ export default function MessagePopup({ message, onReply, onClose }: Props) {
       <form className="popup-footer" onSubmit={handleSubmit}>
         <input 
           type="text" 
-          placeholder="Responder..." 
+          placeholder="Reply..." 
           value={replyText}
           onChange={(e) => setReplyText(e.target.value)}
           autoFocus

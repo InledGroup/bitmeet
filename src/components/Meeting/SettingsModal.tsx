@@ -22,13 +22,13 @@ export default function SettingsModal({ userName, onUpdateName, onClose }: Props
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h2>Ajustes</h2>
+          <h2>Settings</h2>
           <button className="btn-close" onClick={onClose}><X size={24} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="settings-form">
           <div className="form-group">
-            <label htmlFor="display-name">Tu Nombre</label>
+            <label htmlFor="display-name">Your Name</label>
             <div className="input-with-icon">
               <User size={20} />
               <input 
@@ -36,13 +36,13 @@ export default function SettingsModal({ userName, onUpdateName, onClose }: Props
                 type="text" 
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
-                placeholder="Escribe tu nombre..."
+                placeholder="Type your name..."
               />
             </div>
           </div>
           
           <button type="submit" className="btn btn-primary btn-block">
-            Guardar cambios
+            Save changes
           </button>
         </form>
       </div>

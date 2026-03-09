@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Maximize2, Minimize2, Pin, PinOff } from 'lucide-react';
+import { Maximize2, Minimize2, Pin, PinOff, MicOff, Monitor } from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -56,8 +56,16 @@ function Video({ participant, isFocused, onFocus }: VideoProps) {
       
       <div className="participant-name">
         {participant.name} {participant.isLocal && <span className="badge badge-me">Me</span>}
-        {!participant.audioEnabled && <span style={{marginLeft: '8px', color: '#ef4444'}}>🔇</span>}
-        {participant.isScreenSharing && <span style={{marginLeft: '8px', color: 'var(--accent)'}}>📺</span>}
+        {!participant.audioEnabled && (
+          <span className="status-indicator mute-indicator">
+            <MicOff size={14} />
+          </span>
+        )}
+        {participant.isScreenSharing && (
+          <span className="status-indicator screen-indicator">
+            <Monitor size={14} />
+          </span>
+        )}
       </div>
 
       {!shouldShowVideo && (

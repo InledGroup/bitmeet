@@ -64,7 +64,7 @@ export default function ChatPanel({ messages, onSendMessage, onClose, localParti
       <form className="chat-input" onSubmit={handleSubmit}>
         <input 
           type="text" 
-          placeholder="Escribe un mensaje..." 
+          placeholder="Type a message..." 
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
         />

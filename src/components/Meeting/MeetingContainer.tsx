@@ -51,7 +51,7 @@ export default function MeetingContainer({ roomId }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const myParticipantId = useRef(nanoid());
 
-  // Inicializar sonido
+  // Initialize sound
   useEffect(() => {
     audioRef.current = new Audio('/notify.mp3');
   }, []);
@@ -74,7 +74,7 @@ export default function MeetingContainer({ roomId }: Props) {
     peerRef.current = peer;
 
     peer.on('open', (peerId) => {
-      joinRoom(roomId, myParticipantId.current, peerId, settings.name);
+      joinRoom(roomId, myParticipantId.current, peerId, settings.name, settings.audioEnabled, settings.videoEnabled);
       setIsPeerReady(true);
       setParticipants([{
         id: myParticipantId.current, peerId, stream: settings.stream, name: settings.name,
@@ -89,7 +89,7 @@ export default function MeetingContainer({ roomId }: Props) {
     });
 
     peer.on('connection', (conn) => {
-      setupDataConnection(conn);
+      setupDataConnection(conn, settings.name, settings.audioEnabled, settings.videoEnabled);
     });
 
     peer.on('call', (call) => {
@@ -133,6 +133,9 @@ export default function MeetingContainer({ roomId }: Props) {
         }
 
         if (change.type === 'added') {
+          // Primero intentamos actualizar si ya existe (por stream recibido antes de snapshot)
+          updateParticipantStatus(participantId, data);
+          // Luego iniciamos la llamada si es necesario
           initiateCall(data.peerId, participantId, data);
         } else if (change.type === 'removed') {
           removeParticipantById(participantId);
@@ -146,9 +149,9 @@ export default function MeetingContainer({ roomId }: Props) {
   }, [isPeerReady, localStream, roomId]);
 
 
-  const setupCallListeners = (call: any) => {
+  const setupCallListeners = (call: any, id?: string, name?: string, initialData?: any) => {
     call.on('stream', (remoteStream: MediaStream) => {
-      handleRemoteStream(call.peer, remoteStream);
+      handleRemoteStream(call.peer, remoteStream, id, name, initialData);
     });
     
     call.on('close', () => {
@@ -159,20 +162,36 @@ export default function MeetingContainer({ roomId }: Props) {
     callsRef.current[call.peer] = call;
   };
 
-  const setupDataConnection = (conn: DataConnection) => {
+  const setupDataConnection = (conn: DataConnection, currentName?: string, currentAudio?: boolean, currentVideo?: boolean) => {
     conn.on('open', () => {
       connectionsRef.current[conn.peer] = conn;
+      
+      // Send our initial status to the new connection
+      // Usamos los valores pasados para evitar depender de participantes que aún no se han guardado
+      conn.send({ 
+        type: 'status', 
+        audio: currentAudio !== undefined ? currentAudio : (participants.find(p => p.isLocal)?.audioEnabled ?? true), 
+        video: currentVideo !== undefined ? currentVideo : (participants.find(p => p.isLocal)?.videoEnabled ?? true),
+        name: currentName || userName
+      });
     });
 
     conn.on('data', async (data: any) => {
-      if (data.type === 'chat') {
+      if (data.type === 'status') {
+        setParticipants(prev => prev.map(p => p.peerId === conn.peer ? {
+          ...p,
+          audioEnabled: data.audio !== undefined ? data.audio : p.audioEnabled,
+          videoEnabled: data.video !== undefined ? data.video : p.videoEnabled,
+          name: data.name || p.name
+        } : p));
+      } else if (data.type === 'chat') {
         let decryptedText = data.message.text;
         if (data.message.encrypted) {
           try {
             decryptedText = await decryptText(data.message.text, data.message.iv, roomId);
           } catch (e) {
             console.error("Failed to decrypt message", e);
-            decryptedText = "🔒 [Mensaje cifrado ilegible]";
+            decryptedText = "🔒 [Unreadable encrypted message]";
           }
         }
         
@@ -184,10 +203,10 @@ export default function MeetingContainer({ roomId }: Props) {
         setMessages(prev => [...prev, receivedMessage]);
         playNotification();
         
-        // Mostrar popup si el chat está cerrado y no es un mensaje propio
+        // Show popup if chat is closed and it's not our own message
         if (!isChatOpen && receivedMessage.senderId !== myParticipantId.current) {
           setActivePopup(receivedMessage);
-          // Auto-cerrar popup tras 8 segundos
+          // Auto-close popup after 8 seconds
           setTimeout(() => setActivePopup(current => 
             current?.id === receivedMessage.id ? null : current
           ), 8000);
@@ -207,18 +226,25 @@ export default function MeetingContainer({ roomId }: Props) {
     
     // Connect Data (Chat)
     const conn = peerRef.current.connect(remotePeerId);
-    setupDataConnection(conn);
+    setupDataConnection(conn, userName, participants.find(p => p.isLocal)?.audioEnabled, participants.find(p => p.isLocal)?.videoEnabled);
 
     // Connect Media
     const streamToShare = screenStreamRef.current || localStream;
     const call = peerRef.current.call(remotePeerId, streamToShare);
-    setupCallListeners(call);
+    setupCallListeners(call, id, data.name, data);
   };
 
   const handleRemoteStream = (peerId: string, stream: MediaStream, id?: string, name?: string, initialData?: any) => {
     setParticipants(prev => {
       const exists = prev.find(p => p.peerId === peerId);
-      if (exists) return prev.map(p => p.peerId === peerId ? { ...p, stream } : p);
+      if (exists) {
+        return prev.map(p => p.peerId === peerId ? { 
+          ...p, 
+          stream,
+          id: id || p.id,
+          name: (name && name !== `User-${peerId.slice(0,4)}`) ? name : p.name
+        } : p);
+      }
       return [...prev, {
         id: id || peerId, peerId, stream, name: name || `User-${peerId.slice(0,4)}`,
         isLocal: false, audioEnabled: initialData?.audio ?? true,
@@ -249,13 +275,19 @@ export default function MeetingContainer({ roomId }: Props) {
   };
 
   const updateParticipantStatus = (id: string, data: any) => {
-    setParticipants(prev => prev.map(p => p.id === id ? { 
-      ...p, 
-      name: data.name || p.name,
-      audioEnabled: data.audio, 
-      videoEnabled: data.video, 
-      isScreenSharing: data.isScreenSharing 
-    } : p));
+    setParticipants(prev => {
+      const exists = prev.find(p => p.id === id || p.peerId === data.peerId);
+      if (!exists) return prev;
+      
+      return prev.map(p => (p.id === id || p.peerId === data.peerId) ? { 
+        ...p, 
+        id: id, // Asegurar que usamos el ID de Firestore
+        name: data.name || p.name,
+        audioEnabled: data.audio !== undefined ? data.audio : p.audioEnabled, 
+        videoEnabled: data.video !== undefined ? data.video : p.videoEnabled, 
+        isScreenSharing: data.isScreenSharing !== undefined ? data.isScreenSharing : p.isScreenSharing 
+      } : p);
+    });
   };
 
   const sendMessage = async (text: string) => {
@@ -295,6 +327,13 @@ export default function MeetingContainer({ roomId }: Props) {
     setUserName(newName);
     localStorage.setItem('bitmeet-name', newName);
     updateName(roomId, myParticipantId.current, newName);
+    
+    // Broadcast name change via WebRTC
+    Object.values(connectionsRef.current).forEach(conn => {
+      if (conn.open) {
+        conn.send({ type: 'status', name: newName });
+      }
+    });
   };
 
   const toggleAudio = () => {
@@ -303,6 +342,13 @@ export default function MeetingContainer({ roomId }: Props) {
       track.enabled = !track.enabled;
       updatePresence(roomId, myParticipantId.current, { audio: track.enabled });
       setParticipants(prev => prev.map(p => p.isLocal ? { ...p, audioEnabled: track.enabled } : p));
+      
+      // Broadcast WebRTC status update
+      Object.values(connectionsRef.current).forEach(conn => {
+        if (conn.open) {
+          conn.send({ type: 'status', audio: track.enabled });
+        }
+      });
     }
   };
 
@@ -312,6 +358,13 @@ export default function MeetingContainer({ roomId }: Props) {
       track.enabled = !track.enabled;
       updatePresence(roomId, myParticipantId.current, { video: track.enabled });
       setParticipants(prev => prev.map(p => p.isLocal ? { ...p, videoEnabled: track.enabled } : p));
+
+      // Broadcast WebRTC status update
+      Object.values(connectionsRef.current).forEach(conn => {
+        if (conn.open) {
+          conn.send({ type: 'status', video: track.enabled });
+        }
+      });
     }
   };
 

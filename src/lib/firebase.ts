@@ -14,13 +14,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-export const joinRoom = async (roomId: string, participantId: string, peerId: string, name?: string) => {
+export const joinRoom = async (roomId: string, participantId: string, peerId: string, name?: string, audio: boolean = true, video: boolean = true) => {
   const roomRef = doc(db, 'rooms', roomId, 'participants', participantId);
   await setDoc(roomRef, {
     peerId,
     joinedAt: serverTimestamp(),
-    audio: true,
-    video: true,
+    audio,
+    video,
     name: name || `User-${participantId.slice(0, 4)}`
   });
   return roomRef;

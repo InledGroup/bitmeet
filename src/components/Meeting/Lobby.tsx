@@ -27,14 +27,14 @@ export default function Lobby({ onJoin, initialName }: Props) {
         }
       } catch (err) {
         console.error("Error accessing media:", err);
-        setError("No se pudo acceder a la cámara o el micrófono. Por favor, asegúrate de dar los permisos necesarios.");
+        setError("Could not access camera or microphone. Please make sure to grant the necessary permissions.");
       }
     }
     getMedia();
 
     return () => {
-      // No detenemos los tracks aquí para pasarlos a la reunión, 
-      // pero si el componente se desmonta sin unirse, se deberían limpiar.
+      // We don't stop the tracks here to pass them to the meeting,
+      // but if the component unmounts without joining, they should be cleaned up.
     };
   }, []);
 
@@ -67,8 +67,8 @@ export default function Lobby({ onJoin, initialName }: Props) {
   return (
     <div className="lobby-container">
       <div className="lobby-card">
-        <h1>Configura tu entrada</h1>
-        <p>Asegúrate de que todo funciona correctamente antes de unirte.</p>
+        <h1>Set up your entry</h1>
+        <p>Make sure everything is working correctly before joining.</p>
 
         <div className="preview-area">
           <div className={`video-preview ${!videoEnabled ? 'hidden' : ''}`}>
@@ -103,7 +103,7 @@ export default function Lobby({ onJoin, initialName }: Props) {
             <User size={20} />
             <input 
               type="text" 
-              placeholder="Tu nombre" 
+              placeholder="Your name" 
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -113,7 +113,7 @@ export default function Lobby({ onJoin, initialName }: Props) {
             disabled={!stream || !name.trim()}
             onClick={handleJoin}
           >
-            Unirse a la reunión
+            Join meeting
           </button>
         </div>
       </div>
