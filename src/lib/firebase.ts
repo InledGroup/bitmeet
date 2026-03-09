@@ -14,16 +14,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-export const joinRoom = async (roomId: string, participantId: string, peerId: string) => {
+export const joinRoom = async (roomId: string, participantId: string, peerId: string, name?: string) => {
   const roomRef = doc(db, 'rooms', roomId, 'participants', participantId);
   await setDoc(roomRef, {
     peerId,
     joinedAt: serverTimestamp(),
     audio: true,
     video: true,
-    name: `User-${participantId.slice(0, 4)}`
+    name: name || `User-${participantId.slice(0, 4)}`
   });
   return roomRef;
+};
+
+export const updateName = async (roomId: string, participantId: string, name: string) => {
+  const roomRef = doc(db, 'rooms', roomId, 'participants', participantId);
+  await updateDoc(roomRef, { name });
 };
 
 export const leaveRoom = async (roomId: string, participantId: string) => {
@@ -35,7 +40,10 @@ export const leaveRoom = async (roomId: string, participantId: string) => {
   }
 };
 
-export const updatePresence = async (roomId: string, participantId: string, status: { audio?: boolean; video?: boolean }) => {
+export const updatePresence = async (roomId: string, participantId: string, status: { audio?: boolean; video?: boolean; isScreenSharing?: boolean; lastSeen?: any }) => {
   const roomRef = doc(db, 'rooms', roomId, 'participants', participantId);
-  await updateDoc(roomRef, status);
+  await updateDoc(roomRef, {
+    ...status,
+    lastSeen: serverTimestamp()
+  });
 };

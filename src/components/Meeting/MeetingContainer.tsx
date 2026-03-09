@@ -1,10 +1,14 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import Peer from 'peerjs';
-import { db, joinRoom, leaveRoom, updatePresence } from '../../lib/firebase';
-import { onSnapshot, collection } from 'firebase/firestore';
+import type { DataConnection } from 'peerjs';
+import { db, joinRoom, leaveRoom, updatePresence, updateName } from '../../lib/firebase';
+import { onSnapshot, collection, serverTimestamp } from 'firebase/firestore';
 import VideoGrid from './VideoGrid';
 import Controls from './Controls';
+import ChatPanel from './ChatPanel';
+import SettingsModal from './SettingsModal';
+import MessagePopup from './MessagePopup';
+import Lobby from './Lobby';
 import { nanoid } from 'nanoid';
 
 interface Participant {
@@ -18,6 +22,14 @@ interface Participant {
   isScreenSharing?: boolean;
 }
 
+interface Message {
+  id: string;
+  senderName: string;
+  senderId: string;
+  text: string;
+  timestamp: number;
+}
+
 interface Props {
   roomId: string;
 }
@@ -25,72 +37,70 @@ interface Props {
 export default function MeetingContainer({ roomId }: Props) {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [isJoined, setIsJoined] = useState(false);
   const [isPeerReady, setIsPeerReady] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [activePopup, setActivePopup] = useState<Message | null>(null);
+  const [userName, setUserName] = useState(() => localStorage.getItem('bitmeet-name') || '');
   
   const peerRef = useRef<Peer | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const myParticipantId = useRef(nanoid());
+
+  // Inicializar sonido
+  useEffect(() => {
+    audioRef.current = new Audio('/notify.mp3');
+  }, []);
+
+  const playNotification = () => {
+    if (audioRef.current) {
+      audioRef.current.play().catch(e => console.warn("Error playing sound", e));
+    }
+  };
   const callsRef = useRef<Record<string, any>>({});
+  const connectionsRef = useRef<Record<string, DataConnection>>({});
   const screenStreamRef = useRef<MediaStream | null>(null);
 
-  // 1. Setup Media & Peer + Cleanup
+  const startMeeting = async (settings: { name: string; audioEnabled: boolean; videoEnabled: boolean; stream: MediaStream }) => {
+    setLocalStream(settings.stream);
+    setUserName(settings.name);
+    localStorage.setItem('bitmeet-name', settings.name);
+    
+    const peer = new Peer();
+    peerRef.current = peer;
+
+    peer.on('open', (peerId) => {
+      joinRoom(roomId, myParticipantId.current, peerId, settings.name);
+      setIsPeerReady(true);
+      setParticipants([{
+        id: myParticipantId.current, peerId, stream: settings.stream, name: settings.name,
+        isLocal: true, audioEnabled: settings.audioEnabled, videoEnabled: settings.videoEnabled, isScreenSharing: false
+      }]);
+      setIsJoined(true);
+
+      // Heartbeat
+      setInterval(() => {
+        updatePresence(roomId, myParticipantId.current, {});
+      }, 5000);
+    });
+
+    peer.on('connection', (conn) => {
+      setupDataConnection(conn);
+    });
+
+    peer.on('call', (call) => {
+      call.answer(screenStreamRef.current || settings.stream);
+      setupCallListeners(call);
+    });
+  };
+
   useEffect(() => {
-    let active = true;
-
-    async function init() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
-        if (!active) return;
-        setLocalStream(stream);
-        
-        const peer = new Peer();
-        peerRef.current = peer;
-
-        peer.on('open', (peerId) => {
-          if (!active) return;
-          console.log('[BitMeet] Peer opened:', peerId);
-          
-          setParticipants([{
-            id: myParticipantId.current,
-            peerId,
-            stream,
-            name: 'Me',
-            isLocal: true,
-            audioEnabled: true,
-            videoEnabled: true,
-            isScreenSharing: false
-          }]);
-
-          joinRoom(roomId, myParticipantId.current, peerId);
-          setIsPeerReady(true);
-        });
-
-        peer.on('call', (call) => {
-          console.log('[BitMeet] Incoming call from:', call.peer);
-          // Responder con el stream actual (sea pantalla o cámara)
-          const streamToShare = screenStreamRef.current || stream;
-          call.answer(streamToShare);
-          
-          call.on('stream', (remoteStream) => {
-            console.log('[BitMeet] Received remote stream from:', call.peer);
-            handleRemoteStream(call.peer, remoteStream);
-          });
-
-          callsRef.current[call.peer] = call;
-        });
-
-      } catch (err) {
-        console.error('[BitMeet] Init error:', err);
-      }
-    }
-
-    init();
+    if (!isJoined) return;
 
     const cleanup = () => {
-      active = false;
       leaveRoom(roomId, myParticipantId.current);
       if (peerRef.current) peerRef.current.destroy();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
@@ -102,9 +112,9 @@ export default function MeetingContainer({ roomId }: Props) {
       window.removeEventListener('beforeunload', cleanup);
       cleanup();
     };
-  }, [roomId]);
+  }, [isJoined, roomId]);
 
-  // 2. Discovery
+  // 2. Discovery & Synchronization
   useEffect(() => {
     if (!isPeerReady || !localStream || !peerRef.current) return;
 
@@ -114,12 +124,17 @@ export default function MeetingContainer({ roomId }: Props) {
         const data = change.doc.data();
         const participantId = change.doc.id;
         
-        if (participantId === myParticipantId.current) return;
+        if (participantId === myParticipantId.current) {
+          if (change.type === 'modified') {
+             setParticipants(prev => prev.map(p => p.isLocal ? { ...p, name: data.name } : p));
+          }
+          return;
+        }
 
         if (change.type === 'added') {
           initiateCall(data.peerId, participantId, data);
         } else if (change.type === 'removed') {
-          removeParticipant(participantId);
+          removeParticipantById(participantId);
         } else if (change.type === 'modified') {
           updateParticipantStatus(participantId, data);
         }
@@ -129,39 +144,74 @@ export default function MeetingContainer({ roomId }: Props) {
     return () => unsubscribe();
   }, [isPeerReady, localStream, roomId]);
 
-  const initiateCall = (remotePeerId: string, id: string, data: any) => {
-    if (!peerRef.current || !localStream) return;
-    if (callsRef.current[remotePeerId]) return;
 
-    const streamToShare = screenStreamRef.current || localStream;
-    console.log('[BitMeet] Calling:', remotePeerId);
-    const call = peerRef.current.call(remotePeerId, streamToShare);
-    callsRef.current[remotePeerId] = call;
-
-    call.on('stream', (remoteStream) => {
-      handleRemoteStream(remotePeerId, remoteStream, id, data.name, data);
+  const setupCallListeners = (call: any) => {
+    call.on('stream', (remoteStream: MediaStream) => {
+      handleRemoteStream(call.peer, remoteStream);
     });
+    
+    call.on('close', () => {
+      console.log('[BitMeet] Call closed by peer:', call.peer);
+      removeParticipantByPeerId(call.peer);
+    });
+
+    callsRef.current[call.peer] = call;
+  };
+
+  const setupDataConnection = (conn: DataConnection) => {
+    conn.on('open', () => {
+      connectionsRef.current[conn.peer] = conn;
+    });
+
+    conn.on('data', (data: any) => {
+      if (data.type === 'chat') {
+        setMessages(prev => [...prev, data.message]);
+        playNotification();
+        
+        // Mostrar popup si el chat está cerrado y no es un mensaje propio
+        if (!isChatOpen && data.message.senderId !== myParticipantId.current) {
+          setActivePopup(data.message);
+          // Auto-cerrar popup tras 8 segundos
+          setTimeout(() => setActivePopup(current => 
+            current?.id === data.message.id ? null : current
+          ), 8000);
+        }
+      }
+    });
+
+    conn.on('close', () => {
+      delete connectionsRef.current[conn.peer];
+    });
+  };
+
+  const initiateCall = (remotePeerId: string, id: string, data: any) => {
+    if (!peerRef.current || !localStream || callsRef.current[remotePeerId]) return;
+
+    console.log('[BitMeet] Calling peer:', remotePeerId);
+    
+    // Connect Data (Chat)
+    const conn = peerRef.current.connect(remotePeerId);
+    setupDataConnection(conn);
+
+    // Connect Media
+    const streamToShare = screenStreamRef.current || localStream;
+    const call = peerRef.current.call(remotePeerId, streamToShare);
+    setupCallListeners(call);
   };
 
   const handleRemoteStream = (peerId: string, stream: MediaStream, id?: string, name?: string, initialData?: any) => {
     setParticipants(prev => {
       const exists = prev.find(p => p.peerId === peerId);
       if (exists) return prev.map(p => p.peerId === peerId ? { ...p, stream } : p);
-      
       return [...prev, {
-        id: id || peerId,
-        peerId,
-        stream,
-        name: name || `User-${peerId.slice(0,4)}`,
-        isLocal: false,
-        audioEnabled: initialData?.audio ?? true,
-        videoEnabled: initialData?.video ?? true,
-        isScreenSharing: initialData?.isScreenSharing ?? false
+        id: id || peerId, peerId, stream, name: name || `User-${peerId.slice(0,4)}`,
+        isLocal: false, audioEnabled: initialData?.audio ?? true,
+        videoEnabled: initialData?.video ?? true, isScreenSharing: initialData?.isScreenSharing ?? false
       }];
     });
   };
 
-  const removeParticipant = (id: string) => {
+  const removeParticipantById = (id: string) => {
     setParticipants(prev => {
       const p = prev.find(p => p.id === id);
       if (p && callsRef.current[p.peerId]) {
@@ -172,13 +222,51 @@ export default function MeetingContainer({ roomId }: Props) {
     });
   };
 
+  const removeParticipantByPeerId = (peerId: string) => {
+    setParticipants(prev => {
+      if (callsRef.current[peerId]) {
+        callsRef.current[peerId].close();
+        delete callsRef.current[peerId];
+      }
+      return prev.filter(p => p.peerId !== peerId);
+    });
+  };
+
   const updateParticipantStatus = (id: string, data: any) => {
     setParticipants(prev => prev.map(p => p.id === id ? { 
       ...p, 
+      name: data.name || p.name,
       audioEnabled: data.audio, 
-      videoEnabled: data.video,
+      videoEnabled: data.video, 
       isScreenSharing: data.isScreenSharing 
     } : p));
+  };
+
+  const sendMessage = (text: string) => {
+    const localPart = participants.find(p => p.isLocal);
+    const newMessage: Message = {
+      id: nanoid(),
+      senderName: localPart?.name || 'Me',
+      senderId: myParticipantId.current,
+      text,
+      timestamp: Date.now(),
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    setActivePopup(null); // Cerrar popup si respondes
+
+    // Broadcast WebRTC
+    Object.values(connectionsRef.current).forEach(conn => {
+      if (conn.open) {
+        conn.send({ type: 'chat', message: newMessage });
+      }
+    });
+  };
+
+  const updateUserName = (newName: string) => {
+    setUserName(newName);
+    localStorage.setItem('bitmeet-name', newName);
+    updateName(roomId, myParticipantId.current, newName);
   };
 
   const toggleAudio = () => {
@@ -204,16 +292,9 @@ export default function MeetingContainer({ roomId }: Props) {
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = displayStream.getVideoTracks()[0];
-        
-        // Crear stream combinado (Video de pantalla + Audio original de cámara)
-        const combinedStream = new MediaStream([
-          screenTrack,
-          ...localStream.getAudioTracks()
-        ]);
-        
+        const combinedStream = new MediaStream([screenTrack, ...localStream.getAudioTracks()]);
         screenStreamRef.current = combinedStream;
 
-        // Reemplazar tracks de video en todas las llamadas activas
         Object.values(callsRef.current).forEach((call: any) => {
           if (call.peerConnection) {
             const sender = call.peerConnection.getSenders().find((s: any) => s.track?.kind === 'video');
@@ -224,14 +305,9 @@ export default function MeetingContainer({ roomId }: Props) {
         updatePresence(roomId, myParticipantId.current, { isScreenSharing: true });
         setIsScreenSharing(true);
         setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: combinedStream, isScreenSharing: true } : p));
-
         screenTrack.onended = () => stopScreenShare();
-      } catch (err) {
-        console.error("[BitMeet] Screen share error:", err);
-      }
-    } else {
-      stopScreenShare();
-    }
+      } catch (err) { console.error("[BitMeet] Screen share error:", err); }
+    } else { stopScreenShare(); }
   };
 
   const stopScreenShare = () => {
@@ -253,18 +329,54 @@ export default function MeetingContainer({ roomId }: Props) {
     setIsScreenSharing(false);
   };
 
+  if (!isJoined) {
+    return <Lobby initialName={userName} onJoin={startMeeting} />;
+  }
+
   return (
-    <div className="meeting-app">
-      <VideoGrid participants={participants} />
-      <Controls 
-        onToggleAudio={toggleAudio} 
-        onToggleVideo={toggleVideo}
-        onToggleScreenShare={toggleScreenShare}
-        isScreenSharing={isScreenSharing}
-        participants={participants}
-        roomId={roomId}
-        localParticipant={participants.find(p => p.isLocal)}
-      />
+    <div className={`meeting-app ${isChatOpen ? 'chat-open' : ''}`}>
+      <div className="main-content">
+        <VideoGrid participants={participants} />
+        <Controls 
+          onToggleAudio={toggleAudio} 
+          onToggleVideo={toggleVideo} 
+          onToggleScreenShare={toggleScreenShare} 
+          onToggleChat={() => setIsChatOpen(!isChatOpen)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          isScreenSharing={isScreenSharing} 
+          isChatOpen={isChatOpen}
+          participants={participants} 
+          roomId={roomId} 
+          localParticipant={participants.find(p => p.isLocal)} 
+        />
+      </div>
+
+      {isChatOpen && (
+        <ChatPanel 
+          messages={messages} 
+          onSendMessage={sendMessage} 
+          onClose={() => setIsChatOpen(false)}
+          localParticipantId={myParticipantId.current}
+        />
+      )}
+
+      {isSettingsOpen && (
+        <SettingsModal 
+          userName={userName} 
+          onUpdateName={updateUserName} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
+      )}
+
+      {activePopup && !isChatOpen && (
+        <MessagePopup 
+          message={activePopup} 
+          onReply={sendMessage} 
+          onClose={() => setActivePopup(null)} 
+        />
+      )}
     </div>
   );
 }
+
+

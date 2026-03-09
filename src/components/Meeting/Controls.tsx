@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Copy, Check, Users, MonitorUp, MonitorOff } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Copy, Check, Users, MonitorUp, MonitorOff, MessageSquare, Settings } from 'lucide-react';
 
 interface Props {
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
+  onToggleChat: () => void;
+  onOpenSettings: () => void;
   isScreenSharing: boolean;
+  isChatOpen: boolean;
   participants: any[];
   roomId: string;
   localParticipant?: any;
@@ -15,7 +18,10 @@ export default function Controls({
   onToggleAudio, 
   onToggleVideo, 
   onToggleScreenShare,
+  onToggleChat,
+  onOpenSettings,
   isScreenSharing,
+  isChatOpen,
   participants, 
   roomId,
   localParticipant 
@@ -64,6 +70,23 @@ export default function Controls({
         title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
       >
         {isScreenSharing ? <MonitorOff size={24} /> : <MonitorUp size={24} />}
+      </button>
+
+      <button 
+        className={`btn btn-icon ${isChatOpen ? 'btn-accent' : 'btn-primary'}`}
+        style={{ backgroundColor: isChatOpen ? 'var(--accent)' : '' }}
+        onClick={onToggleChat}
+        title="Chat"
+      >
+        <MessageSquare size={24} />
+      </button>
+
+      <button 
+        className="btn btn-icon btn-primary"
+        onClick={onOpenSettings}
+        title="Settings"
+      >
+        <Settings size={24} />
       </button>
 
       <button 
