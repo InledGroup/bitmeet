@@ -176,6 +176,14 @@ export class IndexedDBChatRepository implements IChatRepository {
     }
   }
 
+  async markAsRead(chatId: string): Promise<void> {
+    const chat = await this.getChat(chatId);
+    if (chat) {
+      chat.lastReadTimestamp = Date.now();
+      await this.saveChat(chat);
+    }
+  }
+
   private promisify(request: IDBRequest): Promise<any> {
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);

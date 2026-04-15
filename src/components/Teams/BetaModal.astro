@@ -1,0 +1,93 @@
+---
+// BetaModal.astro
+---
+<div id="beta-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card beta-card">
+        <div class="beta-icon">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        </div>
+        <div class="beta-content">
+            <h2>Función en fase Beta</h2>
+            <p>La sección de <strong>Llamadas y Calendario</strong> se encuentra actualmente en desarrollo activo.</p>
+            <p>Estamos trabajando para ofrecerte una experiencia P2P completa. Algunas funciones pueden ser inestables o estar limitadas temporalmente.</p>
+        </div>
+        <div class="beta-actions">
+            <button id="btn-beta-close" class="apple-button primary">Entendido</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.4);
+        backdrop-filter: blur(10px) saturate(150%);
+        z-index: 6000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .beta-card {
+        background: #FFFFFF;
+        width: 400px;
+        padding: 32px;
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        animation: slideInUp 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+    .beta-icon {
+        color: #FF9500;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .beta-content h2 {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #1D1D1F;
+    }
+
+    .beta-content p {
+        font-size: 15px;
+        color: #86868B;
+        line-height: 1.5;
+        margin-bottom: 16px;
+    }
+
+    .beta-actions {
+        margin-top: 24px;
+    }
+
+    .apple-button.primary {
+        background: var(--apple-accent);
+        color: white;
+        border: none;
+        padding: 12px 32px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: transform 0.2s, background 0.2s;
+    }
+    .apple-button.primary:hover {
+        background: #0062CC;
+        transform: scale(1.02);
+    }
+    .apple-button.primary:active {
+        transform: scale(0.98);
+    }
+</style>

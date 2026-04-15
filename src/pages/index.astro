@@ -11,6 +11,7 @@ import CallsPanel from '../components/Teams/CallsPanel.astro';
 import GroupModal from '../components/Teams/GroupModal.astro';
 
 import CalendarArea from '../components/Teams/CalendarArea.astro';
+import BetaModal from '../components/Teams/BetaModal.astro';
 import CallOverlay from '../components/Teams/CallOverlay';
 import '../styles/global.css';
 ---
@@ -30,6 +31,7 @@ import '../styles/global.css';
 		<TeamsSettingsModal />
 		<GroupModal />
 		<GroupSettingsModal />
+		<BetaModal />
 		
 
 		<!-- 6. POPUP DE LLAMADA ENTRANTE -->
@@ -179,6 +181,10 @@ import '../styles/global.css';
 	const btnAttach = document.getElementById('btn-attach');
 	const fileInput = document.getElementById('file-input') as HTMLInputElement;
 
+	const betaModal = document.getElementById('beta-modal-overlay');
+	const btnBetaClose = document.getElementById('btn-beta-close');
+	let betaNoticeShown = localStorage.getItem('bitmeet-beta-notice') === 'true';
+
 	const btnNewGroup = document.getElementById('btn-new-group');
 	const groupModal = document.getElementById('group-modal-overlay');
 	const btnCancelGroup = document.getElementById('btn-cancel-group');
@@ -270,6 +276,12 @@ import '../styles/global.css';
 
 		btnOpenSettings?.addEventListener('click', () => settingsOverlay?.classList.remove('hidden'));
 		btnCloseSettings?.addEventListener('click', () => settingsOverlay?.classList.add('hidden'));
+
+		btnBetaClose?.addEventListener('click', () => {
+			betaModal?.classList.add('hidden');
+			betaNoticeShown = true;
+			localStorage.setItem('bitmeet-beta-notice', 'true');
+		});
 	}
 
 	// 0. AUTH EVENT LISTENERS
@@ -682,6 +694,11 @@ import '../styles/global.css';
 			} else if (view === 'calls') {
 				viewCalls?.classList.remove('hidden');
 				viewCalendar?.classList.remove('hidden');
+				
+				if (!betaNoticeShown) {
+					betaModal?.classList.remove('hidden');
+				}
+				
 				loadCallsView();
 				renderCalendar();
 			} else if (view === 'teams') {
@@ -1182,12 +1199,10 @@ import '../styles/global.css';
 							if (sidebarItem) sidebarItem.textContent = msg.senderUsername;
 						}
 					}
-				} else {
-					await loadContacts();
-					const selector = isGroup ? `[data-id="${msg.groupId}"]` : `[data-pubkey="${msg.senderPubKey}"]`;
-					const item = document.querySelector(selector);
-					if (item) item.classList.add('unread');
+					await chatRepo.markAsRead(chatId);
 				}
+				
+				await loadContacts();
 
 				// Notificaciones
 				if (notificationsEnabled && msg.type !== 'system') {
@@ -1617,13 +1632,35 @@ import '../styles/global.css';
 		const otherDirects: any[] = [];
 
 		for (const chat of activeChats) {
+			const lastMsg = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1] : null;
+			let lastMsgText = "";
+			let isUnread = false;
+
+			if (lastMsg) {
+				const isMe = lastMsg.senderPubKey === myIdentity.publicKey;
+				const sender = isMe ? "Tú" : (lastMsg.senderUsername || "Él/Ella");
+				let content = lastMsg.content;
+				if (lastMsg.type === 'file') content = "📎 Archivo";
+				if (lastMsg.type === 'system') content = "Mensaje de sistema";
+				lastMsgText = `${sender}: ${content}`;
+				
+				// Definir si es un mensaje no leído
+				// Si nunca se ha leído el chat (lastReadTimestamp undefined) y hay mensajes de otros, es unread
+				// Si se ha leído, comparamos timestamps. Solo marcamos unread si el último mensaje NO es mío.
+				if (!isMe) {
+					isUnread = chat.lastReadTimestamp ? lastMsg.timestamp > chat.lastReadTimestamp : true;
+				}
+			}
+
 			if (chat.type === 'group') {
 				groups.push({
 					id: chat.id,
 					username: chat.name || "Grupo sin nombre",
 					isGroup: true,
 					participants: chat.participants,
-					lastUpdate: chat.lastUpdate
+					lastUpdate: chat.lastUpdate,
+					lastMessage: lastMsgText,
+					isUnread
 				});
 				continue;
 			}
@@ -1636,7 +1673,6 @@ import '../styles/global.css';
 			if (contact?.isBlocked) continue;
 
 			if (!existing) {
-				// Buscar el mejor nombre posible del historial de este chat
 				const otherMsgWithName = [...chat.messages].reverse().find(m => m.senderPubKey === otherPubKey && (m as any).senderUsername);
 				const displayName = contact?.username || (otherMsgWithName as any)?.senderUsername || `Desconocido (${otherPubKey.substring(0, 6)})`;
 
@@ -1644,15 +1680,18 @@ import '../styles/global.css';
 					publicKey: otherPubKey, 
 					username: displayName,
 					isNew: true,
-					lastUpdate: chat.lastUpdate
+					lastUpdate: chat.lastUpdate,
+					lastMessage: lastMsgText,
+					isUnread
 				});
 			} else {
-				// Si ya existía pero el nombre era Desconocido, intentar mejorar el nombre
 				if (existing.username.includes('Desconocido')) {
 					const otherMsgWithName = [...chat.messages].reverse().find(m => m.senderPubKey === otherPubKey && (m as any).senderUsername);
 					if (otherMsgWithName) existing.username = (otherMsgWithName as any).senderUsername;
 				}
 				existing.lastUpdate = chat.lastUpdate;
+				existing.lastMessage = lastMsgText;
+				existing.isUnread = isUnread;
 			}
 		}
 
@@ -1690,20 +1729,26 @@ import '../styles/global.css';
 				chatsList.innerHTML = '<div class="empty-results">No hay contactos</div>';
 				return;
 			}
-			chatsList.innerHTML = list.map(c => `
-				<div class="chat-item ${c.isNew ? 'new-chat' : ''} ${c.isGroup ? 'group-item' : ''}" 
-					 data-id="${c.isGroup ? c.id : c.publicKey}" 
-					 data-type="${c.isGroup ? 'group' : 'direct'}">
-					<div class="chat-avatar ${c.isGroup ? 'group-avatar' : ''}">${c.username.charAt(0).toUpperCase()}</div>
-					<div class="chat-info">
-						<div class="chat-row">
-							<strong>${c.isGroup ? '👥 ' : ''}${c.username}</strong> 
-							${c.online_status ? `<span class="status-dot ${c.online_status === 'online' ? 'online' : 'offline'}"></span>` : ''}
+			chatsList.innerHTML = list.map(c => {
+				const id = c.isGroup ? c.id : c.publicKey;
+				const isActive = (c.isGroup && id === currentChatId) || (!c.isGroup && id === currentChatPubKey);
+				const previewText = c.lastMessage || (c.isGroup ? `${c.participants.length} participantes` : (c.online_status === 'online' ? 'Disponible' : 'Desconectado'));
+				
+				return `
+					<div class="chat-item ${c.isUnread ? 'unread' : ''} ${c.isGroup ? 'group-item' : ''} ${isActive ? 'active' : ''}" 
+						 data-id="${id}" 
+						 data-type="${c.isGroup ? 'group' : 'direct'}">
+						<div class="chat-avatar ${c.isGroup ? 'group-avatar' : ''}">${c.username.charAt(0).toUpperCase()}</div>
+						<div class="chat-info">
+							<div class="chat-row">
+								<strong>${c.isGroup ? '👥 ' : ''}${c.username}</strong> 
+								${c.online_status ? `<span class="status-dot ${c.online_status === 'online' ? 'online' : 'offline'}"></span>` : ''}
+							</div>
+							<div class="preview ${c.isUnread ? 'unread' : ''}">${previewText}</div>
 						</div>
-						<div class="preview">${c.isGroup ? `${c.participants.length} participantes` : (c.isNew ? 'Nuevo mensaje' : (c.online_status === 'online' ? 'Disponible' : 'Desconectado'))}</div>
 					</div>
-				</div>
-			`).join('');
+				`;
+			}).join('');
 
 			chatsList.querySelectorAll('.chat-item').forEach(item => {
 				item.addEventListener('click', async (e) => {
@@ -1729,6 +1774,10 @@ import '../styles/global.css';
 		
 		document.getElementById('active-chat-name')!.textContent = name;
 		currentChatType = type;
+		
+		// Marcar como leído
+		await chatRepo.markAsRead(id);
+		loadContacts();
 
 		const statusEl = document.getElementById('active-chat-status')!;
 		const statusDot = document.getElementById('active-chat-status-dot')!;

@@ -21,5 +21,6 @@ export interface Chat {
   type: "direct" | "group";
   name?: string;
   owner?: string; // publicKey del creador del grupo
+  lastReadTimestamp?: number;
   lastUpdate: number;
 }
