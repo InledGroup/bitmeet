@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { 
   Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, AlertCircle, Loader2, MonitorUp, MonitorOff,
-  MessageSquare, UserPlus, Search, Send, X, Plus, Check
+  MessageSquare, UserPlus, Search, Send, X, Plus, Check, ChevronDown, Maximize2, Bell, Pin, PinOff
 } from 'lucide-react';
 import { PeerJSMediaTransport } from '../../infrastructure/adapters/PeerJSMediaTransport';
 import { BitIDService, type BitID } from '../../lib/bitid';
@@ -22,32 +22,23 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [identity, setIdentity] = useState<BitID | null>((window as any).myIdentity || null);
-  const [mediaError, setMediaError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false);
 
-  // States for side panels
-  const [showChat, setShowChat] = useState(false);
+  // UI Panels
   const [showAddPeople, setShowAddPeople] = useState(false);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [invitedKeys, setInvitedKeys] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<{ sender: string, content: string } | null>(null);
+  const [quickReply, setQuickReply] = useState("");
   
   const transportRef = useRef(new PeerJSMediaTransport());
   const bitidRef = useRef(new BitIDService());
-  const myParticipantId = useRef<string>((window as any).myIdentity?.publicKey || "");
   const currentStreamRef = useRef<MediaStream | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
-  // 1. DATA FETCHING (CHAT & CONTACTS)
-  useEffect(() => {
-    if (showChat && (window as any).chatRepo) {
-      (window as any).chatRepo.getMessages(roomId).then((msgs: any) => setChatMessages(msgs || []));
-    }
-  }, [showChat]);
-
+  // Sync contacts
   useEffect(() => {
     if (showAddPeople && (window as any).chatRepo) {
       (window as any).chatRepo.listContacts().then((all: any) => setAllContacts(all || []));
@@ -55,94 +46,84 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
   }, [showAddPeople]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (toast && !quickReply) {
+      const timer = setTimeout(() => setToast(null), 8000);
+      return () => clearTimeout(timer);
     }
-  }, [chatMessages, showChat]);
+  }, [toast, quickReply]);
 
-  // 2. ACTIONS
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-    window.dispatchEvent(new CustomEvent('bitmeet:send-message', { 
-      detail: { chatId: roomId, content: newMessage.trim() } 
-    }));
-    setNewMessage("");
-  };
-
-  const invitePeer = (contact: any) => {
+  // Actions
+  const invitePeer = (e: any, contact: any) => {
+    if (e) e.stopPropagation();
     window.dispatchEvent(new CustomEvent('bitmeet:invite-to-call', {
-      detail: { 
-        publicKey: contact.publicKey, 
-        roomId, 
-        isVideo: !!currentStreamRef.current?.getVideoTracks().length,
-        invitedPeers 
-      }
+      detail: { publicKey: contact.publicKey, roomId, isVideo: true, invitedPeers }
     }));
     setInvitedKeys(prev => new Set([...prev, contact.publicKey]));
   };
 
+  const sendQuickReply = (e: any) => {
+    if (e) e.stopPropagation();
+    if (!quickReply.trim() || !toast) return;
+    window.dispatchEvent(new CustomEvent('bitmeet:send-message', { 
+      detail: { chatId: roomId, content: quickReply.trim() } 
+    }));
+    setQuickReply("");
+    setToast(null);
+  };
+
   const filteredContacts = useMemo(() => {
     return allContacts.filter(c => {
-      const matchesSearch = c.username?.toLowerCase().includes(searchQuery.toLowerCase());
-      const isAlreadyIn = participants.some(p => p.id === c.publicKey);
-      return matchesSearch && !isAlreadyIn;
+      const isAlreadyIn = participants.some(p => p.id === c.publicKey || p.peerId === c.publicKey);
+      return c.username?.toLowerCase().includes(searchQuery.toLowerCase()) && !isAlreadyIn;
     });
   }, [allContacts, searchQuery, participants]);
 
-  // 3. MEDIA & CONTROLS
   const getMedia = async (video: boolean = true) => {
     try {
-      console.log("[BitMeet] Medios solicitados...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: true, 
         video: video ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false 
       });
-      
       if (currentStreamRef.current) {
         const oldTrack = currentStreamRef.current.getVideoTracks()[0];
         const newTrack = stream.getVideoTracks()[0];
         if (oldTrack && newTrack) transportRef.current.replaceTrack(oldTrack, newTrack);
       }
-
       setLocalStream(stream);
       currentStreamRef.current = stream;
-      setMediaError(null);
       return stream;
-    } catch (err: any) {
+    } catch {
       if (video) return getMedia(false);
-      setMediaError("Error de cámara/micro");
       return null;
     }
   };
 
-  const toggleAudio = () => {
-    const stream = currentStreamRef.current;
-    if (!stream) return;
-    const track = stream.getAudioTracks()[0];
+  const toggleAudio = (e: any) => {
+    e.stopPropagation();
+    const track = currentStreamRef.current?.getAudioTracks()[0];
     if (track) {
       track.enabled = !track.enabled;
-      setParticipants(prev => prev.map(p => p.isLocal ? { ...p, audioEnabled: track.enabled } : p));
+      setParticipants(p => p.map(x => x.isLocal ? { ...x, audioEnabled: track.enabled } : x));
       transportRef.current.broadcastData({ type: 'status', audioEnabled: track.enabled });
     }
   };
 
-  const toggleVideo = async () => {
-    const stream = currentStreamRef.current;
-    if (!stream || !stream.getVideoTracks()[0]) {
+  const toggleVideo = async (e: any) => {
+    e.stopPropagation();
+    const track = currentStreamRef.current?.getVideoTracks()[0];
+    if (!track) {
       const s = await getMedia(true);
       if (s) {
-        setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: s, videoEnabled: true } : p));
+        setParticipants(p => p.map(x => x.isLocal ? { ...x, stream: s, videoEnabled: true } : x));
         transportRef.current.broadcastData({ type: 'status', videoEnabled: true });
       }
       return;
     }
-    const track = stream.getVideoTracks()[0];
     track.enabled = !track.enabled;
-    setParticipants(prev => prev.map(p => p.isLocal ? { ...p, videoEnabled: track.enabled } : p));
+    setParticipants(p => p.map(x => x.isLocal ? { ...x, videoEnabled: track.enabled } : x));
     transportRef.current.broadcastData({ type: 'status', videoEnabled: track.enabled });
   };
 
-  // 4. MAIN EFFECT (P2P TRANSPORT)
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
@@ -150,224 +131,168 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
     const handleCallAccepted = async (e: any) => {
       const data = e.detail;
       const myId = transportRef.current.getPeerId() || transportRef.current.getPeer()?.id;
-      if (!myId) return;
+      if (!myId || data.peerId === myId) return;
 
       setParticipants(prev => {
         if (prev.find(p => p.peerId === data.peerId)) return prev;
-        const name = invitedPeers?.[data.peerId]?.username || data.senderUsername || "Usuario";
         return [...prev, {
-          id: data.peerId, peerId: data.peerId, name,
+          id: data.peerId, peerId: data.peerId, name: data.senderUsername || invitedPeers?.[data.peerId]?.username || "Usuario",
           isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
         }];
       });
 
       if (myId < data.peerId) {
-        transportRef.current.connect(data.peerId, currentStreamRef.current as any, { name: identity?.username });
+        transportRef.current.connect(data.peerId, currentStreamRef.current as any, { name: (window as any).myIdentity?.username });
       }
     };
 
     const handleNewMessage = (e: any) => {
-      if (e.detail.chatId === roomId) setChatMessages(prev => [...prev, e.detail.message]);
+      if (e.detail.chatId === roomId && e.detail.message.sender !== (window as any).myIdentity?.publicKey) {
+        setToast({ sender: e.detail.message.senderName || "Usuario", content: e.detail.message.content });
+      }
     };
 
     async function init() {
-      let id = (window as any).myIdentity || await bitidRef.current.getIdentity();
-      if (id) { setIdentity(id); myParticipantId.current = id.publicKey; }
+      const id = (window as any).myIdentity || await bitidRef.current.getIdentity();
+      if (id) setIdentity(id);
 
       const stream = await getMedia();
-      const peerId = await transportRef.current.initialize(myParticipantId.current || 'anonymous', existingPeer);
+      const peerId = await transportRef.current.initialize(id?.publicKey || 'anonymous', existingPeer);
       
       window.addEventListener('bitmeet:call-accepted', handleCallAccepted);
       window.addEventListener('bitmeet:new-message', handleNewMessage);
       if (onReady) onReady();
 
       setParticipants([{
-        id: myParticipantId.current || 'local', peerId, name: id?.username || 'Yo',
+        id: id?.publicKey || 'local', peerId, name: id?.username || 'Yo',
         stream: stream || undefined as any, isLocal: true,
         audioEnabled: stream?.getAudioTracks()[0]?.enabled ?? false,
         videoEnabled: stream?.getVideoTracks()[0]?.enabled ?? false,
         isScreenSharing: false
       }]);
 
-      transportRef.current.onRemoteStream((rPeerId: string, rStream: any, rData: any) => {
+      transportRef.current.onRemoteStream((rPeerId, rStream, rData) => {
         setParticipants(prev => {
-          const existing = prev.find(p => p.peerId === rPeerId);
-          if (existing) return prev.map(p => p.peerId === rPeerId ? { ...p, stream: rStream } : p);
-          return [...prev, {
-            id: rPeerId, peerId: rPeerId, stream: rStream, isLocal: false,
-            name: rData?.name || invitedPeers?.[rPeerId]?.username || "Participante",
-            audioEnabled: true, videoEnabled: true, isScreenSharing: false
-          }];
+          const name = rData?.name || invitedPeers?.[rPeerId]?.username || "Participante";
+          const exists = prev.find(p => p.peerId === rPeerId);
+          if (exists) return prev.map(p => p.peerId === rPeerId ? { ...p, stream: rStream, name } : p);
+          return [...prev, { id: rPeerId, peerId: rPeerId, stream: rStream, name, isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false }];
         });
       });
 
-      transportRef.current.onIncomingCall(async (call: any) => {
+      transportRef.current.onIncomingCall(async (call) => {
         while (!currentStreamRef.current) await new Promise(r => setTimeout(r, 100));
         transportRef.current.answer(call, currentStreamRef.current as any);
-        setParticipants(prev => {
-          if (prev.find(p => p.peerId === call.peer)) return prev;
-          return [...prev, {
-            id: call.peer, peerId: call.peer, isLocal: false,
-            name: invitedPeers?.[call.peer]?.username || "Participante",
-            audioEnabled: true, videoEnabled: true, isScreenSharing: false
-          }];
-        });
       });
 
-      transportRef.current.onConnectionOpened((rPeerId: string) => {
+      transportRef.current.onConnectionOpened((rPeerId) => {
         transportRef.current.sendToPeer(rPeerId, {
-          type: 'status', name: id?.username || 'Usuario',
+          type: 'status', name: (window as any).myIdentity?.username || 'Usuario',
           audioEnabled: currentStreamRef.current?.getAudioTracks()[0]?.enabled ?? false,
           videoEnabled: currentStreamRef.current?.getVideoTracks()[0]?.enabled ?? false
         });
       });
 
-      transportRef.current.onDataReceived((pId: string, data: any) => {
-        if (data.type === 'leaving') setParticipants(prev => prev.filter(p => p.peerId !== pId));
-        else if (data.type === 'status') {
-          setParticipants(prev => prev.map(p => p.peerId === pId ? {
-            ...p, name: data.name || p.name,
-            audioEnabled: data.audioEnabled ?? p.audioEnabled,
-            videoEnabled: data.videoEnabled ?? p.videoEnabled,
-            isScreenSharing: data.isScreenSharing ?? p.isScreenSharing
-          } : p));
+      transportRef.current.onDataReceived((pId, data) => {
+        if (data.type === 'leaving') {
+          setParticipants(prev => prev.filter(p => p.peerId !== pId));
+        } else if (data.type === 'status') {
+          setParticipants(prev => prev.map(p => p.peerId === pId ? { ...p, name: data.name || p.name, audioEnabled: data.audioEnabled ?? p.audioEnabled, videoEnabled: data.videoEnabled ?? p.videoEnabled } : p));
         }
       });
 
       if (isIncoming && incomingCall) transportRef.current.answer(incomingCall, currentStreamRef.current as any);
-
       if (invitedPeers) {
-        Object.entries(invitedPeers).forEach(([tPeerId, info]) => {
-          if (tPeerId !== peerId && peerId < tPeerId) {
-            setParticipants(prev => {
-              if (prev.find(p => p.peerId === tPeerId)) return prev;
-              return [...prev, {
-                id: tPeerId, peerId: tPeerId, name: info.username || "Participante",
-                isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
-              }];
-            });
-            transportRef.current.connect(tPeerId, currentStreamRef.current as any, { name: id?.username });
+        Object.entries(invitedPeers).forEach(([tId, info]) => {
+          if (tId !== peerId && peerId < tId) {
+            setParticipants(p => p.find(x => x.peerId === tId) ? p : [...p, { id: tId, peerId: tId, name: info.username || "Participante", isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false }]);
+            transportRef.current.connect(tId, currentStreamRef.current as any, { name: (window as any).myIdentity?.username });
           }
         });
       }
-
       setIsInitializing(false);
     }
 
     init();
-
     return () => {
+      transportRef.current.broadcastData({ type: 'leaving' });
       window.removeEventListener('bitmeet:call-accepted', handleCallAccepted);
       window.removeEventListener('bitmeet:new-message', handleNewMessage);
       transportRef.current.disconnect();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       initializedRef.current = false;
     };
-  }, []); // EFECTO ÚNICO AL MONTAR
+  }, []);
 
-  const localParticipant = participants.find(p => p.isLocal);
+  const others = participants.filter(p => !p.isLocal);
+  const activeSpeaker = others.find(p => p.stream) || others[0] || participants[0];
+
+  if (isMinimized) {
+    return (
+      <div id="call-minimized" onClick={() => setIsMinimized(false)}>
+        {toast && <div className="call-message-toast mini-toast"><strong>{toast.sender}:</strong> <span>{toast.content}</span></div>}
+        <div className="mini-video-container">
+          {activeSpeaker && <VideoGrid participants={[activeSpeaker as any]} />}
+          <div className="mini-overlay">
+            <button type="button" onClick={() => setIsMinimized(false)}><Maximize2 size={16} /></button>
+            <span>{activeSpeaker?.name || "Llamada"}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <section id="call-overlay" className={(showChat || showAddPeople) ? 'panel-open' : ''}>
+    <section id="call-overlay" onClick={e => e.stopPropagation()}>
       <div className="call-canvas">
-        {isInitializing && (
-          <div className="media-loading-overlay" style={{
-            position: 'absolute', inset: 0, zIndex: 110, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.95)', color: 'white'
-          }}>
-            <Loader2 className="animate-spin" size={48} />
-            <p style={{ marginTop: '20px' }}>Iniciando llamada segura...</p>
+        {toast && (
+          <div className="call-message-toast quick-reply-toast">
+            <div className="toast-header"><Bell size={14} /><strong>{toast.sender}</strong><button className="close-toast" onClick={() => setToast(null)}><X size={14} /></button></div>
+            <div className="toast-body"><p>{toast.content}</p></div>
+            <div className="toast-reply-box">
+              <input type="text" placeholder="Responder..." value={quickReply} onChange={e => setQuickReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendQuickReply(null)} />
+              <button onClick={sendQuickReply} className="reply-send-btn"><Send size={14} /></button>
+            </div>
           </div>
         )}
 
-        {mediaError && (
-          <div className="media-error-overlay" style={{
-            position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
-            zIndex: 200, background: '#FF3B30', color: 'white',
-            padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px'
-          }}>
-            <AlertCircle size={20} />
-            <span>{mediaError}</span>
-          </div>
-        )}
+        {isInitializing && <div className="media-loading-overlay"><Loader2 className="animate-spin" size={48} /><p>Cargando...</p></div>}
+        <div className="call-top-bar">
+          <button type="button" className="control-btn small" onClick={() => setIsMinimized(true)}><ChevronDown size={24} /></button>
+          <div className="call-info-badge">{participants.length} personas</div>
+        </div>
 
         <VideoGrid participants={participants} />
         
-        <div className="call-controls">
-          <button type="button" className={`control-btn ${!localParticipant?.audioEnabled ? 'disabled' : ''}`} onClick={toggleAudio}>
-            {localParticipant?.audioEnabled ? <Mic size={24} /> : <MicOff size={24} />}
-          </button>
-          <button type="button" className={`control-btn ${!localParticipant?.videoEnabled ? 'disabled' : ''}`} onClick={toggleVideo}>
-            {localParticipant?.videoEnabled ? <VideoIcon size={24} /> : <VideoOff size={24} />}
-          </button>
-          
-          <div className="divider"></div>
-          
-          <button type="button" className={`control-btn ${showChat ? 'active' : ''}`} onClick={() => { setShowChat(!showChat); setShowAddPeople(false); }}>
-            <MessageSquare size={24} />
-            {chatMessages.length > 0 && !showChat && <span className="badge-count"></span>}
-          </button>
-          
-          <button type="button" className={`control-btn ${showAddPeople ? 'active' : ''}`} onClick={() => { setShowAddPeople(!showAddPeople); setShowChat(false); }}>
-            <UserPlus size={24} />
-          </button>
-
-          <div className="divider"></div>
-
-          <button type="button" className="control-btn danger" onClick={onHangup}>
-            <PhoneOff size={24} />
-          </button>
-        </div>
-
-        {/* PANELS */}
-        {showChat && (
-          <div className="side-panel chat-panel" style={{ display: 'flex' }}>
-            <div className="panel-header">
-              <h3>Chat de Grupo</h3>
-              <button onClick={() => setShowChat(false)}><X size={20} /></button>
-            </div>
-            <div className="panel-content messages-list">
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`message-item ${msg.sender === myParticipantId.current ? 'own' : ''}`}>
-                  <span className="sender">{msg.senderName}</span>
-                  <p>{msg.content}</p>
-                  <span className="time">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-            <div className="panel-footer">
-              <input type="text" placeholder="Escribe un mensaje..." value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} />
-              <button onClick={sendMessage} className="send-btn"><Send size={18} /></button>
-            </div>
-          </div>
-        )}
-
         {showAddPeople && (
-          <div className="side-panel add-people-panel" style={{ display: 'flex' }}>
-             <div className="panel-header">
-              <h3>Invitar</h3>
-              <button onClick={() => setShowAddPeople(false)}><X size={20} /></button>
-            </div>
-            <div className="panel-search">
-              <Search size={18} />
-              <input type="text" placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-            </div>
+          <div className="side-panel add-people-panel">
+            <div className="panel-header"><h3>Invitar</h3><button type="button" onClick={() => setShowAddPeople(false)}><X size={20} /></button></div>
+            <div className="panel-search"><Search size={18} /><input type="text" placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div>
             <div className="panel-content contacts-list">
-              {filteredContacts.map((contact: any, i: number) => (
-                <div key={contact.publicKey || i} className="contact-item">
-                  <div className="contact-avatar">{contact.username ? contact.username[0].toUpperCase() : '?'}</div>
-                  <div className="contact-info"><span className="username">{contact.username}</span></div>
-                  {invitedKeys.has(contact.publicKey) ? (
-                    <span className="invited-label"><Check size={16} /></span>
-                  ) : (
-                    <button onClick={() => invitePeer(contact)} className="invite-btn"><Plus size={18} /></button>
-                  )}
+              {filteredContacts.map(c => (
+                <div key={c.publicKey} className="contact-item">
+                  <div className="contact-avatar">{c.username?.[0].toUpperCase()}</div>
+                  <div className="contact-info"><span>{c.username}</span></div>
+                  {invitedKeys.has(c.publicKey) ? <Check size={18} color="#34C759" /> : <button type="button" onClick={e => invitePeer(e, c)} className="invite-btn"><Plus size={18} /></button>}
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        <div className="call-controls">
+          <button type="button" className={`control-btn ${!participants.find(p => p.isLocal)?.audioEnabled ? 'disabled' : ''}`} onClick={toggleAudio}>
+            {participants.find(p => p.isLocal)?.audioEnabled ? <Mic size={24} /> : <MicOff size={24} />}
+          </button>
+          <button type="button" className={`control-btn ${!participants.find(p => p.isLocal)?.videoEnabled ? 'disabled' : ''}`} onClick={toggleVideo}>
+            {participants.find(p => p.isLocal)?.videoEnabled ? <VideoIcon size={24} /> : <VideoOff size={24} />}
+          </button>
+          <div className="divider" />
+          <button type="button" className="control-btn" onClick={() => { setIsMinimized(true); window.dispatchEvent(new CustomEvent('bitmeet:focus-chat', { detail: { roomId } })); }}><MessageSquare size={24} /></button>
+          <button type="button" className={`control-btn ${showAddPeople ? 'active' : ''}`} onClick={() => setShowAddPeople(!showAddPeople)}><UserPlus size={24} /></button>
+          <div className="divider" />
+          <button type="button" className="control-btn danger" onClick={onHangup}><PhoneOff size={24} /></button>
+        </div>
       </div>
     </section>
   );

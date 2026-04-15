@@ -396,11 +396,12 @@ body {
   opacity: 0;
   transform: translateY(-5px);
   transition: all 0.2s ease;
-  z-index: 20;
+  z-index: 50; /* Mayor z-index para estar sobre todo */
+  pointer-events: auto; /* Asegurar que reciba clics */
 }
 
 .video-wrapper:hover .video-actions {
-  opacity: 1;
+  opacity: 1 !important;
   transform: translateY(0);
 }
 
@@ -932,6 +933,163 @@ body {
     height: 30px;
     background: rgba(255,255,255,0.1);
     align-self: center;
+}
+
+/* Call Minimized (PIP) */
+#call-minimized {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 280px;
+    height: 180px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 5000;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    border: 2px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+#call-minimized:hover {
+    transform: scale(1.02);
+}
+
+#call-minimized .mini-video-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#call-minimized .mini-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px;
+}
+
+#call-minimized .mini-overlay button {
+    align-self: flex-end;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#call-minimized .mini-overlay span {
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Call Message Toast */
+.call-message-toast {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 30, 30, 0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 6000;
+    color: white;
+    min-width: 280px;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+}
+
+@keyframes slideInDown {
+    from { opacity: 0; transform: translate(-50%, -20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.call-message-toast .toast-content { display: flex; flex-direction: column; }
+.call-message-toast strong { font-size: 0.85rem; color: var(--apple-accent); }
+.call-message-toast p { margin: 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Quick Reply Toast Styles */
+.quick-reply-toast {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+    gap: 8px;
+}
+.toast-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2px;
+}
+.toast-header strong { flex: 1; }
+.close-toast {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    padding: 2px;
+}
+.close-toast:hover { color: #fff; }
+.toast-body p {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 10px;
+}
+.toast-reply-box {
+    display: flex;
+    gap: 8px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(5px);
+    border-radius: 12px;
+    padding: 4px 4px 4px 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.toast-reply-box input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 0.85rem;
+    outline: none;
+}
+.reply-send-btn {
+    background: var(--apple-accent);
+    color: white;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.reply-send-btn:hover { background: var(--apple-accent-hover, #0071e3); }
+
+#call-minimized .call-message-toast {
+    position: fixed;
+    top: auto;
+    bottom: 210px;
+    left: auto;
+    right: 24px;
+    transform: none;
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Side Panels (Chat & Add People) */
