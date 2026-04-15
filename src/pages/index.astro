@@ -134,6 +134,7 @@ import '../styles/global.css';
 	const bitid = new BitIDService();
 	const p2p = new P2PTransport();
 	const chatRepo = new IndexedDBChatRepository();
+	(window as any).chatRepo = chatRepo;
 	const calendarRepo = new IndexedDBCalendarRepository();
 	const callsRepo = new IndexedDBCallsRepository();
 	let torrentClient: any = null;
@@ -1137,6 +1138,9 @@ import '../styles/global.css';
 
 				await chatRepo.addMessage(chatId, message as any);
 				
+				// Notificar al overlay si está abierto
+				window.dispatchEvent(new CustomEvent('bitmeet:new-message', { detail: { chatId, message } }));
+				
 				if (currentChatId === chatId) { 
 					if (msg.type === 'system') {
 						// Actualizar UI en tiempo real si el chat está abierto
@@ -1527,7 +1531,7 @@ import '../styles/global.css';
 	(window as any).downloadFile = downloadFile;
 
 	window.addEventListener('bitmeet:invite-to-call', async (e: any) => {
-		const { publicKey, roomId, isVideo } = e.detail;
+		const { publicKey, roomId, isVideo, invitedPeers } = e.detail;
 		console.log("[BitMeet] Enviando invitación externa a:", publicKey, "para sala:", roomId);
 		
 		try {
@@ -1536,10 +1540,55 @@ import '../styles/global.css';
 				roomId,
 				callerName: myIdentity.username,
 				senderPubKey: myIdentity.publicKey,
-				peerId: p2p.getPeer().id
+				peerId: p2p.getPeer().id,
+				invitedPeers: invitedPeers || (window as any).pendingInvitedPeers // Reusar invitados actuales si es posible
 			});
 		} catch (err) {
 			console.error("[BitMeet] Error al enviar invitación externa:", err);
+		}
+	});
+
+	window.addEventListener('bitmeet:send-message', async (e: any) => {
+		const { chatId, content } = e.detail;
+		console.log("[BitMeet] Enviando mensaje desde overlay a:", chatId);
+		
+		const chat = await (window as any).chatRepo.getChat(chatId);
+		if (!chat) return;
+
+		const message = {
+			id: crypto.randomUUID(),
+			sender: (window as any).myIdentity.publicKey,
+			senderName: (window as any).myIdentity.username,
+			content,
+			timestamp: Date.now(),
+			type: 'text'
+		};
+
+		await (window as any).chatRepo.addMessage(chatId, message as any);
+		
+		// Notificar al overlay (auto-feedback)
+		window.dispatchEvent(new CustomEvent('bitmeet:new-message', { detail: { chatId, message } }));
+
+		// Enviar a los demás
+		if (chat.type === 'group') {
+			chat.participants.forEach(p => {
+				if (p !== (window as any).myIdentity.publicKey) {
+					p2p.sendP2PMessage(p, {
+						type: 'text',
+						content,
+						chatId
+					}).catch(() => {});
+				}
+			});
+		} else {
+			const other = chat.participants.find(p => p !== (window as any).myIdentity.publicKey);
+			if (other) {
+				p2p.sendP2PMessage(other, {
+					type: 'text',
+					content,
+					chatId
+				});
+			}
 		}
 	});
 
