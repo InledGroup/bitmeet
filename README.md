@@ -1,72 +1,89 @@
+# BitMeet 🚀
+> Professional-grade, Decentralized & Serverless Video Conferencing.
 
-# 🚀 BitMeet: Decentralized Serverless Video Conferencing
+BitMeet is a state-of-the-art P2P video conferencing platform built on the edge. By leveraging **Astro**, **WebRTC**, and **Firebase**, it delivers a seamless, high-performance experience with zero server overhead and maximum privacy.
 
-BitMeet is a professional-grade, peer-to-peer video conferencing application built with **Astro**, **React**, and **WebRTC**. It uses **Firebase Firestore** as a signaling channel for participant discovery, ensuring a truly serverless experience for the developer and high privacy for the users.
+![BitMeet Showcase](https://raw.githubusercontent.com/InledGroup/bitmeet/main/public/banner.png) *(Note: Placeholder for actual banner)*
+
+---
 
 ## ✨ Features
 
-- **Full Mesh WebRTC**: Direct P2P connections between all participants.
-- **No Server Infrastructure**: Uses Firebase for discovery and PeerJS for signaling.
-- **Dynamic Layout**: Smart video grid that adapts to the number of participants.
-- **Screen Sharing**: High-quality display capture and sharing.
-- **Media Controls**: Professional mute/unmute and camera toggle.
-- **Infinite Rooms**: Create unique meetings with a single click.
-- **SSR Enabled**: Built with Astro SSR for dynamic room routing.
+- **🛡️ True Privacy**: Peer-to-Peer (P2P) architecture. Your data never touches our servers.
+- **⚡ Edge Optimized**: Built with Astro 6 and deployed on Cloudflare Pages for ultra-low latency.
+- **📱 Responsive Design**: Smart video grid that adapts to any screen size and participant count.
+- **🎥 Professional Tools**: High-definition screen sharing, media controls, and instant room creation.
+- **🛰️ Serverless Discovery**: Intelligent participant discovery via Firebase Firestore.
+- **🔒 E2EE Ready**: Encrypted media streams via WebRTC native protocols.
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Astro 5.0, React 19.
-- **Communication**: WebRTC (PeerJS).
-- **Signaling/Discovery**: Firebase Firestore.
-- **Icons**: Lucide React.
-- **Styling**: Pure CSS (Modern Variables, Flexbox, Grid).
+| Layer | Technology |
+| :--- | :--- |
+| **Framework** | [Astro 6](https://astro.build/) (SSR) |
+| **UI Library** | [React 19](https://react.dev/) |
+| **Communication** | WebRTC via [PeerJS](https://peerjs.com/) |
+| **Discovery** | [Firebase Firestore](https://firebase.google.com/) |
+| **Deployment** | [Cloudflare Pages](https://pages.cloudflare.com/) |
+| **Icons** | [Lucide React](https://lucide.dev/) |
 
-## 🚀 Getting Started
+---
 
-### 1. Clone and Install
+## 🚀 Quick Start
+
+### 1. Installation
 ```bash
+git clone git@github.com:InledGroup/bitmeet.git
+cd bitmeet
 npm install
 ```
 
-### 2. Configure Firebase
-Create a project in [Firebase Console](https://console.firebase.google.com/) and enable **Cloud Firestore**.
-
-Copy `.env.example` to `.env` and fill in your credentials:
+### 2. Environment Setup
+Copy the example environment file and fill in your Firebase credentials:
 ```bash
 cp .env.example .env
 ```
 
-Required variables:
-- `PUBLIC_FIREBASE_API_KEY`
-- `PUBLIC_FIREBASE_PROJECT_ID`
-- ... (see `.env.example`)
+### 3. Execution
+```bash
+# Development mode
+npm run dev
 
-### 3. Firestore Rules
-Ensure your Firestore rules allow reading/writing to the `rooms` collection:
+# Production Build
+npm run build
+```
+
+---
+
+## 🔐 Security & Architecture
+
+BitMeet follows a **Decentralized Signaling** pattern. 
+1. **Discovery**: Participants use Firebase Firestore as a virtual "lobby" to exchange Peer IDs.
+2. **Handshake**: Direct WebRTC signaling is established.
+3. **Media**: Audio, Video, and Screen data are streamed directly between browsers using DTLS-SRTP encryption.
+
+### Recommended Firestore Rules
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /rooms/{roomId}/participants/{participantId} {
-      allow read, write: if true; // In production, add proper validation
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasAll(['peerId', 'username']);
     }
   }
 }
 ```
 
-### 4. Run Development Server
-```bash
-npm run dev
-```
+---
 
-### 5. Build for Production
-```bash
-npm run build
-node ./dist/server/entry.mjs
-```
+## 🤝 Contributing
 
-## 🔐 Privacy & Security
-BitMeet uses WebRTC to encrypt media streams end-to-end. Firebase only stores temporary metadata (PeerIDs and presence status) required for participants to find each other. No audio or video data ever touches a server.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
-**Hecho con ❤️ por JaimeGH. Made in Spain**
+
+**Developed with ❤️ by [Inled Group](https://github.com/InledGroup)**
+*Premium Software Architecture for the Modern Web*
