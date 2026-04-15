@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, AlertCircle, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, AlertCircle, Loader2, MonitorUp, MonitorOff } from 'lucide-react';
 import { PeerJSMediaTransport } from '../../infrastructure/adapters/PeerJSMediaTransport';
 import { BitIDService, type BitID } from '../../lib/bitid';
 import VideoGrid from '../Meeting/VideoGrid';
@@ -17,6 +17,7 @@ interface Props {
 export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall, existingPeer, onReady }: Props) {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [identity, setIdentity] = useState<BitID | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -26,7 +27,6 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
   const myParticipantId = useRef<string>("");
   const currentStreamRef = useRef<MediaStream | null>(null);
 
-  // Intentar obtener medios sin bloquear la conexión
   const getMedia = async (video: boolean = true) => {
     try {
       console.log("[BitMeet] Solicitando medios (video:", video, ")...");
@@ -34,37 +34,38 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         audio: true, 
         video: video ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false 
       });
+      
+      // Si ya teníamos un stream, detenemos los tracks viejos
+      if (currentStreamRef.current) {
+        currentStreamRef.current.getTracks().forEach(t => t.stop());
+      }
+
       setLocalStream(stream);
       currentStreamRef.current = stream;
       setMediaError(null);
       return stream;
     } catch (err) {
       console.warn("[BitMeet] Error al obtener medios:", err);
-      if (video) return getMedia(false); // Reintento solo audio
-      setMediaError("No se pudo acceder a la cámara/micro. Revisa los permisos.");
+      if (video) return getMedia(false); 
+      setMediaError("No se pudo acceder a la cámara/micro.");
       return null;
     }
   };
 
   useEffect(() => {
-    // Manejar cuando el emisor recibe la aceptación del receptor
     const handleCallAccepted = async (e: any) => {
       const remoteData = e.detail;
       console.log("[BitMeet] Receptor aceptó. Conectando a:", remoteData.peerId);
       
-      // Añadir inmediatamente al receptor a la lista
       setParticipants(prev => {
         if (prev.find(p => p.peerId === remoteData.peerId)) return prev;
         return [...prev, {
-          id: remoteData.peerId,
-          peerId: remoteData.peerId,
+          id: remoteData.peerId, peerId: remoteData.peerId,
           name: remoteData.senderUsername || "Participante",
-          isLocal: false,
-          audioEnabled: true, videoEnabled: true, isScreenSharing: false
+          isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
         }];
       });
 
-      // Conectamos. Si no hay stream aún, conectamos sin él (se puede añadir luego)
       transportRef.current.connect(remoteData.peerId, currentStreamRef.current as any, { name: identity?.username });
     };
 
@@ -76,31 +77,22 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       }
 
       try {
-        // 1. Inicializar PeerJS primero (esto no requiere cámara)
         const peerId = await transportRef.current.initialize(myParticipantId.current, existingPeer);
         setIsInitializing(false);
 
-        // 2. Notificar que estamos listos para recibir/enviar avisos
         if (onReady) onReady();
         window.addEventListener('bitmeet:call-accepted', handleCallAccepted);
 
-        // 3. Añadirme a mí mismo (aunque sea sin stream de momento)
         setParticipants([{
-          id: myParticipantId.current,
-          peerId,
-          name: id?.username || 'Yo',
-          isLocal: true,
-          audioEnabled: true, videoEnabled: true, isScreenSharing: false
+          id: myParticipantId.current, peerId, name: id?.username || 'Yo',
+          isLocal: true, audioEnabled: true, videoEnabled: true, isScreenSharing: false
         }]);
 
-        // 4. Configurar eventos de transporte
         transportRef.current.onRemoteStream((remotePeerId, remoteStream) => {
-          console.log("[BitMeet] Stream recibido de:", remotePeerId);
           setParticipants(prev => prev.map(p => p.peerId === remotePeerId ? { ...p, stream: remoteStream } : p));
         });
 
         transportRef.current.onIncomingCall((call) => {
-          console.log("[BitMeet] Llamada PeerJS entrante. Respondiendo...");
           transportRef.current.answer(call, currentStreamRef.current as any);
           setParticipants(prev => {
             if (prev.find(p => p.peerId === call.peer)) return prev;
@@ -112,21 +104,11 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         });
 
         transportRef.current.onConnectionOpened((remotePeerId) => {
-          console.log("[BitMeet] Datos P2P abiertos con:", remotePeerId);
-          // Enviar mi nombre al otro lado inmediatamente
           transportRef.current.sendToPeer(remotePeerId, {
             type: 'status',
             name: id?.username || 'Usuario',
             audioEnabled: currentStreamRef.current?.getAudioTracks()[0]?.enabled ?? false,
             videoEnabled: currentStreamRef.current?.getVideoTracks()[0]?.enabled ?? false
-          });
-          
-          setParticipants(prev => {
-            if (prev.find(p => p.peerId === remotePeerId)) return prev;
-            return [...prev, {
-              id: remotePeerId, peerId: remotePeerId, name: "Conectado",
-              isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
-            }];
           });
         });
 
@@ -136,7 +118,8 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
               ...p,
               name: data.name || p.name,
               audioEnabled: data.audioEnabled ?? p.audioEnabled,
-              videoEnabled: data.videoEnabled ?? p.videoEnabled
+              videoEnabled: data.videoEnabled ?? p.videoEnabled,
+              isScreenSharing: data.isScreenSharing ?? p.isScreenSharing
             } : p));
           }
         });
@@ -145,16 +128,11 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
           setParticipants(prev => prev.filter(p => p.peerId !== peerId));
         });
 
-        // 5. Intentar cargar cámara/micro en segundo plano sin bloquear
-        getMedia().then(stream => {
-          if (stream) {
-            setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream } : p));
-            // Si ya estamos en una llamada, PeerJS intentará re-negociar o tendremos que reconectar
-            // Por simplicidad, el receptor responderá con el stream si llega a tiempo
-          }
-        });
+        const stream = await getMedia();
+        if (stream) {
+          setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream, videoEnabled: !!stream.getVideoTracks()[0] } : p));
+        }
 
-        // 6. Si es una llamada entrante aceptada, responder
         if (isIncoming && incomingCall) {
           transportRef.current.answer(incomingCall, currentStreamRef.current as any);
         }
@@ -172,32 +150,68 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
     };
   }, [roomId]);
 
-  const toggleAudio = async () => {
-    if (!localStream) {
-      const s = await getMedia(false);
-      if (s) setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: s } : p));
-      return;
-    }
-    const track = localStream.getAudioTracks()[0];
-    if (track) {
-      track.enabled = !track.enabled;
-      setParticipants(prev => prev.map(p => p.isLocal ? { ...p, audioEnabled: track.enabled } : p));
-      transportRef.current.broadcastData({ type: 'status', audioEnabled: track.enabled });
+  const toggleAudio = () => {
+    if (localStream) {
+      const track = localStream.getAudioTracks()[0];
+      if (track) {
+        track.enabled = !track.enabled;
+        setParticipants(prev => prev.map(p => p.isLocal ? { ...p, audioEnabled: track.enabled } : p));
+        transportRef.current.broadcastData({ type: 'status', audioEnabled: track.enabled });
+      }
     }
   };
 
   const toggleVideo = async () => {
     if (!localStream || !localStream.getVideoTracks()[0]) {
       const s = await getMedia(true);
-      if (s) setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: s } : p));
+      if (s) {
+        setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: s, videoEnabled: true } : p));
+        // Forzamos re-conexión o actualización si Peter ya estaba ahí
+        transportRef.current.broadcastData({ type: 'status', videoEnabled: true });
+      }
       return;
     }
     const track = localStream.getVideoTracks()[0];
-    if (track) {
-      track.enabled = !track.enabled;
-      setParticipants(prev => prev.map(p => p.isLocal ? { ...p, videoEnabled: track.enabled } : p));
-      transportRef.current.broadcastData({ type: 'status', videoEnabled: track.enabled });
+    track.enabled = !track.enabled;
+    setParticipants(prev => prev.map(p => p.isLocal ? { ...p, videoEnabled: track.enabled } : p));
+    transportRef.current.broadcastData({ type: 'status', videoEnabled: track.enabled });
+  };
+
+  const toggleScreenShare = async () => {
+    if (!isScreenSharing && localStream) {
+      try {
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = displayStream.getVideoTracks()[0];
+        const cameraTrack = localStream.getVideoTracks()[0];
+
+        if (cameraTrack) {
+          transportRef.current.replaceTrack(cameraTrack, screenTrack);
+        }
+        
+        const combined = new MediaStream([screenTrack, ...localStream.getAudioTracks()]);
+        currentStreamRef.current = combined;
+        setIsScreenSharing(true);
+        setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: combined, isScreenSharing: true } : p));
+        transportRef.current.broadcastData({ type: 'status', isScreenSharing: true });
+
+        screenTrack.onended = () => stopScreenShare();
+      } catch (err) { console.error(err); }
+    } else {
+      stopScreenShare();
     }
+  };
+
+  const stopScreenShare = () => {
+    if (!localStream) return;
+    const cameraTrack = localStream.getVideoTracks()[0];
+    const screenTrack = currentStreamRef.current?.getVideoTracks()[0];
+    if (screenTrack && cameraTrack) {
+      transportRef.current.replaceTrack(screenTrack, cameraTrack);
+    }
+    currentStreamRef.current = localStream;
+    setIsScreenSharing(false);
+    setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: localStream, isScreenSharing: false } : p));
+    transportRef.current.broadcastData({ type: 'status', isScreenSharing: false });
   };
 
   const localParticipant = participants.find(p => p.isLocal);
@@ -211,37 +225,22 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
             alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.9)', color: 'white'
           }}>
             <Loader2 className="animate-spin" size={48} />
-            <p style={{ marginTop: '20px' }}>Iniciando conexión segura...</p>
-          </div>
-        )}
-
-        {mediaError && (
-          <div className="media-error-overlay" style={{
-            position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
-            zIndex: 200, background: 'rgba(255, 59, 48, 0.9)', color: 'white',
-            padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px'
-          }}>
-            <AlertCircle size={20} />
-            <span>{mediaError}</span>
+            <p style={{ marginTop: '20px' }}>Iniciando...</p>
           </div>
         )}
 
         <VideoGrid participants={participants} />
         
         <div className="call-controls">
-          <button 
-            className={`control-btn ${!localParticipant?.audioEnabled ? 'disabled' : ''}`} 
-            onClick={toggleAudio}
-          >
+          <button className={`control-btn ${!localParticipant?.audioEnabled ? 'disabled' : ''}`} onClick={toggleAudio}>
             {localParticipant?.audioEnabled ? <Mic size={24} /> : <MicOff size={24} />}
           </button>
-          <button 
-            className={`control-btn ${!localParticipant?.videoEnabled ? 'disabled' : ''}`} 
-            onClick={toggleVideo}
-          >
+          <button className={`control-btn ${!localParticipant?.videoEnabled ? 'disabled' : ''}`} onClick={toggleVideo}>
             {localParticipant?.videoEnabled ? <VideoIcon size={24} /> : <VideoOff size={24} />}
           </button>
-          
+          <button className={`control-btn ${isScreenSharing ? 'active' : ''}`} onClick={toggleScreenShare}>
+            {isScreenSharing ? <MonitorOff size={24} /> : <MonitorUp size={24} />}
+          </button>
           <button className="control-btn danger" onClick={onHangup}>
             <PhoneOff size={24} />
           </button>
