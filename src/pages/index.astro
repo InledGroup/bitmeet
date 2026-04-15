@@ -9,6 +9,7 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 import GroupModal from '../components/Teams/GroupModal.astro';
 import GroupSettingsModal from '../components/Teams/GroupSettingsModal.astro';
 import CallOverlay from '../components/Teams/CallOverlay';
+import '../styles/global.css';
 ---
 
 <Layout title="BitSuite Teams">
@@ -301,24 +302,36 @@ import CallOverlay from '../components/Teams/CallOverlay';
 	});
 
 	btnGroupSettings?.addEventListener('click', async () => {
+		console.log("[BitMeet] Click en ajustes de grupo. Tipo:", currentChatType, "ID:", currentChatId);
 		if (currentChatType !== 'group' || !currentChatId) return;
 		
 		const chat = await chatRepo.getChat(currentChatId);
-		if (!chat) return;
+		if (!chat) {
+			console.error("[BitMeet] No se encontró el chat en el repo para ID:", currentChatId);
+			return;
+		}
 		
 		editGroupNameInput.value = chat.name || '';
 		currentGroupOwner = chat.owner || null;
 		
 		// Solo owner puede renombrar o añadir/echar
 		const isOwner = currentGroupOwner === myIdentity.publicKey;
+		console.log("[BitMeet] Abriendo modal de ajustes. ¿Es owner?:", isOwner);
+
 		const renameSection = document.getElementById('group-rename-section');
 		const addSection = document.getElementById('add-more-section');
+		const subtitle = document.getElementById('group-settings-subtitle');
 		
 		if (renameSection) renameSection.classList.toggle('hidden', !isOwner);
 		if (addSection) addSection.classList.toggle('hidden', !isOwner);
+		if (subtitle) subtitle.textContent = isOwner ? "Gestiona los participantes y el nombre." : "Lista de participantes";
 		
 		await renderGroupParticipants(chat.participants, isOwner);
-		if (isOwner) await renderAddMoreParticipants(chat.participants);
+		if (isOwner) {
+			await renderAddMoreParticipants(chat.participants);
+		} else {
+			if (addMoreParticipantsEl) addMoreParticipantsEl.innerHTML = '';
+		}
 		
 		groupSettingsModal?.classList.remove('hidden');
 	});
@@ -1251,12 +1264,20 @@ import CallOverlay from '../components/Teams/CallOverlay';
 			currentGroupParticipants = chat?.participants || [];
 			currentGroupOwner = chat?.owner || null;
 			
+			console.log("[BitMeet] Seleccionado grupo:", name, "ID:", id);
+			console.log("[BitMeet] Owner del grupo:", currentGroupOwner);
+			console.log("[BitMeet] Mi clave pública:", myIdentity?.publicKey);
+			console.log("[BitMeet] ¿Es admin?:", currentGroupOwner === myIdentity?.publicKey);
+
 			statusEl.textContent = `${currentGroupParticipants.length} participantes`;
 			statusDot.className = 'status-dot online';
 			
 			if (btnVoice) btnVoice.classList.add('hidden');
 			if (btnVideo) btnVideo.classList.add('hidden');
-			if (btnGSettings) btnGSettings.classList.remove('hidden');
+			if (btnGSettings) {
+				btnGSettings.classList.remove('hidden');
+				console.log("[BitMeet] Mostrando botón de ajustes de grupo");
+			}
 		} else {
 			currentChatId = await getChatId(myIdentity.publicKey, id);
 			currentChatPubKey = id;

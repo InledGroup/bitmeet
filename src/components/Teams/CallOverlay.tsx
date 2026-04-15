@@ -80,91 +80,20 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         await signalingRef.current.joinRoom(roomId, myParticipantId.current, {
           peerId,
           name: id?.username || 'User',
-          audioEnabled: stream.getAudioTracks()[0]?.enabled ?? false,
-          videoEnabled: stream.getVideoTracks()[0]?.enabled ?? false,
+          audioEnabled: false,
+          videoEnabled: false,
           isScreenSharing: false
         });
 
-        transportRef.current.onRemoteStream((remotePeerId, remoteStream, data) => {
-          setParticipants(prev => {
-            const exists = prev.find(p => p.peerId === remotePeerId);
-            if (exists) return prev.map(p => p.peerId === remotePeerId ? { ...p, stream: remoteStream } : p);
-            return [...prev, {
-              id: data.id || remotePeerId,
-              peerId: remotePeerId,
-              stream: remoteStream,
-              name: data.name || `User-${remotePeerId.slice(0,4)}`,
-              isLocal: false,
-              audioEnabled: data.audioEnabled ?? true,
-              videoEnabled: data.videoEnabled ?? true,
-              isScreenSharing: data.isScreenSharing ?? false
-            }];
-          });
-        });
-
-        transportRef.current.onIncomingCall((call) => {
-          const streamToAnswer = currentStreamRef.current || stream;
-          transportRef.current.answer(call, streamToAnswer);
-        });
-
-        transportRef.current.onDataReceived((peerId, data) => {
-          if (data.type === 'status') {
-            setParticipants(prev => prev.map(p => p.peerId === peerId ? {
-              ...p,
-              audioEnabled: data.audioEnabled !== undefined ? data.audioEnabled : (data.audio !== undefined ? data.audio : p.audioEnabled),
-              videoEnabled: data.videoEnabled !== undefined ? data.videoEnabled : (data.video !== undefined ? data.video : p.videoEnabled),
-              name: data.name || p.name,
-              isScreenSharing: data.isScreenSharing !== undefined ? data.isScreenSharing : p.isScreenSharing
-            } : p));
-          }
-        });
-
-        transportRef.current.onConnectionOpened((remotePeerId) => {
-          const currentLocal = currentStreamRef.current;
-          transportRef.current.sendToPeer(remotePeerId, {
-            type: 'status',
-            audioEnabled: currentLocal?.getAudioTracks()[0]?.enabled ?? false,
-            videoEnabled: currentLocal?.getVideoTracks()[0]?.enabled ?? false,
-            name: id?.username || 'User',
-            isScreenSharing: isScreenSharing
-          });
-        });
-
-        transportRef.current.onConnectionClosed((peerId) => {
-          setParticipants(prev => prev.filter(p => p.peerId !== peerId));
-        });
-
-        setParticipants([{
-          id: myParticipantId.current,
-          peerId,
-          stream,
-          name: id?.username || 'Me',
-          isLocal: true,
-          audioEnabled: stream.getAudioTracks()[0]?.enabled ?? false,
-          videoEnabled: stream.getVideoTracks()[0]?.enabled ?? false,
-          isScreenSharing: false
-        }]);
-
-        heartbeatRef.current = setInterval(() => {
-          signalingRef.current.updateParticipant(roomId, myParticipantId.current, {});
-        }, 5000);
-
+        // NOTIFICACIÓN INMEDIATA: Avisamos al otro lado de que la llamada ha comenzado ANTES de esperar a la cámara
         if (onReady) onReady();
 
-        if (isIncoming && incomingCall) {
-          transportRef.current.answer(incomingCall, stream);
-        } else {
-          const unsubscribe = signalingRef.current.onParticipantsUpdate(roomId, (changes) => {
-            changes.forEach(change => {
-              if (change.id !== myParticipantId.current && change.type === 'added') {
-                transportRef.current.connect(change.data.peerId, stream, { ...change.data, id: change.id });
-              }
-            });
-          });
-          return () => {
-            unsubscribe();
-          };
-        }
+        const stream = await initMedia();
+        // Una vez tenemos la cámara, actualizamos el estado
+        await signalingRef.current.updateParticipant(roomId, myParticipantId.current, {
+          audioEnabled: stream.getAudioTracks()[0]?.enabled ?? false,
+          videoEnabled: stream.getVideoTracks()[0]?.enabled ?? false,
+        });
 
       } catch (err) {
         console.error("Call initialization failed", err);
