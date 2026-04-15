@@ -2443,11 +2443,13 @@ import "../styles/global.css";
 		statusDot.className = `status-dot ${connected ? "online" : "offline"}`;
 	}
 
-	// Refresco periódico de estados cada 5 segundos (Sincronizado con heartbeat P2P)
+	// Refresco periódico cada 30s. Las llamadas a BitID API están cacheadas
+	// en BitIDService (TTL 5 min), así que sólo se envían peticiones reales
+	// ~12 veces/hora en lugar de ~720/hora.
 	setInterval(() => {
 		loadContacts();
 		retryPendingMessages();
-	}, 5000);
+	}, 30000);
 
 	async function loadColleagues() {
 		const colleagues = await bitid.getColleagues();
