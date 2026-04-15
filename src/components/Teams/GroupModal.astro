@@ -1,0 +1,132 @@
+---
+// GroupModal.astro
+---
+<div id="group-modal-overlay" class="auth-overlay hidden">
+	<div class="auth-card apple-card animate-in">
+		<div class="auth-header">
+			<div class="auth-icon group-icon">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+			</div>
+			<h2>Crear Nuevo Grupo</h2>
+			<p>Selecciona los participantes para tu grupo.</p>
+		</div>
+
+		<div class="auth-form group-form">
+			<div class="input-group">
+				<label for="group-name">Nombre del Grupo</label>
+				<input type="text" id="group-name" placeholder="Ej: Equipo de Diseño" autocomplete="off" />
+			</div>
+
+			<div class="participants-section">
+				<label>Seleccionar Contactos</label>
+				<div id="group-participants-list" class="participants-list">
+					<!-- Se llenará dinámicamente -->
+				</div>
+			</div>
+
+			<div class="auth-actions">
+				<button id="btn-cancel-group" class="btn-secondary">Cancelar</button>
+				<button id="btn-create-group" class="btn-primary">Crear Grupo</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	.auth-overlay {
+		position: fixed;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background: rgba(0,0,0,0.3);
+		backdrop-filter: blur(20px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 5000;
+		transition: opacity 0.3s;
+	}
+	.auth-overlay.hidden { display: none; opacity: 0; pointer-events: none; }
+
+	.auth-card {
+		background: rgba(255, 255, 255, 0.85);
+		backdrop-filter: blur(30px) saturate(180%);
+		width: 100%;
+		max-width: 400px;
+		padding: 40px;
+		border-radius: 30px;
+		box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+		border: 1px solid rgba(255,255,255,0.3);
+		text-align: center;
+	}
+
+	.auth-header h2 { font-size: 24px; font-weight: 700; margin-top: 16px; margin-bottom: 8px; letter-spacing: -0.02em; }
+	.auth-header p { font-size: 15px; color: #86868B; margin-bottom: 30px; }
+
+	.auth-icon {
+		width: 64px; height: 64px;
+		background: #007AFF;
+		color: white;
+		border-radius: 18px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin: 0 auto;
+		box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
+	}
+
+	.input-group { text-align: left; margin-bottom: 20px; }
+	.input-group label { display: block; font-size: 13px; font-weight: 600; color: #1D1D1F; margin-bottom: 8px; margin-left: 4px; }
+	.input-group input {
+		width: 100%;
+		padding: 14px 16px;
+		border-radius: 12px;
+		border: 1px solid #D2D2D7;
+		background: rgba(255,255,255,0.5);
+		font-size: 16px;
+		outline: none;
+		transition: all 0.2s;
+	}
+	.input-group input:focus { border-color: #007AFF; box-shadow: 0 0 0 4px rgba(0,122,255,0.1); background: #fff; }
+
+	.participants-section { text-align: left; margin-bottom: 24px; }
+	.participants-section label { display: block; font-size: 13px; font-weight: 600; color: #1D1D1F; margin-bottom: 8px; margin-left: 4px; }
+	.participants-list {
+		max-height: 200px;
+		overflow-y: auto;
+		border: 1px solid #D2D2D7;
+		border-radius: 12px;
+		background: rgba(255,255,255,0.5);
+		padding: 4px;
+	}
+
+	:global(.participant-item) {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 12px;
+		cursor: pointer;
+		border-radius: 8px;
+		transition: background 0.2s;
+	}
+	:global(.participant-item:hover) { background: rgba(0,0,0,0.05); }
+	:global(.participant-item input) { width: 18px; height: 18px; cursor: pointer; }
+	:global(.participant-item label) { flex: 1; cursor: pointer; font-size: 14px; margin: 0; }
+
+	.auth-actions { display: flex; gap: 12px; }
+	.btn-primary, .btn-secondary {
+		flex: 1;
+		padding: 14px;
+		border-radius: 14px;
+		font-size: 16px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s;
+		border: none;
+	}
+	.btn-primary { background: #007AFF; color: white; }
+	.btn-primary:hover { background: #0062CC; transform: translateY(-1px); }
+	.btn-secondary { background: #E5E5EA; color: #1D1D1F; }
+	.btn-secondary:hover { background: #D1D1D6; }
+
+	.animate-in { animation: scaleIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+	@keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>

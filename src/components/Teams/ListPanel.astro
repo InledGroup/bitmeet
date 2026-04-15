@@ -4,9 +4,14 @@
 <section class="apple-list-panel">
 	<div class="panel-header">
 		<h2 id="panel-title">Chat</h2>
-		<button id="btn-new-chat" class="icon-button" title="Nueva conversación">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-		</button>
+		<div class="header-actions">
+			<button id="btn-new-group" class="icon-button" title="Nuevo Grupo">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+			</button>
+			<button id="btn-new-chat" class="icon-button" title="Nueva conversación">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+			</button>
+		</div>
 	</div>
 	
 	<div class="search-container">
@@ -39,6 +44,7 @@
 		justify-content: space-between;
 		align-items: center;
 	}
+	.header-actions { display: flex; gap: 4px; }
 	.panel-header h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
 	.icon-button {
 		background: transparent;

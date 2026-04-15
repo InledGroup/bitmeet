@@ -13,10 +13,27 @@ export class BitIDService {
   private apiUrl = "https://bitid-api.inled.es";
 
   async importIdentity(data: any): Promise<void> {
-    if (!data.metadata || !data.encryptedPrivateKey) {
+    const identity = data.identity || data.metadata;
+    const encrypted = data.encryptedPrivateKey;
+
+    if (!identity || !encrypted) {
       throw new Error("Invalid identity format");
     }
-    await this.storage.saveIdentity(data.metadata, data.encryptedPrivateKey);
+
+    // Convert potential arrays to Uint8Array/ArrayBuffer if needed
+    const encryptedKey = {
+      encryptedData: Array.isArray(encrypted.encryptedData) 
+        ? new Uint8Array(encrypted.encryptedData).buffer 
+        : encrypted.encryptedData,
+      salt: Array.isArray(encrypted.salt) 
+        ? new Uint8Array(encrypted.salt) 
+        : encrypted.salt,
+      iv: Array.isArray(encrypted.iv) 
+        ? new Uint8Array(encrypted.iv) 
+        : encrypted.iv,
+    };
+
+    await this.storage.saveIdentity(identity, encryptedKey);
   }
 
   async getIdentity(): Promise<BitID | null> {

@@ -49,6 +49,110 @@ const { title } = Astro.props;
 		overflow: hidden;
 	}
 
+	/* --- Apple ID Login Styles --- */
+	.auth-overlay {
+		position: fixed !important;
+		inset: 0 !important;
+		background: #FFFFFF !important;
+		z-index: 10000;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+	}
+
+	.auth-card {
+		width: 100%;
+		max-width: 320px;
+		text-align: center;
+		padding: 20px;
+		background: white;
+		border: none;
+		box-shadow: none;
+		transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.6s ease;
+	}
+
+	.apple-id-logo {
+		width: 100px !important;
+		height: 100px !important;
+		margin: 0 auto 24px !important;
+		display: block !important;
+		object-fit: contain !important;
+	}
+
+	.auth-card h1 {
+		font-size: 24px;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		margin-bottom: 8px;
+		color: #1d1d1f;
+	}
+
+	.auth-subtitle {
+		font-size: 15px;
+		color: #424245;
+		line-height: 1.4;
+		margin-bottom: 28px;
+	}
+
+	.apple-input-wrapper {
+		position: relative;
+		width: 100%;
+		margin-bottom: 24px;
+	}
+
+	.apple-input-wrapper input {
+		width: 100% !important;
+		padding: 14px 44px 14px 16px !important;
+		border-radius: 12px !important;
+		border: 1px solid #d2d2d7 !important;
+		font-size: 17px !important;
+		background: #fff !important;
+		color: #1d1d1f !important;
+		outline: none !important;
+	}
+
+	.apple-input-wrapper input:focus {
+		border-color: #0071e3 !important;
+		box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1) !important;
+	}
+
+	.arrow-submit-btn {
+		position: absolute;
+		right: 8px;
+		top: 50%;
+		transform: translateY(-50%);
+		background: #86868b;
+		color: white;
+		border: none;
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+	}
+
+	.apple-button-primary {
+		background: #0071e3;
+		color: white;
+		border: none;
+		padding: 12px 24px;
+		border-radius: 20px;
+		font-size: 15px;
+		cursor: pointer;
+		width: 100%;
+	}
+
+	.unlock-success {
+		opacity: 0 !important;
+		transform: scale(0.9) !important;
+		pointer-events: none;
+	}
+
+	/* --- Base Components --- */
 	.card {
 		background: var(--apple-card);
 		border-radius: 18px;
@@ -75,20 +179,6 @@ const { title } = Astro.props;
 		transform: scale(0.98);
 	}
 
-	.apple-button.secondary {
-		background: #E5E5EA;
-		color: var(--apple-text);
-	}
-	.apple-button.secondary:hover {
-		background: #D1D1D6;
-	}
-
-	.apple-button.small {
-		padding: 6px 12px;
-		font-size: 13px;
-		border-radius: 8px;
-	}
-
 	.status-dot {
 		width: 8px;
 		height: 8px;
@@ -98,5 +188,29 @@ const { title } = Astro.props;
 	.status-dot.online { background: #34C759; box-shadow: 0 0 8px rgba(52,199,89,0.5); }
 	.status-dot.offline { background: #86868B; }
 
+	/* --- Call Overlay --- */
+	#call-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0,0,0,0.92);
+		backdrop-filter: saturate(180%) blur(40px);
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.call-canvas {
+		width: 95vw;
+		height: 92vh;
+		background: #000;
+		border-radius: 32px;
+		position: relative;
+		overflow: hidden;
+		box-shadow: 0 30px 90px rgba(0,0,0,0.6);
+		border: 1px solid rgba(255,255,255,0.1);
+	}
+
+	/* --- Utilities --- */
 	.hidden { display: none !important; }
 </style>

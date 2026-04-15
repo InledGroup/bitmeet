@@ -6,6 +6,7 @@ export interface IChatRepository {
   listAllChats(): Promise<Chat[]>;
   addMessage(chatId: string, message: Message): Promise<void>;
   updateMessageStatus(chatId: string, messageId: string, status: Message["status"]): Promise<void>;
+  updateGroupMetadata(groupId: string, data: { name?: string, participants?: string[], owner?: string }): Promise<void>;
 }
 
 export interface IP2PTransport {

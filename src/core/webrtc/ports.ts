@@ -1,7 +1,7 @@
 import type { Participant, MeetingMessage } from "./domain";
 
 export interface IWebRTCMediaTransport {
-  initialize(participantId: string): Promise<string>; // Returns peerId
+  initialize(participantId: string, existingPeer?: any): Promise<string>; // Returns peerId
   connect(peerId: string, stream: MediaStream, initialData: Partial<Participant>): void;
   answer(call: any, stream: MediaStream): void;
   broadcastData(data: any): void;
@@ -10,6 +10,7 @@ export interface IWebRTCMediaTransport {
   onRemoteStream(callback: (peerId: string, stream: MediaStream, data: any) => void): void;
   onIncomingCall(callback: (call: any) => void): void;
   onDataReceived(callback: (peerId: string, data: any) => void): void;
+  onConnectionOpened(callback: (peerId: string) => void): void;
   onConnectionClosed(callback: (peerId: string) => void): void;
   disconnect(): void;
 }

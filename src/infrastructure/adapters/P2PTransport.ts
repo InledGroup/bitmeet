@@ -3,13 +3,16 @@ import Peer from 'peerjs';
 export class P2PTransport {
   private peer: any;
   private connections: Map<string, any> = new Map();
+  private peerIdToPubKey: Map<string, string> = new Map();
   private apiUrl = "https://bitid-api.inled.es";
   private onMessageCb?: (msg: any) => void;
   private onCallCb?: (call: any) => void;
+  private onConnectionCb?: (peerPubKey: string) => void;
 
   async initialize(pubKey: string) {
     // Usamos el hash de la pubKey como ID de PeerJS para que sea encontrable
     const peerId = await this.hashPubKey(pubKey);
+    this.peerIdToPubKey.set(peerId, pubKey);
     
     this.peer = new Peer(peerId, {
       debug: 2
@@ -38,6 +41,14 @@ export class P2PTransport {
     this.onCallCb = cb;
   }
 
+  onPeerConnected(cb: (pubKey: string) => void) {
+    this.onConnectionCb = cb;
+  }
+
+  getPeer() {
+    return this.peer;
+  }
+
   async hashPubKey(pubKey: string): Promise<string> {
     const msgUint8 = new TextEncoder().encode(pubKey);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
@@ -55,28 +66,68 @@ export class P2PTransport {
 
   private setupConnection(conn: any) {
     this.connections.set(conn.peer, conn);
+    
+    const notifyReady = () => {
+      console.log(`Conexión P2P abierta con: ${conn.peer}`);
+      const pubKey = this.peerIdToPubKey.get(conn.peer);
+      if (this.onConnectionCb && pubKey) {
+        this.onConnectionCb(pubKey);
+      }
+    };
+
+    if (conn.open) {
+      notifyReady();
+    } else {
+      conn.on('open', notifyReady);
+    }
+
     conn.on('data', (data: any) => {
+      if (data.senderPubKey) {
+        this.peerIdToPubKey.set(conn.peer, data.senderPubKey);
+      }
       console.log('Mensaje recibido P2P:', data);
       if (this.onMessageCb) this.onMessageCb(data);
+    });
+
+    conn.on('close', () => {
+      this.connections.delete(conn.peer);
+    });
+
+    conn.on('error', () => {
+      this.connections.delete(conn.peer);
     });
   }
 
   async connectToPeer(targetPubKey: string): Promise<boolean> {
     const targetPeerId = await this.hashPubKey(targetPubKey);
-    if (this.connections.has(targetPeerId) && this.connections.get(targetPeerId).open) {
+    this.peerIdToPubKey.set(targetPeerId, targetPubKey);
+    const existing = this.connections.get(targetPeerId);
+    if (existing && existing.open) {
       return true;
     }
     
     return new Promise((resolve) => {
+      console.log(`[P2P] Connecting to peer: ${targetPeerId}`);
       const conn = this.peer.connect(targetPeerId);
+      
       conn.on('open', () => {
+        console.log(`[P2P] Connection opened with: ${targetPeerId}`);
         this.setupConnection(conn);
         resolve(true);
       });
-      conn.on('error', () => resolve(false));
+
+      conn.on('error', (err: any) => {
+        console.error(`[P2P] Connection error with ${targetPeerId}:`, err);
+        resolve(false);
+      });
       
-      // Fallback timeout
-      setTimeout(() => resolve(false), 5000);
+      // Fallback timeout increased to 10s for slow networks
+      setTimeout(() => {
+        if (!this.connections.has(targetPeerId)) {
+          console.warn(`[P2P] Connection timeout with: ${targetPeerId}`);
+          resolve(false);
+        }
+      }, 10000);
     });
   }
 
@@ -105,5 +156,15 @@ export class P2PTransport {
     const targetPeerId = await this.hashPubKey(targetPubKey);
     const conn = this.connections.get(targetPeerId);
     return conn && conn.open;
+  }
+
+  async getPresence(pubKey: string): Promise<'online' | 'offline'> {
+    try {
+      const res = await fetch(`${this.apiUrl}/presence/${encodeURIComponent(pubKey)}`);
+      const data = await res.json();
+      return data.status || 'offline';
+    } catch (e) {
+      return 'offline';
+    }
   }
 }

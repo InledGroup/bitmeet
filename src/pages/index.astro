@@ -3,9 +3,12 @@ import Layout from '../layouts/Layout.astro';
 import Sidebar from '../components/Teams/Sidebar.astro';
 import ListPanel from '../components/Teams/ListPanel.astro';
 import ChatArea from '../components/Teams/ChatArea.astro';
-import CallOverlay from '../components/Teams/CallOverlay.astro';
+import CallWrapper from '../components/Teams/CallWrapper';
 import AuthModal from '../components/Teams/AuthModal.astro';
 import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
+import GroupModal from '../components/Teams/GroupModal.astro';
+import GroupSettingsModal from '../components/Teams/GroupSettingsModal.astro';
+import CallOverlay from '../components/Teams/CallOverlay';
 ---
 
 <Layout title="BitSuite Teams">
@@ -13,9 +16,11 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 		<Sidebar />
 		<ListPanel />
 		<ChatArea />
-		<CallOverlay />
 		<AuthModal />
 		<TeamsSettingsModal />
+		<GroupModal />
+		<GroupSettingsModal />
+		
 
 		<!-- 6. POPUP DE LLAMADA ENTRANTE -->
 		<div id="incoming-call-popup" class="incoming-call-popup hidden">
@@ -36,6 +41,7 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 			</div>
 		</div>
 	</main>
+	<CallWrapper client:only="react" />
 </Layout>
 
 <style>
@@ -109,6 +115,7 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 	import { P2PTransport } from '../infrastructure/adapters/P2PTransport';
 	import { IndexedDBChatRepository } from '../infrastructure/adapters/IndexedDBChatRepository';
 	import { encryptText, decryptText } from '../lib/crypto';
+	import { startCall, receiveCall } from '../lib/callStore';
 	
 	// Estado global
 	const bitid = new BitIDService();
@@ -117,15 +124,17 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 	let myIdentity: any = null;
 	let currentChatPubKey: string | null = null;
 	let currentChatId: string | null = null;
-	let activeCall: any = null;
-	let localStreamCall: MediaStream | null = null;
 	let ringtone: HTMLAudioElement | null = null;
 	let messageSound: HTMLAudioElement | null = null;
 	let pendingCall: any = null;
+	let pendingCallPubKey: string | null = null;
+	let userAcceptedPending = false;
 	let notificationsEnabled = localStorage.getItem('teams-notifications') !== 'false';
 	
 	// Elementos UI
+	const teamsApp = document.getElementById('teams-app');
 	const authOverlay = document.getElementById('auth-overlay');
+	const authCard = document.getElementById('auth-card');
 	const authUnlockView = document.getElementById('auth-unlock-view');
 	const authImportView = document.getElementById('auth-import-view');
 	const passwordInput = document.getElementById('master-password') as HTMLInputElement;
@@ -142,21 +151,82 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 	const btnUnlockApp = document.getElementById('btn-unlock-app');
 	const btnTriggerImport = document.getElementById('btn-trigger-import');
 	const importFile = document.getElementById('import-file') as HTMLInputElement;
+
+	const btnNewGroup = document.getElementById('btn-new-group');
+	const groupModal = document.getElementById('group-modal-overlay');
+	const btnCancelGroup = document.getElementById('btn-cancel-group');
+	const btnCreateGroup = document.getElementById('btn-create-group');
+	const groupNameInput = document.getElementById('group-name') as HTMLInputElement;
+	const groupParticipantsList = document.getElementById('group-participants-list');
+
+	const btnGroupSettings = document.getElementById('btn-group-settings');
+	const groupSettingsModal = document.getElementById('group-settings-overlay');
+	const btnCloseGroupSettings = document.getElementById('btn-close-group-settings');
+	const editGroupNameInput = document.getElementById('edit-group-name') as HTMLInputElement;
+	const btnSaveGroupName = document.getElementById('btn-save-group-name');
+	const currentGroupParticipantsEl = document.getElementById('current-group-participants');
+	const addMoreParticipantsEl = document.getElementById('add-more-participants-list');
+	const btnAddMembers = document.getElementById('btn-add-selected-members');
+	const btnLeaveGroup = document.getElementById('btn-leave-group');
 	
 	const settingsOverlay = document.getElementById('teams-settings-overlay');
 	const btnOpenSettings = document.getElementById('btn-open-settings');
 	const btnCloseSettings = document.getElementById('btn-close-settings');
 	const checkNotifications = document.getElementById('check-notifications') as HTMLInputElement;
 
+	let currentChatType: 'direct' | 'group' = 'direct';
+	let currentGroupParticipants: string[] = [];
+	let currentGroupOwner: string | null = null;
+
 	// Iniciar
 	async function initApp() {
-		const id = await bitid.getIdentity();
+		console.log("[BitMeet] Starting initApp...");
 		authOverlay?.classList.remove('hidden');
+		authUnlockView?.classList.add('hidden');
+		authImportView?.classList.add('hidden');
 		
-		// Inicializar sonido
-		ringtone = new Audio('/notify.mp3'); 
-		ringtone.loop = true;
-		messageSound = new Audio('/notify.mp3'); // Mismo archivo por ahora
+		// 1. Splash Screen de 3 segundos
+		console.log("[BitMeet] Waiting for splash...");
+		await new Promise(resolve => setTimeout(resolve, 3000));
+
+		try {
+			console.log("[BitMeet] Checking identity...");
+			const id = await bitid.getIdentity();
+			console.log("[BitMeet] Identity result:", id);
+			
+			// Inicializar sonidos
+			ringtone = new Audio('/notify.mp3'); 
+			ringtone.loop = true;
+			messageSound = new Audio('/notify.mp3');
+
+			if (!id) {
+				console.log("[BitMeet] No identity found, showing import view.");
+				authImportView?.classList.remove('hidden');
+			} else {
+				console.log("[BitMeet] Identity found, trying auto-unlock...");
+				const autoKey = await bitid.autoUnlock();
+				console.log("[BitMeet] Auto-unlock result:", autoKey ? "Success" : "Failed/No session");
+				
+				if (autoKey) {
+					myIdentity = id;
+					authOverlay?.classList.add('hidden');
+					teamsApp?.classList.remove('hidden');
+					const welcomeName = document.getElementById('welcome-name');
+					if (welcomeName) welcomeName.textContent = id.username;
+					console.log("[BitMeet] Starting P2P...");
+					await startP2P();
+					console.log("[BitMeet] P2P Started.");
+				} else {
+					console.log("[BitMeet] Auto-unlock failed or no session, showing unlock view.");
+					authUnlockView?.classList.remove('hidden');
+				}
+			}
+		} catch (err) {
+			console.error("[BitMeet] Critical error during initApp:", err);
+			// Si hay un error crítico, al menos intentamos mostrar algo al usuario
+			authImportView?.classList.remove('hidden');
+			alert("Error al cargar la identidad. Por favor, revisa la consola.");
+		}
 
 		// Solicitar permisos notificaciones
 		if ("Notification" in window && Notification.permission === "default") {
@@ -173,23 +243,6 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 
 		btnOpenSettings?.addEventListener('click', () => settingsOverlay?.classList.remove('hidden'));
 		btnCloseSettings?.addEventListener('click', () => settingsOverlay?.classList.add('hidden'));
-
-		if (!id) {
-			authUnlockView?.classList.add('hidden');
-			authImportView?.classList.remove('hidden');
-		} else {
-			const autoKey = await bitid.autoUnlock();
-			if (autoKey) {
-				myIdentity = id;
-				authOverlay?.classList.add('hidden');
-				const welcomeName = document.getElementById('welcome-name');
-				if (welcomeName) welcomeName.textContent = id.username;
-				await startP2P();
-			} else {
-				authImportView?.classList.add('hidden');
-				authUnlockView?.classList.remove('hidden');
-			}
-		}
 	}
 
 	// 0. AUTH EVENT LISTENERS
@@ -200,17 +253,286 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 		if (key) {
 			const id = await bitid.getIdentity();
 			myIdentity = id;
-			authOverlay?.classList.add('hidden');
-			const welcomeName = document.getElementById('welcome-name');
-			if (welcomeName) welcomeName.textContent = id!.username;
-			await startP2P();
+			
+			// Animación de éxito Apple ID
+			authCard?.classList.add('unlock-success');
+			setTimeout(async () => {
+				authOverlay?.classList.add('hidden');
+				teamsApp?.classList.remove('hidden');
+				const welcomeName = document.getElementById('welcome-name');
+				if (welcomeName) welcomeName.textContent = id!.username;
+				await startP2P();
+			}, 600);
 		} else {
 			alert("Contraseña incorrecta");
 		}
 	});
 
+	passwordInput?.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter') btnUnlockApp?.click();
+	});
+
 	btnTriggerImport?.addEventListener('click', () => {
 		importFile.click();
+	});
+
+	// 0.1 GROUP MODAL EVENT LISTENERS
+	btnNewGroup?.addEventListener('click', async () => {
+		const savedContacts = await chatRepo.listContacts();
+		const colleagues = await bitid.getColleagues();
+		const all: any[] = [...savedContacts.filter(c => !c.isBlocked)];
+		colleagues.forEach(c => {
+			if (!all.find(a => a.publicKey === c.public_key)) {
+				all.push({ publicKey: c.public_key, username: c.username });
+			}
+		});
+
+		if (groupParticipantsList) {
+			groupParticipantsList.innerHTML = all.map(c => `
+				<div class="participant-item">
+					<input type="checkbox" id="p-${c.publicKey}" value="${c.publicKey}" data-username="${c.username}" class="group-p-checkbox" />
+					<label for="p-${c.publicKey}">${c.username}</label>
+				</div>
+			`).join('');
+		}
+		
+		groupNameInput.value = '';
+		groupModal?.classList.remove('hidden');
+	});
+
+	btnGroupSettings?.addEventListener('click', async () => {
+		if (currentChatType !== 'group' || !currentChatId) return;
+		
+		const chat = await chatRepo.getChat(currentChatId);
+		if (!chat) return;
+		
+		editGroupNameInput.value = chat.name || '';
+		currentGroupOwner = chat.owner || null;
+		
+		// Solo owner puede renombrar o añadir/echar
+		const isOwner = currentGroupOwner === myIdentity.publicKey;
+		const renameSection = document.getElementById('group-rename-section');
+		const addSection = document.getElementById('add-more-section');
+		
+		if (renameSection) renameSection.classList.toggle('hidden', !isOwner);
+		if (addSection) addSection.classList.toggle('hidden', !isOwner);
+		
+		await renderGroupParticipants(chat.participants, isOwner);
+		if (isOwner) await renderAddMoreParticipants(chat.participants);
+		
+		groupSettingsModal?.classList.remove('hidden');
+	});
+
+	async function renderGroupParticipants(participants: string[], isOwner: boolean) {
+		if (!currentGroupParticipantsEl) return;
+		
+		const list = await Promise.all(participants.map(async p => {
+			const contact = await chatRepo.getContact(p);
+			const name = p === myIdentity.publicKey ? 'Tú' : (contact?.username || `Desconocido (${p.substring(0,6)})`);
+			const canKick = isOwner && p !== myIdentity.publicKey;
+			
+			return `
+				<div class="member-item">
+					<span class="member-name">${name} ${p === currentGroupOwner ? '👑' : ''}</span>
+					${canKick ? `<button class="btn-kick" data-pubkey="${p}">Expulsar</button>` : ''}
+				</div>
+			`;
+		}));
+		
+		currentGroupParticipantsEl.innerHTML = list.join('');
+		
+		currentGroupParticipantsEl.querySelectorAll('.btn-kick').forEach(btn => {
+			btn.addEventListener('click', async (e) => {
+				const pubKey = (e.currentTarget as HTMLElement).getAttribute('data-pubkey');
+				if (pubKey) await removeMember(pubKey);
+			});
+		});
+	}
+
+	async function renderAddMoreParticipants(currentParticipants: string[]) {
+		if (!addMoreParticipantsEl) return;
+		
+		const contacts = await chatRepo.listContacts();
+		const colleagues = await bitid.getColleagues();
+		const all = [...contacts.filter(c => !c.isBlocked)];
+		colleagues.forEach(c => {
+			if (!all.find(a => a.publicKey === c.public_key)) all.push({ publicKey: c.public_key, username: c.username });
+		});
+		
+		const available = all.filter(c => !currentParticipants.includes(c.publicKey));
+		
+		addMoreParticipantsEl.innerHTML = available.map(c => `
+			<div class="participant-item">
+				<input type="checkbox" id="add-${c.publicKey}" value="${c.publicKey}" class="add-member-checkbox" />
+				<label for="add-${c.publicKey}">${c.username}</label>
+			</div>
+		`).join('');
+		
+		if (available.length === 0) addMoreParticipantsEl.innerHTML = '<div class="empty-results">No hay más contactos</div>';
+	}
+
+	btnCloseGroupSettings?.addEventListener('click', () => {
+		groupSettingsModal?.classList.add('hidden');
+	});
+
+	btnSaveGroupName?.addEventListener('click', async () => {
+		const newName = editGroupNameInput.value.trim();
+		if (!newName || !currentChatId) return;
+		
+		await broadcastSystemMessage('group_renamed', { newName });
+		await chatRepo.updateGroupMetadata(currentChatId, { name: newName });
+		document.getElementById('active-chat-name')!.textContent = newName;
+		await loadContacts();
+		alert("Nombre actualizado");
+	});
+
+	btnAddMembers?.addEventListener('click', async () => {
+		const selected = Array.from(document.querySelectorAll('.add-member-checkbox:checked')) as HTMLInputElement[];
+		if (selected.length === 0 || !currentChatId) return;
+		
+		const newKeys = selected.map(s => s.value);
+		const chat = await chatRepo.getChat(currentChatId);
+		if (!chat) return;
+		
+		const updatedParticipants = [...chat.participants, ...newKeys];
+		await broadcastSystemMessage('member_added', { 
+			participants: updatedParticipants,
+			name: chat.name,
+			owner: chat.owner
+		}, updatedParticipants); // Mandar a todos los nuevos también
+		
+		await chatRepo.updateGroupMetadata(currentChatId, { participants: updatedParticipants });
+		await renderGroupParticipants(updatedParticipants, true);
+		await renderAddMoreParticipants(updatedParticipants);
+		loadContacts();
+	});
+
+	async function removeMember(pubKey: string) {
+		if (!currentChatId || !confirm("¿Expulsar a este participante?")) return;
+		
+		const chat = await chatRepo.getChat(currentChatId);
+		if (!chat) return;
+		
+		const updatedParticipants = chat.participants.filter(p => p !== pubKey);
+		
+		// Notificar al expulsado y a los demás
+		await broadcastSystemMessage('member_removed', { participants: updatedParticipants }, chat.participants);
+		
+		await chatRepo.updateGroupMetadata(currentChatId, { participants: updatedParticipants });
+		await renderGroupParticipants(updatedParticipants, true);
+		await renderAddMoreParticipants(updatedParticipants);
+		loadContacts();
+	}
+
+	btnLeaveGroup?.addEventListener('click', async () => {
+		if (!currentChatId || !confirm("¿Seguro que quieres irte del grupo?")) return;
+		
+		const chat = await chatRepo.getChat(currentChatId);
+		if (!chat) return;
+		
+		const updatedParticipants = chat.participants.filter(p => p !== myIdentity.publicKey);
+		
+		// Si soy el owner, el grupo se queda sin owner o podríamos pasar el testigo. 
+		// Por simplicidad, notificamos que nos vamos.
+		await broadcastSystemMessage('member_left', { participants: updatedParticipants });
+		
+		// Borrar el chat localmente o marcarlo como abandonado
+		// Por ahora lo borramos para salir de la vista
+		const db = (chatRepo as any).db;
+		const tx = db.transaction("chats", "readwrite");
+		tx.objectStore("chats").delete(currentChatId);
+		
+		groupSettingsModal?.classList.add('hidden');
+		viewActiveChat?.classList.add('hidden');
+		viewNoChat?.classList.remove('hidden');
+		loadContacts();
+	});
+
+	async function broadcastSystemMessage(action: string, data: any, customParticipants?: string[]) {
+		if (!currentChatId) return;
+		
+		const { ciphertext, iv } = await encryptText(JSON.stringify(data), currentChatId);
+		const msgId = Math.random().toString(36).substring(7);
+		
+		const systemMsg: any = {
+			id: msgId,
+			senderPubKey: myIdentity.publicKey,
+			senderUsername: myIdentity.username,
+			groupId: currentChatId,
+			content: ciphertext,
+			timestamp: Date.now(),
+			type: 'system',
+			systemAction: action,
+			status: 'sent',
+			iv
+		};
+		
+		const participants = customParticipants || currentGroupParticipants;
+		const others = participants.filter(p => p !== myIdentity.publicKey);
+		
+		await Promise.all(others.map(async p => {
+			try { await p2p.sendP2PMessage(p, systemMsg); } catch(e) {}
+		}));
+		
+		await chatRepo.addMessage(currentChatId, { ...systemMsg, content: JSON.stringify(data) } as any);
+	}
+
+	btnCancelGroup?.addEventListener('click', () => {
+		groupModal?.classList.add('hidden');
+	});
+
+	btnCreateGroup?.addEventListener('click', async () => {
+		const name = groupNameInput.value.trim();
+		if (!name) return alert("Ponle un nombre al grupo");
+		
+		const selected = Array.from(document.querySelectorAll('.group-p-checkbox:checked')) as HTMLInputElement[];
+		if (selected.length === 0) return alert("Selecciona al menos un participante");
+		
+		const participants = selected.map(s => s.value);
+		participants.push(myIdentity.publicKey);
+		
+		const groupId = 'group-' + Math.random().toString(36).substring(2, 11);
+		
+		const { ciphertext, iv } = await encryptText(JSON.stringify({
+			name,
+			participants,
+			owner: myIdentity.publicKey
+		}), groupId);
+
+		const systemMsg: any = {
+			id: Math.random().toString(36).substring(7),
+			senderPubKey: myIdentity.publicKey,
+			senderUsername: myIdentity.username,
+			groupId,
+			content: ciphertext,
+			timestamp: Date.now(),
+			type: 'system',
+			systemAction: 'group_created',
+			status: 'sent',
+			iv
+		};
+		
+		const newGroup: any = {
+			id: groupId,
+			participants,
+			messages: [systemMsg],
+			type: "group",
+			name,
+			owner: myIdentity.publicKey,
+			lastUpdate: Date.now()
+		};
+		
+		await chatRepo.saveChat(newGroup);
+		groupModal?.classList.add('hidden');
+		
+		// Broadcast invitación/creación
+		const others = participants.filter(p => p !== myIdentity.publicKey);
+		others.forEach(pubKey => {
+			p2p.sendP2PMessage(pubKey, { ...systemMsg, content: ciphertext }).catch(() => {});
+		});
+
+		await loadContacts();
+		await selectChat(groupId, name, 'group');
 	});
 
 	importFile?.addEventListener('change', (e: any) => {
@@ -240,9 +562,22 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 
 	async function toggleContact() {
 		if (!currentChatPubKey || !currentChatId) return;
-		const name = document.getElementById('active-chat-name')!.textContent || '';
+		let name = document.getElementById('active-chat-name')!.textContent || '';
+
+		// Si el nombre es "Desconocido", intentar encontrar uno mejor en el historial de mensajes
+		if (name.includes('Desconocido')) {
+			const chat = await chatRepo.getChat(currentChatId);
+			if (chat) {
+				const lastMsgWithName = [...chat.messages].reverse().find(m => (m as any).senderUsername && m.senderPubKey !== myIdentity.publicKey);
+				if (lastMsgWithName) {
+					name = (lastMsgWithName as any).senderUsername;
+					document.getElementById('active-chat-name')!.textContent = name;
+				}
+			}
+		}
+
 		const existing = await chatRepo.getContact(currentChatPubKey);
-		
+
 		if (existing) {
 			await chatRepo.deleteContact(currentChatPubKey);
 			btnToggleContact?.classList.remove('active');
@@ -255,9 +590,8 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 			btnToggleContact?.classList.add('active');
 		}
 		await updateContactUI(currentChatPubKey);
-		loadContacts(); 
+		loadContacts();
 	}
-
 	btnBlockUser?.addEventListener('click', async () => {
 		if (!currentChatPubKey) return;
 		if (confirm("¿Estás seguro de que quieres bloquear a este usuario? No volverás a ver sus mensajes.")) {
@@ -349,172 +683,423 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 		}, 300);
 	});
 
+	// 3.1 REINTENTO DE MENSAJES PENDIENTES
+	async function retryPendingMessages(targetPubKey?: string) {
+		const chats = await chatRepo.listAllChats();
+		for (const chat of chats) {
+			const pendingMsgs = chat.messages.filter(m => m.status === 'pending');
+			if (pendingMsgs.length === 0) continue;
+
+			if (chat.type === 'direct') {
+				const otherPubKey = chat.participants.find(p => p !== myIdentity.publicKey);
+				if (!otherPubKey) continue;
+
+				if (targetPubKey && targetPubKey !== otherPubKey) continue;
+
+				const isConnected = await p2p.isConnected(otherPubKey);
+				const isOnline = isConnected || (await p2p.getPresence(otherPubKey)) === 'online';
+				
+				// Si no está conectado pero sabemos que está online, intentamos forzar conexión
+				if (!isConnected && isOnline) {
+					console.log(`Peer ${otherPubKey} online pero no conectado. Intentando conectar...`);
+					await p2p.connectToPeer(otherPubKey);
+				}
+
+				if (!isConnected && !isOnline && !targetPubKey) continue;
+
+				console.log(`Re-enviando ${pendingMsgs.length} mensajes a ${otherPubKey}...`);
+				for (const msg of pendingMsgs) {
+					try {
+						const { ciphertext, iv } = await encryptText(msg.content, chat.id);
+						const p2pPayload = { 
+							type: 'chat', 
+							id: msg.id, 
+							senderPubKey: myIdentity.publicKey, 
+							senderUsername: myIdentity.username,
+							content: ciphertext, 
+							timestamp: msg.timestamp, 
+							iv,
+							groupId: undefined
+						};
+						await p2p.sendP2PMessage(otherPubKey, p2pPayload);
+						await chatRepo.updateMessageStatus(chat.id, msg.id, 'sent');
+						if (currentChatId === chat.id) updateMessageUIStatus(msg.id, 'sent');
+						console.log(`Mensaje ${msg.id} ("${msg.content.substring(0,10)}...") re-enviado con éxito.`);
+					} catch (e) {
+						console.warn(`Error al re-enviar mensaje ${msg.id} a ${otherPubKey}:`, e);
+						// No hacemos break, intentamos el siguiente por si acaso
+					}
+				}
+			} else {
+				// Para grupos, intentamos re-enviar si algún participante está conectado
+				const others = chat.participants.filter(p => p !== myIdentity.publicKey);
+				for (const msg of pendingMsgs) {
+					let sentAtLeastToOne = false;
+					const { ciphertext, iv } = await encryptText(msg.content, chat.id);
+					const p2pPayload = { 
+						type: 'chat', 
+						id: msg.id, 
+						senderPubKey: myIdentity.publicKey, 
+						senderUsername: myIdentity.username,
+						content: ciphertext, 
+						timestamp: msg.timestamp, 
+						iv,
+						groupId: chat.id
+					};
+
+					for (const pubKey of others) {
+						try {
+							if (targetPubKey && targetPubKey !== pubKey) continue;
+
+							// Intentar conectar si está online
+							const isConnected = await p2p.isConnected(pubKey);
+							if (!isConnected && (await p2p.getPresence(pubKey)) === 'online') {
+								await p2p.connectToPeer(pubKey);
+							}
+
+							if (await p2p.isConnected(pubKey)) {
+								await p2p.sendP2PMessage(pubKey, p2pPayload);
+								sentAtLeastToOne = true;
+							}
+						} catch (err) {}
+					}
+
+					if (sentAtLeastToOne) {
+						await chatRepo.updateMessageStatus(chat.id, msg.id, 'sent');
+						if (currentChatId === chat.id) updateMessageUIStatus(msg.id, 'sent');
+					}
+				}
+			}
+		}
+	}
+
+	async function syncChat(chatId: string, otherPubKey: string) {
+		const chat = await chatRepo.getChat(chatId);
+		if (!chat) return;
+		
+		const receivedMsgs = chat.messages.filter(m => m.senderPubKey === otherPubKey);
+		const lastReceivedTs = receivedMsgs.length > 0 ? Math.max(...receivedMsgs.map(m => m.timestamp)) : 0;
+		
+		console.log(`Enviando sync-ping a ${otherPubKey} para chat ${chatId}. Último recibido: ${new Date(lastReceivedTs).toLocaleTimeString()}`);
+		
+		try {
+			await p2p.sendP2PMessage(otherPubKey, {
+				type: 'sync-ping',
+				chatId: chatId,
+				lastReceivedTimestamp: lastReceivedTs,
+				senderPubKey: myIdentity.publicKey
+			});
+		} catch (e) {
+			console.warn("Error enviando sync-ping", e);
+		}
+	}
+
 	// 3. P2P Y NOTIFICACIONES DE LLAMADA
 	async function startP2P() {
 		await p2p.initialize(myIdentity.publicKey);
 		document.querySelector('.status-circle')?.classList.replace('offline', 'online');
 		await loadContacts();
+		
+		p2p.onPeerConnected(async (pubKey: string) => {
+			console.log(`Peer conectado: ${pubKey}, sincronizando...`);
+			
+			// 1. Reintentar mensajes que nosotros tenemos como pendientes
+			retryPendingMessages(pubKey);
+			
+			// 2. Pedir mensajes que el otro pueda tener y nosotros no
+			const chatId = await getChatId(myIdentity.publicKey, pubKey);
+			syncChat(chatId, pubKey);
+		});
+
+		retryPendingMessages(); // Reintentar al conectar inicial
 
 		p2p.onMessageReceived(async (msg: any) => {
-			if (msg.type === 'chat') {
-				const chatId = await getChatId(msg.senderPubKey, myIdentity.publicKey);
+			if (msg.type === 'sync-ping') {
+				console.log(`Recibido sync-ping de ${msg.senderPubKey} para chat ${msg.chatId}. Pide msgs > ${msg.lastReceivedTimestamp}`);
+				const chat = await chatRepo.getChat(msg.chatId);
+				if (!chat) return;
+				
+				const missingMsgs = chat.messages.filter(m => 
+					m.senderPubKey === myIdentity.publicKey && 
+					m.timestamp > msg.lastReceivedTimestamp
+				);
+				
+				if (missingMsgs.length > 0) {
+					console.log(`Enviando ${missingMsgs.length} mensajes perdidos a ${msg.senderPubKey}...`);
+					for (const m of missingMsgs) {
+						const { ciphertext, iv } = await encryptText(m.content, chat.id);
+						await p2p.sendP2PMessage(msg.senderPubKey, { 
+							type: 'chat', 
+							id: m.id, 
+							senderPubKey: myIdentity.publicKey, 
+							senderUsername: myIdentity.username,
+							content: ciphertext, 
+							timestamp: m.timestamp, 
+							iv,
+							groupId: m.groupId
+						});
+					}
+				}
+				return;
+			}
+
+			if (msg.type === 'chat' || msg.type === 'system') {
+				const isGroup = !!msg.groupId;
+				const chatId = isGroup ? msg.groupId : await getChatId(msg.senderPubKey, myIdentity.publicKey);
 				
 				// Verificar bloqueo
 				const contact = await chatRepo.getContact(msg.senderPubKey);
 				if (contact?.isBlocked) return;
 
 				let text = msg.content;
-				try { text = await decryptText(msg.content, msg.iv, chatId); } catch (e) { text = "🔒 Error de cifrado"; }
+				let decryptedData = null;
+
+				try { 
+					text = await decryptText(msg.content, msg.iv, chatId); 
+					if (msg.type === 'system') {
+						decryptedData = JSON.parse(text);
+					}
+				} catch (e) { 
+					text = "🔒 Error de cifrado"; 
+				}
 
 				const message = {
 					id: msg.id, 
 					senderPubKey: msg.senderPubKey, 
 					senderUsername: msg.senderUsername,
-					receiverPubKey: myIdentity.publicKey,
+					receiverPubKey: isGroup ? undefined : myIdentity.publicKey,
+					groupId: isGroup ? msg.groupId : undefined,
 					content: text, 
 					timestamp: msg.timestamp, 
+					type: msg.type,
+					systemAction: msg.systemAction,
 					status: 'received', 
 					iv: msg.iv
 				};
 
+				// Si me han expulsado o me he ido, y recibo un mensaje de ese grupo, lo ignoro si ya no estoy
+				if (isGroup && (msg.systemAction === 'member_removed' || msg.systemAction === 'member_left')) {
+					if (decryptedData && !decryptedData.participants.includes(myIdentity.publicKey)) {
+						// He sido expulsado o ya me fui (mensaje duplicado o tardío). Podríamos borrar el chat.
+						const db = (chatRepo as any).db;
+						if (db) {
+							const tx = db.transaction("chats", "readwrite");
+							tx.objectStore("chats").delete(chatId);
+						}
+						if (currentChatId === chatId) {
+							viewActiveChat?.classList.add('hidden');
+							viewNoChat?.classList.remove('hidden');
+						}
+						loadContacts();
+						return;
+					}
+				}
+
 				await chatRepo.addMessage(chatId, message as any);
 				
 				if (currentChatId === chatId) { 
-					renderMessage(message as any); 
-					scrollToBottom(); 
+					if (msg.type === 'system') {
+						// Actualizar UI en tiempo real si el chat está abierto
+						if (msg.systemAction === 'group_renamed' && decryptedData?.newName) {
+							document.getElementById('active-chat-name')!.textContent = decryptedData.newName;
+						} else if (decryptedData?.participants) {
+							currentGroupParticipants = decryptedData.participants;
+							const statusEl = document.getElementById('active-chat-status')!;
+							statusEl.textContent = `${currentGroupParticipants.length} participantes`;
+							// Si el modal está abierto, refrescar lista de miembros
+							if (!groupSettingsModal?.classList.contains('hidden')) {
+								const isOwner = currentGroupOwner === myIdentity.publicKey;
+								renderGroupParticipants(currentGroupParticipants, isOwner);
+							}
+						}
+					}
+					
+					const lastMsgEl = document.querySelector('#messages-list .message-bubble:last-child') as HTMLElement;
+					const lastTs = lastMsgEl ? parseInt(lastMsgEl.getAttribute('data-timestamp') || '0') : 0;
+
+					if (message.timestamp < lastTs) {
+						await loadChatHistory(chatId);
+					} else {
+						renderMessage(message as any); 
+						scrollToBottom(); 
+					}
+
+					if (!isGroup && !isGroup) {
+						// Actualizar nombre si era desconocido
+						const nameEl = document.getElementById('active-chat-name');
+						if (nameEl && nameEl.textContent?.includes('Desconocido') && msg.senderUsername) {
+							nameEl.textContent = msg.senderUsername;
+							await chatRepo.saveContact({
+								publicKey: msg.senderPubKey,
+								username: msg.senderUsername,
+								isFavorite: false
+							});
+							const sidebarItem = document.querySelector(`[data-pubkey="${msg.senderPubKey}"] strong`) || document.querySelector(`[data-id="${msg.senderPubKey}"] strong`);
+							if (sidebarItem) sidebarItem.textContent = msg.senderUsername;
+						}
+					}
 				} else {
-					// Si es un chat nuevo o no activo, refrescar lista
 					await loadContacts();
-					const item = document.querySelector(`[data-pubkey="${msg.senderPubKey}"]`);
+					const selector = isGroup ? `[data-id="${msg.groupId}"]` : `[data-pubkey="${msg.senderPubKey}"]`;
+					const item = document.querySelector(selector);
 					if (item) item.classList.add('unread');
 				}
 
 				// Notificaciones
-				if (notificationsEnabled) {
+				if (notificationsEnabled && msg.type !== 'system') {
 					messageSound?.play().catch(e => console.warn("Error playing sound", e));
-					
 					if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-						const notification = new Notification(`Mensaje de @${msg.senderUsername}`, {
-							body: text,
-							icon: "/favicon.svg"
-						});
+						const title = isGroup ? `Mensaje en grupo` : `Mensaje de @${msg.senderUsername}`;
+						const notification = new Notification(title, { body: text, icon: "/favicon.svg" });
 						notification.onclick = () => {
 							window.focus();
-							selectChat(msg.senderPubKey, msg.senderUsername);
+							chatRepo.getChat(chatId).then(chat => {
+								selectChat(chatId, chat?.name || (isGroup ? "Grupo" : msg.senderUsername), isGroup ? 'group' : 'direct');
+							});
 						};
 					}
 				}
-			}
-		});
+			} else if (msg.type === 'call-invite') {
+				document.getElementById('incoming-caller-name')!.textContent = msg.callerName || "Llamada entrante";
+				incomingPopup?.classList.remove('hidden');
+				ringtone?.play();
+				pendingCallPubKey = msg.senderPubKey;
+				
+				if (Notification.permission === "granted") {
+					new Notification("BitSuite Teams", { body: `Llamada entrante de @${msg.callerName}`, icon: "/favicon.svg" });
+				}
+				} else if (msg.type === 'call-reject') {
+				// Al ser rechazado, cerramos nuestro overlay local
+				import('../lib/callStore').then(store => {
+					store.endCall();
+				});
+				alert(`@${msg.senderUsername} ha rechazado la llamada.`);
+				}
+				});
 
-		p2p.onIncomingCall(async (call: any) => {
-			const saved = await chatRepo.listContacts();
-			const colleagues = await bitid.getColleagues();
-			const all = [...saved, ...colleagues.map(c => ({ publicKey: c.public_key, username: c.username }))];
-			
-			let caller = null;
-			for (const c of all) {
-				const pubKey = c.publicKey || (c as any).public_key;
+				p2p.onIncomingCall(async (call: any) => {
+				console.log("[BitMeet] PeerJS Call incoming from:", call.peer);
+				const saved = await chatRepo.listContacts();
+				const colleagues = await bitid.getColleagues();
+				const all = [...saved, ...colleagues.map(c => ({ publicKey: c.publicKey || (c as any).public_key, username: c.username }))];
+
+				let caller = null;
+				for (const c of all) {
+				const pubKey = c.publicKey;
 				if (!pubKey) continue;
 				const h = await p2p.hashPubKey(pubKey);
 				if (h === call.peer) {
 					caller = c;
 					break;
 				}
-			}
-			
-			document.getElementById('incoming-caller-name')!.textContent = caller?.username || "Llamada P2P";
-			incomingPopup?.classList.remove('hidden');
-			ringtone?.play();
+				}
 
-			if (Notification.permission === "granted") {
+				if (caller) {
+				document.getElementById('incoming-caller-name')!.textContent = caller.username;
+				pendingCallPubKey = caller.publicKey;
+				}
+
+				incomingPopup?.classList.remove('hidden');
+				ringtone?.play();
+
+				if (Notification.permission === "granted" && !caller) {
 				new Notification("BitSuite Teams", { body: "Llamada entrante...", icon: "/favicon.svg" });
-			}
+				}
 
-			pendingCall = call;
-		});
-	}
+				pendingCall = call;
+				
+				if (userAcceptedPending && pendingCallPubKey) {
+				console.log("[BitMeet] Auto-answering call because user already clicked accept");
+				incomingPopup?.classList.add('hidden');
+				ringtone?.pause();
+				ringtone!.currentTime = 0;
+				const roomId = await getChatId(myIdentity.publicKey, pendingCallPubKey);
+				receiveCall(roomId, pendingCall, p2p.getPeer());
+				pendingCall = null;
+				pendingCallPubKey = null;
+				userAcceptedPending = false;
+				}
+				});
+				}
 
-	// 4. ACCIONES DE LLAMADA
-	document.getElementById('btn-accept-call')?.addEventListener('click', async () => {
-		if (pendingCall) {
-			incomingPopup?.classList.add('hidden');
-			ringtone?.pause();
-			ringtone!.currentTime = 0;
-			await answerCall(pendingCall);
-			pendingCall = null;
-		}
-	});
+				// 4. ACCIONES DE LLAMADA
+				document.getElementById('btn-accept-call')?.addEventListener('click', async () => {
+				console.log("[BitMeet] Accept button clicked. pendingCall:", !!pendingCall, "pendingCallPubKey:", !!pendingCallPubKey);
+				
+				if (pendingCall && pendingCallPubKey) {
+				incomingPopup?.classList.add('hidden');
+				ringtone?.pause();
+				ringtone!.currentTime = 0;
 
+				const roomId = await getChatId(myIdentity.publicKey, pendingCallPubKey);
+				console.log("[BitMeet] Answering call for room:", roomId);
+				receiveCall(roomId, pendingCall, p2p.getPeer());
+				pendingCall = null;
+				pendingCallPubKey = null;
+				userAcceptedPending = false;
+				} else if (pendingCallPubKey) {
+				// No ha llegado la llamada PeerJS todavía, pero el usuario ya pulsó Aceptar.
+				// Esperamos a que onIncomingCall la reciba.
+				console.log("[BitMeet] Waiting for PeerJS call to arrive...");
+				userAcceptedPending = true;
+				const btnText = document.querySelector('#btn-accept-call span') || document.getElementById('btn-accept-call');
+				if (btnText) btnText.textContent = "...";
+				} else {
+				console.warn("[BitMeet] Cannot accept call: no metadata yet");
+				}
+				});
 	document.getElementById('btn-reject-call')?.addEventListener('click', () => {
+		if (pendingCallPubKey) {
+			p2p.sendP2PMessage(pendingCallPubKey, { 
+				type: 'call-reject', 
+				senderPubKey: myIdentity.publicKey,
+				senderUsername: myIdentity.username
+			});
+		}
 		if (pendingCall) {
 			pendingCall.close();
-			incomingPopup?.classList.add('hidden');
-			ringtone?.pause();
-			ringtone!.currentTime = 0;
-			pendingCall = null;
 		}
+		incomingPopup?.classList.add('hidden');
+		ringtone?.pause();
+		ringtone!.currentTime = 0;
+		pendingCall = null;
+		pendingCallPubKey = null;
+		userAcceptedPending = false;
+		const btnText = document.querySelector('#btn-accept-call span') || document.getElementById('btn-accept-call');
+		if (btnText) btnText.textContent = ""; // Reset icon/text if needed
 	});
 
-	// Controladores de CallOverlay
-	document.getElementById('toggle-mic')?.addEventListener('click', (e) => {
-		if (localStreamCall) {
-			const audioTrack = localStreamCall.getAudioTracks()[0];
-			if (audioTrack) {
-				audioTrack.enabled = !audioTrack.enabled;
-				(e.currentTarget as HTMLElement).classList.toggle('disabled', !audioTrack.enabled);
-			}
-		}
+	document.getElementById('btn-call-video')?.addEventListener('click', async () => {
+		if (!currentChatPubKey) return;
+		const roomId = await getChatId(myIdentity.publicKey, currentChatPubKey);
+		const targetPubKey = currentChatPubKey;
+
+		startCall(roomId, p2p.getPeer(), async () => {
+			console.log("[BitMeet] Sender ready, sending video invite to:", targetPubKey);
+			await p2p.sendP2PMessage(targetPubKey, {
+				type: 'call-invite',
+				roomId,
+				callerName: myIdentity.username,
+				senderPubKey: myIdentity.publicKey
+			});
+		});
 	});
 
-	document.getElementById('toggle-cam')?.addEventListener('click', (e) => {
-		if (localStreamCall) {
-			const videoTrack = localStreamCall.getVideoTracks()[0];
-			if (videoTrack) {
-				videoTrack.enabled = !videoTrack.enabled;
-				(e.currentTarget as HTMLElement).classList.toggle('disabled', !videoTrack.enabled);
-			}
-		}
+	document.getElementById('btn-call-voice')?.addEventListener('click', async () => {
+		if (!currentChatPubKey) return;
+		const roomId = await getChatId(myIdentity.publicKey, currentChatPubKey);
+		const targetPubKey = currentChatPubKey;
+
+		startCall(roomId, p2p.getPeer(), async () => {
+			console.log("[BitMeet] Sender ready, sending voice invite to:", targetPubKey);
+			await p2p.sendP2PMessage(targetPubKey, {
+				type: 'call-invite',
+				roomId,
+				callerName: myIdentity.username,
+				senderPubKey: myIdentity.publicKey
+			});
+		});
 	});
-
-	let isScreenSharingCall = false;
-	let screenStreamCall: MediaStream | null = null;
-	document.getElementById('toggle-screen')?.addEventListener('click', async (e) => {
-		if (!activeCall || !localStreamCall) return;
-		const btn = e.currentTarget as HTMLElement;
-
-		if (!isScreenSharingCall) {
-			try {
-				screenStreamCall = await navigator.mediaDevices.getDisplayMedia({ video: true });
-				const screenTrack = screenStreamCall.getVideoTracks()[0];
-				if (activeCall.peerConnection) {
-					const sender = activeCall.peerConnection.getSenders().find((s: any) => s.track?.kind === 'video');
-					if (sender) sender.replaceTrack(screenTrack);
-				}
-				isScreenSharingCall = true;
-				btn.classList.add('active');
-				screenTrack.onended = () => stopScreenShareCall(btn);
-			} catch (err) { console.error(err); }
-		} else {
-			stopScreenShareCall(btn);
-		}
-	});
-
-	function stopScreenShareCall(btn: HTMLElement) {
-		if (!activeCall || !localStreamCall) return;
-		const videoTrack = localStreamCall.getVideoTracks()[0];
-		if (activeCall.peerConnection && videoTrack) {
-			const sender = activeCall.peerConnection.getSenders().find((s: any) => s.track?.kind === 'video');
-			if (sender) sender.replaceTrack(videoTrack);
-		}
-		if (screenStreamCall) {
-			screenStreamCall.getTracks().forEach(t => t.stop());
-			screenStreamCall = null;
-		}
-		isScreenSharingCall = false;
-		btn.classList.remove('active');
-	}
-
 	async function loadContacts() {
 		const savedContacts = await chatRepo.listContacts();
 		const activeChats = await chatRepo.listAllChats();
@@ -523,39 +1108,84 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 		// Filtrar bloqueados
 		const filteredSaved = savedContacts.filter(c => !c.isBlocked);
 
-		// Fusionar listas
-		const all: any[] = [...filteredSaved];
+		// Fusionar listas de contactos directos
+		const directContacts: any[] = [...filteredSaved];
 		
-		// Añadir colegas
 		colleagues.forEach(c => {
-			if (!all.find(a => a.publicKey === c.public_key)) {
-				all.push({ publicKey: c.public_key, username: c.username, online_status: c.online_status });
+			const existing = directContacts.find(a => a.publicKey === c.public_key);
+			if (!existing) {
+				directContacts.push({ publicKey: c.public_key, username: c.username, online_status: c.online_status });
 			} else {
-				const existing = all.find(a => a.publicKey === c.public_key);
 				existing.online_status = c.online_status;
 			}
 		});
 
-		// Añadir chats activos de desconocidos
-		for (const chat of activeChats) {
-			const otherPubKey = chat.participants.find(p => p !== myIdentity.publicKey);
-			if (otherPubKey && !all.find(a => a.publicKey === otherPubKey)) {
-				const contact = await chatRepo.getContact(otherPubKey);
-				if (contact?.isBlocked) continue;
-				
-				const lastMsg = chat.messages[chat.messages.length - 1];
-				const displayName = (lastMsg as any).senderUsername || `Desconocido (${otherPubKey.substring(0, 6)})`;
+		// Grupos y chats activos
+		const groups: any[] = [];
+		const otherDirects: any[] = [];
 
-				all.push({ 
+		for (const chat of activeChats) {
+			if (chat.type === 'group') {
+				groups.push({
+					id: chat.id,
+					username: chat.name || "Grupo sin nombre",
+					isGroup: true,
+					participants: chat.participants,
+					lastUpdate: chat.lastUpdate
+				});
+				continue;
+			}
+
+			const otherPubKey = chat.participants.find(p => p !== myIdentity.publicKey);
+			if (!otherPubKey) continue;
+
+			const existing = directContacts.find(a => a.publicKey === otherPubKey);
+			const contact = await chatRepo.getContact(otherPubKey);
+			if (contact?.isBlocked) continue;
+
+			if (!existing) {
+				// Buscar el mejor nombre posible del historial de este chat
+				const otherMsgWithName = [...chat.messages].reverse().find(m => m.senderPubKey === otherPubKey && (m as any).senderUsername);
+				const displayName = contact?.username || (otherMsgWithName as any)?.senderUsername || `Desconocido (${otherPubKey.substring(0, 6)})`;
+
+				otherDirects.push({ 
 					publicKey: otherPubKey, 
 					username: displayName,
-					isNew: true 
+					isNew: true,
+					lastUpdate: chat.lastUpdate
 				});
+			} else {
+				// Si ya existía pero el nombre era Desconocido, intentar mejorar el nombre
+				if (existing.username.includes('Desconocido')) {
+					const otherMsgWithName = [...chat.messages].reverse().find(m => m.senderPubKey === otherPubKey && (m as any).senderUsername);
+					if (otherMsgWithName) existing.username = (otherMsgWithName as any).senderUsername;
+				}
+				existing.lastUpdate = chat.lastUpdate;
 			}
 		}
 
+		// Ordenar todo por última actividad
+		const all = [...groups, ...directContacts, ...otherDirects].sort((a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0));
+
+		// Actualizar estados de conexión en tiempo real solo para directos
+		await Promise.all(all.filter(c => !c.isGroup).map(async c => {
+			const isConnected = await p2p.isConnected(c.publicKey);
+			if (isConnected) {
+				c.online_status = 'online';
+			} else {
+				// Consultar presencia global si no hay P2P activo
+				c.online_status = await p2p.getPresence(c.publicKey);
+			}
+		}));
+
 		renderContactList(all);
 	}
+
+	// Refresco periódico de estados cada 10 segundos
+	setInterval(() => {
+		loadContacts();
+		retryPendingMessages();
+	}, 10000);
 
 	async function loadColleagues() {
 		const colleagues = await bitid.getColleagues();
@@ -569,189 +1199,97 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 				return;
 			}
 			chatsList.innerHTML = list.map(c => `
-				<div class="chat-item ${c.isNew ? 'new-chat' : ''}" data-pubkey="${c.publicKey}">
-					<div class="chat-avatar">${c.username.charAt(0).toUpperCase()}</div>
+				<div class="chat-item ${c.isNew ? 'new-chat' : ''} ${c.isGroup ? 'group-item' : ''}" 
+					 data-id="${c.isGroup ? c.id : c.publicKey}" 
+					 data-type="${c.isGroup ? 'group' : 'direct'}">
+					<div class="chat-avatar ${c.isGroup ? 'group-avatar' : ''}">${c.username.charAt(0).toUpperCase()}</div>
 					<div class="chat-info">
 						<div class="chat-row">
-							<strong>${c.username}</strong> 
+							<strong>${c.isGroup ? '👥 ' : ''}${c.username}</strong> 
 							${c.online_status ? `<span class="status-dot ${c.online_status === 'online' ? 'online' : 'offline'}"></span>` : ''}
 						</div>
-						<div class="preview">${c.isNew ? 'Nuevo mensaje' : (c.online_status === 'online' ? 'Disponible' : 'Desconectado')}</div>
+						<div class="preview">${c.isGroup ? `${c.participants.length} participantes` : (c.isNew ? 'Nuevo mensaje' : (c.online_status === 'online' ? 'Disponible' : 'Desconectado'))}</div>
 					</div>
 				</div>
 			`).join('');
 
 			chatsList.querySelectorAll('.chat-item').forEach(item => {
 				item.addEventListener('click', async (e) => {
-					const pubKey = (e.currentTarget as HTMLElement).getAttribute('data-pubkey');
-					const name = (e.currentTarget as HTMLElement).querySelector('strong')?.textContent;
-					await selectChat(pubKey!, name!);
+					const target = e.currentTarget as HTMLElement;
+					const id = target.getAttribute('data-id');
+					const type = target.getAttribute('data-type') as 'direct' | 'group';
+					const name = target.querySelector('strong')?.textContent?.replace('👥 ', '');
+					await selectChat(id!, name!, type);
 				});
 			});
 		}
 	}
 
-	async function selectChat(pubKey: string, name: string) {
+	async function selectChat(id: string, name: string, type: 'direct' | 'group' = 'direct') {
 		viewNoChat?.classList.add('hidden');
 		viewActiveChat?.classList.remove('hidden');
 		document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
-		document.querySelector(`[data-pubkey="${pubKey}"]`)?.classList.remove('unread');
-		document.querySelector(`[data-pubkey="${pubKey}"]`)?.classList.add('active');
+		
+		const selector = type === 'group' ? `[data-id="${id}"]` : `[data-id="${id}"]`;
+		const item = document.querySelector(selector);
+		item?.classList.remove('unread');
+		item?.classList.add('active');
 		
 		document.getElementById('active-chat-name')!.textContent = name;
-		currentChatPubKey = pubKey;
-		currentChatId = await getChatId(myIdentity.publicKey, pubKey);
-		
-		await updateContactUI(pubKey);
+		currentChatType = type;
 
 		const statusEl = document.getElementById('active-chat-status')!;
 		const statusDot = document.getElementById('active-chat-status-dot')!;
-		statusEl.textContent = 'Conectando...';
+		const btnVoice = document.getElementById('btn-call-voice');
+		const btnVideo = document.getElementById('btn-call-video');
+		const btnGSettings = document.getElementById('btn-group-settings');
+		
+		if (type === 'group') {
+			currentChatId = id;
+			currentChatPubKey = null;
+			const chat = await chatRepo.getChat(id);
+			currentGroupParticipants = chat?.participants || [];
+			currentGroupOwner = chat?.owner || null;
+			
+			statusEl.textContent = `${currentGroupParticipants.length} participantes`;
+			statusDot.className = 'status-dot online';
+			
+			if (btnVoice) btnVoice.classList.add('hidden');
+			if (btnVideo) btnVideo.classList.add('hidden');
+			if (btnGSettings) btnGSettings.classList.remove('hidden');
+		} else {
+			currentChatId = await getChatId(myIdentity.publicKey, id);
+			currentChatPubKey = id;
+			currentGroupParticipants = [];
+			currentGroupOwner = null;
+
+			if (btnVoice) btnVoice.classList.remove('hidden');
+			if (btnVideo) btnVideo.classList.remove('hidden');
+			if (btnGSettings) btnGSettings.classList.add('hidden');
+
+			statusEl.textContent = 'Conectando...';
+			const connected = await p2p.connectToPeer(id);
+			statusEl.textContent = connected ? 'Conexión Segura' : 'Offline';
+			statusDot.className = `status-dot ${connected ? 'online' : 'offline'}`;
+			
+			await updateContactUI(id);
+		}
 		
 		const input = document.getElementById('chat-input') as HTMLInputElement;
 		input.value = ''; input.focus();
 
-		const connected = await p2p.connectToPeer(pubKey);
-		statusEl.textContent = connected ? 'Conexión Segura' : 'Offline';
-		statusDot.className = `status-dot ${connected ? 'online' : 'offline'}`;
+		// Refrescar lista de contactos para actualizar el estado online en el sidebar
+		loadContacts();
 
 		await loadChatHistory(currentChatId);
-	}
-
-	// 5. LLAMADAS Y MULTIMEDIA
-	async function getMediaStream(video = true) {
-		const constraints = { 
-			audio: true, 
-			video: video ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false 
-		};
-
-		try {
-			console.log("[BitMeet] Solicitando media con:", constraints);
-			return await navigator.mediaDevices.getUserMedia(constraints);
-		} catch (err: any) {
-			console.warn("[BitMeet] Fallo al obtener stream con video, reintentando solo audio...", err);
-			
-			// Si el error es que no hay cámara o el usuario denegó el video, intentamos solo audio
-			if (video) {
-				try {
-					return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-				} catch (err2) {
-					console.error("[BitMeet] Fallo crítico al obtener audio:", err2);
-				}
-			}
-
-			let errorMsg = "No se pudo acceder a la cámara o el micrófono.";
-			if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-				errorMsg = "Error de Seguridad: Las llamadas P2P requieren HTTPS o localhost para acceder a la cámara/micro.";
-			} else if (err.name === 'NotAllowedError') {
-				errorMsg = "Permiso denegado: Por favor, permite el acceso a la cámara y micro en la configuración de tu navegador.";
-			} else if (err.name === 'NotFoundError') {
-				errorMsg = "Hardware no encontrado: No se detecta cámara o micrófono conectado.";
-			}
-
-			alert(errorMsg);
-			throw err;
+		
+		// Proactivamente intentar re-enviar mensajes pendientes al abrir este chat
+		if (type === 'direct') {
+			retryPendingMessages(await p2p.hashPubKey(id));
+		} else {
+			retryPendingMessages();
 		}
 	}
-
-	document.getElementById('btn-call-video')?.addEventListener('click', async () => {
-		if (!currentChatPubKey) return;
-		try {
-			localStreamCall = await getMediaStream(true);
-			setupVideoUI(localStreamCall, true);
-			activeCall = await p2p.callPeer(currentChatPubKey, localStreamCall);
-			if (activeCall) {
-				setupCallEvents(activeCall);
-			} else {
-				console.error("No se pudo iniciar la llamada");
-				endCallUI();
-			}
-		} catch (err) {
-			console.error("Error en videollamada:", err);
-		}
-	});
-
-	document.getElementById('btn-call-voice')?.addEventListener('click', async () => {
-		if (!currentChatPubKey) return;
-		try {
-			localStreamCall = await getMediaStream(false);
-			setupVideoUI(localStreamCall, true);
-			activeCall = await p2p.callPeer(currentChatPubKey, localStreamCall);
-			if (activeCall) {
-				setupCallEvents(activeCall);
-			} else {
-				endCallUI();
-			}
-		} catch (err) {
-			console.error("Error en llamada de voz:", err);
-		}
-	});
-
-	async function answerCall(call: any) {
-		try {
-			localStreamCall = await getMediaStream(true); 
-			setupVideoUI(localStreamCall, true);
-			call.answer(localStreamCall);
-			activeCall = call;
-			setupCallEvents(call);
-		} catch (err) {
-			console.error("Error al contestar llamada:", err);
-		}
-	}
-
-	function setupCallEvents(call: any) {
-		call.on('stream', (remoteStream: MediaStream) => {
-			console.log("Recibiendo stream remoto", remoteStream.getTracks());
-			
-			let remoteVideo = document.getElementById('remote-call-video') as HTMLVideoElement;
-			if (!remoteVideo) {
-				remoteVideo = document.createElement('video');
-				remoteVideo.id = 'remote-call-video';
-				remoteVideo.autoplay = true;
-				remoteVideo.playsInline = true;
-				const container = document.getElementById('remote-video-container')!;
-				container.innerHTML = '';
-				container.appendChild(remoteVideo);
-			}
-			
-			remoteVideo.srcObject = remoteStream;
-			
-			// Forzar play por si acaso
-			remoteVideo.onloadedmetadata = () => {
-				remoteVideo.play().catch(e => console.warn("Auto-play failed", e));
-			};
-		});
-		call.on('close', () => { endCallUI(); });
-		call.on('error', (err: any) => { 
-			console.error("Error en la llamada P2P:", err);
-			endCallUI(); 
-		});
-	}
-
-	function setupVideoUI(stream: MediaStream, isLocal: boolean) {
-		const overlay = document.getElementById('call-overlay');
-		if (overlay) {
-			overlay.classList.remove('hidden');
-			console.log("Mostrando overlay de llamada");
-		}
-		if (isLocal) {
-			const localVideo = document.getElementById('local-video') as HTMLVideoElement;
-			if (localVideo) localVideo.srcObject = stream;
-		}
-	}
-
-	function endCallUI() {
-		document.getElementById('call-overlay')?.classList.add('hidden');
-		if (localStreamCall) { localStreamCall.getTracks().forEach(t => t.stop()); }
-		const remoteContainer = document.getElementById('remote-video-container');
-		if (remoteContainer) remoteContainer.innerHTML = '';
-		activeCall = null; localStreamCall = null;
-	}
-
-	document.getElementById('btn-hangup')?.addEventListener('click', () => {
-		if (activeCall) activeCall.close();
-		endCallUI();
-	});
 
 	// Resto de utilidades
 	async function loadChatHistory(chatId: string) {
@@ -769,11 +1307,52 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 		const container = document.getElementById('messages-list')!;
 		const loading = container.querySelector('.loading-state');
 		if (loading) loading.remove();
+
 		const isMine = msg.senderPubKey === myIdentity.publicKey;
+		const isGroup = currentChatType === 'group';
+		const isSystem = msg.type === 'system';
+
 		const div = document.createElement('div');
-		div.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
-		div.innerHTML = `<div class="msg-content">${msg.content}</div><div class="msg-meta">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+		div.setAttribute('data-id', msg.id);
+		div.setAttribute('data-timestamp', msg.timestamp.toString());
+
+		if (isSystem) {
+			div.className = 'system-message';
+			let systemText = msg.content;
+			try {
+				const data = JSON.parse(msg.content);
+				const sender = msg.senderPubKey === myIdentity.publicKey ? 'Tú' : `@${msg.senderUsername}`;
+
+				if (msg.systemAction === 'group_created') systemText = `🏗️ ${sender} creó el grupo "${data.name}"`;
+				else if (msg.systemAction === 'group_renamed') systemText = `✏️ ${sender} renombró el grupo a "${data.newName}"`;
+				else if (msg.systemAction === 'member_added') systemText = `➕ ${sender} añadió nuevos participantes`;
+				else if (msg.systemAction === 'member_removed') systemText = `🚫 ${sender} expulsó a un participante`;
+				else if (msg.systemAction === 'member_left') systemText = `🚪 ${sender} abandonó el grupo`;
+			} catch (e) {}
+
+			div.innerHTML = `<span>${systemText}</span>`;
+		} else {
+			div.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
+			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
+			div.innerHTML = `
+				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || 'Alguien'}</div>` : ''}
+				<div class="msg-content">${msg.content}</div>
+				<div class="msg-meta">
+					${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+					<span class="msg-status">${statusIcon}</span>
+				</div>
+			`;
+		}
 		container.appendChild(div);
+	}
+	function updateMessageUIStatus(msgId: string, status: string) {
+		const msgEl = document.querySelector(`.message-bubble[data-id="${msgId}"]`);
+		if (msgEl) {
+			const statusSpan = msgEl.querySelector('.msg-status');
+			if (statusSpan) {
+				statusSpan.textContent = status === 'sent' ? '✓' : (status === 'received' ? '✓✓' : '...');
+			}
+		}
 	}
 
 	function scrollToBottom() {
@@ -785,38 +1364,74 @@ import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 		e.preventDefault();
 		const input = document.getElementById('chat-input') as HTMLInputElement;
 		const text = input.value.trim();
-		if (!text || !currentChatPubKey || !currentChatId) return;
+		if (!text || !currentChatId) return;
+		
+		const isGroup = currentChatType === 'group';
+		if (!isGroup && !currentChatPubKey) return;
+
 		input.value = '';
 		const timestamp = Date.now();
 		const msgId = Math.random().toString(36).substring(7);
 		const { ciphertext, iv } = await encryptText(text, currentChatId);
-		const rawMessage = { 
+		
+		const rawMessage: any = { 
 			id: msgId, 
 			senderPubKey: myIdentity.publicKey, 
 			senderUsername: myIdentity.username,
-			receiverPubKey: currentChatPubKey, 
 			content: text, 
 			timestamp, 
 			status: 'pending', 
 			iv 
 		};
+
+		if (isGroup) {
+			rawMessage.groupId = currentChatId;
+		} else {
+			rawMessage.receiverPubKey = currentChatPubKey;
+		}
+
 		renderMessage(rawMessage);
 		scrollToBottom();
-		try { 
-			await p2p.sendP2PMessage(currentChatPubKey, { 
-				type: 'chat', 
-				id: msgId, 
-				senderPubKey: myIdentity.publicKey, 
-				senderUsername: myIdentity.username,
-				content: ciphertext, 
-				timestamp, 
-				iv 
-			}); 
-			rawMessage.status = 'sent'; 
-		} catch (err) { 
-			console.warn("Peer offline."); 
+
+		const p2pPayload = { 
+			type: 'chat', 
+			id: msgId, 
+			senderPubKey: myIdentity.publicKey, 
+			senderUsername: myIdentity.username,
+			content: ciphertext, 
+			timestamp, 
+			iv,
+			groupId: isGroup ? currentChatId : undefined
+		};
+
+		if (isGroup) {
+			// Broadcast a todos los participantes excepto yo
+			const others = currentGroupParticipants.filter(p => p !== myIdentity.publicKey);
+			let sentCount = 0;
+			await Promise.all(others.map(async (pubKey) => {
+				try {
+					await p2p.sendP2PMessage(pubKey, p2pPayload);
+					sentCount++;
+				} catch (err) {
+					console.warn(`Could not send message to ${pubKey}`);
+				}
+			}));
+			if (sentCount > 0) {
+				rawMessage.status = 'sent';
+				updateMessageUIStatus(msgId, 'sent');
+			}
+		} else {
+			try { 
+				await p2p.sendP2PMessage(currentChatPubKey!, p2pPayload); 
+				rawMessage.status = 'sent'; 
+				updateMessageUIStatus(msgId, 'sent');
+			} catch (err) { 
+				console.warn("Peer offline."); 
+			}
 		}
-		await chatRepo.addMessage(currentChatId, rawMessage as any);
+		
+		await chatRepo.addMessage(currentChatId, rawMessage);
+		loadContacts(); // Refrescar para mover al principio
 	});
 document.getElementById('btn-hero-new-chat')?.addEventListener('click', () => {
 	globalSearch?.focus();

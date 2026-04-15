@@ -8,9 +8,23 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
   private onRemoteStreamCb?: (peerId: string, stream: MediaStream, data: any) => void;
   private onIncomingCallCb?: (call: any) => void;
   private onDataReceivedCb?: (peerId: string, data: any) => void;
+  private onConnectionOpenedCb?: (peerId: string) => void;
   private onConnectionClosedCb?: (peerId: string) => void;
 
-  async initialize(participantId: string): Promise<string> {
+  async initialize(participantId: string, existingPeer?: any): Promise<string> {
+    if (existingPeer) {
+      this.peer = existingPeer;
+      // Setup listeners on existing peer
+      this.peer.on('connection', (conn: any) => {
+        this.setupDataConnection(conn);
+      });
+      this.peer.on('call', (call: any) => {
+        if (this.onIncomingCallCb) this.onIncomingCallCb(call);
+      });
+
+      return existingPeer.id;
+    }
+
     this.peer = new Peer();
     
     return new Promise((resolve, reject) => {
@@ -115,6 +129,10 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
     this.onDataReceivedCb = callback;
   }
 
+  onConnectionOpened(callback: (peerId: string) => void): void {
+    this.onConnectionOpenedCb = callback;
+  }
+
   onConnectionClosed(callback: (peerId: string) => void): void {
     this.onConnectionClosedCb = callback;
   }
@@ -122,6 +140,9 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
   private setupDataConnection(conn: DataConnection) {
     conn.on('open', () => {
       this.connections.set(conn.peer, conn);
+      if (this.onConnectionOpenedCb) {
+        this.onConnectionOpenedCb(conn.peer);
+      }
     });
 
     conn.on('data', (data: any) => {
@@ -141,8 +162,9 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
   disconnect(): void {
     this.calls.forEach(call => call.close());
     this.connections.forEach(conn => conn.close());
-    this.peer?.destroy();
-    this.peer = null;
+    // In Teams mode, we might be using a shared peer, so we don't destroy it.
+    // However, for MeetingContainer standalone mode, this is called.
+    // If we want to be safe, we could only destroy if it was created locally.
     this.calls.clear();
     this.connections.clear();
   }

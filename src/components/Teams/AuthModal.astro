@@ -2,68 +2,30 @@
 // AuthModal.astro
 ---
 <section id="auth-overlay" class="auth-overlay">
-	<div class="auth-card card">
-		<div class="auth-logo">
-			<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--apple-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+	<div class="auth-card" id="auth-card">
+		<div class="auth-header">
+			<img src="https://hosted.inled.es/bitid-animated.gif" alt="BitID Logo" class="apple-id-logo" />
+			<h1 id="auth-title">BitSuite Identity</h1>
 		</div>
-		<h2>BitSuite Identity</h2>
 		
-		<div id="auth-unlock-view" class="hidden">
-			<p>Desbloquea tu búnker para acceder a Teams.</p>
-			<div class="apple-input-container">
-				<input type="password" id="master-password" placeholder="Tu Contraseña Maestra" />
+		<div id="auth-unlock-view" class="auth-view hidden">
+			<p class="auth-subtitle">Inicia sesión con tu BitID para acceder a Teams.</p>
+			<div class="apple-input-wrapper">
+				<input type="password" id="master-password" placeholder="Contraseña Maestra" autofocus />
+				<button id="btn-unlock-app" class="arrow-submit-btn">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+				</button>
 			</div>
-			<button id="btn-unlock-app" class="apple-button full-width">Acceder al búnker</button>
+			<div style="margin-top: 16px;">
+				<a href="#" style="color: #0066cc; text-decoration: none; font-size: 14px;">¿Olvidaste la contraseña?</a>
+			</div>
 		</div>
 		
-		<div id="auth-import-view" class="hidden">
-			<p>No se ha encontrado ninguna identidad en este navegador.</p>
-			<button id="btn-trigger-import" class="apple-button full-width" style="margin-top: 16px;">Importar ID (.json)</button>
+		<div id="auth-import-view" class="auth-view hidden">
+			<p class="auth-subtitle">No se ha encontrado ninguna identidad local.</p>
+			<button id="btn-trigger-import" class="apple-button-primary">Importar BitID (.json)</button>
 			<input type="file" id="import-file" class="hidden" accept=".json" />
-			<p class="hint" style="margin-top: 16px; font-size: 13px; color: var(--apple-text-secondary);">Si no tienes un ID, ve a <a href="https://id.inled.es" target="_blank" style="color: var(--apple-accent); text-decoration: none;">id.inled.es</a></p>
+			<p style="margin-top: 32px; font-size: 12px; color: #86868b;">Si no tienes un ID, créalo en <a href="https://id.inled.es" target="_blank" style="color: #0066cc; text-decoration: none;">id.inled.es</a></p>
 		</div>
 	</div>
 </section>
-
-<style>
-	.auth-overlay {
-		position: fixed;
-		inset: 0;
-		background: rgba(245, 245, 247, 0.8);
-		backdrop-filter: blur(20px) saturate(180%);
-		z-index: 3000;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.auth-card {
-		padding: 40px;
-		text-align: center;
-		max-width: 380px;
-		width: 100%;
-		animation: scaleUp 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
-	}
-	@keyframes scaleUp { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-	
-	.auth-logo { margin-bottom: 16px; }
-	.auth-card h2 { font-size: 24px; margin-bottom: 8px; font-weight: 600; letter-spacing: -0.01em; }
-	.auth-card p { color: var(--apple-text-secondary); font-size: 15px; margin-bottom: 24px; line-height: 1.4; }
-	
-	.apple-input-container { margin-bottom: 24px; }
-	.auth-card input[type="password"] {
-		width: 100%;
-		padding: 14px 16px;
-		border-radius: 12px;
-		border: 1px solid var(--apple-border);
-		font-size: 16px;
-		background: #FAFAFA;
-		transition: all 0.2s;
-	}
-	.auth-card input[type="password"]:focus {
-		outline: none;
-		border-color: var(--apple-accent);
-		background: #FFF;
-		box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
-	}
-	.full-width { width: 100%; }
-</style>

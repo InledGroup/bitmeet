@@ -39,6 +39,8 @@ export default function MeetingContainer({ roomId }: Props) {
   const bitidRef = useRef(new BitIDService());
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const myParticipantId = useRef<string>("");
+  const currentStreamRef = useRef<MediaStream | null>(null);
+  const heartbeatRef = useRef<any>(null);
 
   useEffect(() => {
     async function initIdentity() {
@@ -83,6 +85,7 @@ export default function MeetingContainer({ roomId }: Props) {
 
   const startMeeting = async (settings: { name: string; audioEnabled: boolean; videoEnabled: boolean; stream: MediaStream }) => {
     setLocalStream(settings.stream);
+    currentStreamRef.current = settings.stream;
     
     try {
       const peerId = await transportRef.current.initialize(myParticipantId.current);
@@ -100,14 +103,27 @@ export default function MeetingContainer({ roomId }: Props) {
       });
 
       transportRef.current.onIncomingCall((call) => {
-        if (localStream) {
-          transportRef.current.answer(call, localStream);
+        const streamToAnswer = currentStreamRef.current || localStream;
+        if (streamToAnswer) {
+          transportRef.current.answer(call, streamToAnswer);
         }
       });
 
       transportRef.current.onDataReceived((remotePeerId, data) => {
         handleDataReceived(remotePeerId, data);
       });
+
+      transportRef.current.onConnectionOpened((remotePeerId) => {
+        const local = participants.find(p => p.isLocal);
+        transportRef.current.sendToPeer(remotePeerId, {
+          type: 'status',
+          audio: settings.audioEnabled,
+          video: settings.videoEnabled,
+          name: settings.name,
+          isScreenSharing: isScreenSharing
+        });
+      });
+
       transportRef.current.onConnectionClosed((remotePeerId) => {
         setParticipants(prev => prev.filter(p => p.peerId !== remotePeerId));
       });
@@ -127,11 +143,9 @@ export default function MeetingContainer({ roomId }: Props) {
       setIsReady(true);
 
       // Heartbeat
-      const heartbeat = setInterval(() => {
+      heartbeatRef.current = setInterval(() => {
         signalingRef.current.updateParticipant(roomId, myParticipantId.current, {});
       }, 5000);
-
-      return () => clearInterval(heartbeat);
     } catch (err) {
       console.error("[BitMeet] Failed to start meeting:", err);
     }
@@ -141,9 +155,13 @@ export default function MeetingContainer({ roomId }: Props) {
     if (!isJoined) return;
 
     const cleanup = () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       signalingRef.current.leaveRoom(roomId, myParticipantId.current);
       transportRef.current.disconnect();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (currentStreamRef.current && currentStreamRef.current !== localStream) {
+        currentStreamRef.current.getTracks().forEach(t => t.stop());
+      }
     };
 
     window.addEventListener('beforeunload', cleanup);
@@ -187,7 +205,15 @@ export default function MeetingContainer({ roomId }: Props) {
     setParticipants(prev => {
       const exists = prev.find(p => p.peerId === peerId);
       if (exists) {
-        return prev.map(p => p.peerId === peerId ? { ...p, stream } : p);
+        return prev.map(p => p.peerId === peerId ? { 
+          ...p, 
+          stream,
+          id: data.id || p.id,
+          name: (data.name && data.name !== `User-${peerId.slice(0,4)}`) ? data.name : p.name,
+          audioEnabled: data.audioEnabled ?? data.audio ?? p.audioEnabled,
+          videoEnabled: data.videoEnabled ?? data.video ?? p.videoEnabled,
+          isScreenSharing: data.isScreenSharing ?? p.isScreenSharing
+        } : p);
       }
       return [...prev, {
         id: data.id || peerId,
@@ -195,8 +221,8 @@ export default function MeetingContainer({ roomId }: Props) {
         stream,
         name: data.name || `User-${peerId.slice(0,4)}`,
         isLocal: false,
-        audioEnabled: data.audioEnabled ?? true,
-        videoEnabled: data.videoEnabled ?? true,
+        audioEnabled: data.audioEnabled ?? data.audio ?? true,
+        videoEnabled: data.videoEnabled ?? data.video ?? true,
         isScreenSharing: data.isScreenSharing ?? false
       }];
     });
@@ -206,9 +232,10 @@ export default function MeetingContainer({ roomId }: Props) {
     if (data.type === 'status') {
       setParticipants(prev => prev.map(p => p.peerId === peerId ? {
         ...p,
-        audioEnabled: data.audio !== undefined ? data.audio : p.audioEnabled,
-        videoEnabled: data.video !== undefined ? data.video : p.videoEnabled,
-        name: data.name || p.name
+        audioEnabled: data.audioEnabled !== undefined ? data.audioEnabled : (data.audio !== undefined ? data.audio : p.audioEnabled),
+        videoEnabled: data.videoEnabled !== undefined ? data.videoEnabled : (data.video !== undefined ? data.video : p.videoEnabled),
+        name: data.name || p.name,
+        isScreenSharing: data.isScreenSharing !== undefined ? data.isScreenSharing : p.isScreenSharing
       } : p));
     } else if (data.type === 'chat') {
       let decryptedText = data.message.text;
@@ -275,7 +302,7 @@ export default function MeetingContainer({ roomId }: Props) {
       track.enabled = !track.enabled;
       signalingRef.current.updateParticipant(roomId, myParticipantId.current, { audioEnabled: track.enabled });
       setParticipants(prev => prev.map(p => p.isLocal ? { ...p, audioEnabled: track.enabled } : p));
-      transportRef.current.broadcastData({ type: 'status', audio: track.enabled });
+      transportRef.current.broadcastData({ type: 'status', audio: track.enabled, audioEnabled: track.enabled });
     }
   };
 
@@ -285,7 +312,7 @@ export default function MeetingContainer({ roomId }: Props) {
       track.enabled = !track.enabled;
       signalingRef.current.updateParticipant(roomId, myParticipantId.current, { videoEnabled: track.enabled });
       setParticipants(prev => prev.map(p => p.isLocal ? { ...p, videoEnabled: track.enabled } : p));
-      transportRef.current.broadcastData({ type: 'status', video: track.enabled });
+      transportRef.current.broadcastData({ type: 'status', video: track.enabled, videoEnabled: track.enabled });
     }
   };
 
@@ -294,22 +321,48 @@ export default function MeetingContainer({ roomId }: Props) {
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = displayStream.getVideoTracks()[0];
-        const cameraTrack = localStream.getVideoTracks()[0];
+        const audioTracks = localStream.getAudioTracks();
+        const combinedStream = new MediaStream([screenTrack, ...audioTracks]);
         
+        const cameraTrack = localStream.getVideoTracks()[0];
         transportRef.current.replaceTrack(cameraTrack, screenTrack);
+        
+        currentStreamRef.current = combinedStream;
 
         signalingRef.current.updateParticipant(roomId, myParticipantId.current, { isScreenSharing: true });
         setIsScreenSharing(true);
-        setParticipants(prev => prev.map(p => p.isLocal ? { ...p, isScreenSharing: true } : p));
+        setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: combinedStream, isScreenSharing: true } : p));
         
         screenTrack.onended = () => {
-          transportRef.current.replaceTrack(screenTrack, cameraTrack);
-          setIsScreenSharing(false);
-          signalingRef.current.updateParticipant(roomId, myParticipantId.current, { isScreenSharing: false });
-          setParticipants(prev => prev.map(p => p.isLocal ? { ...p, isScreenSharing: false } : p));
+          stopScreenShare();
         };
-      } catch (err) { console.error("[BitMeet] Screen share error:", err); }
+      } catch (err) { 
+        console.error("[BitMeet] Screen share error:", err); 
+        setIsScreenSharing(false);
+      }
+    } else {
+      stopScreenShare();
     }
+  };
+
+  const stopScreenShare = () => {
+    if (!localStream) return;
+
+    const cameraTrack = localStream.getVideoTracks()[0];
+    const screenTrack = currentStreamRef.current?.getVideoTracks()[0];
+    
+    if (screenTrack && screenTrack.readyState !== 'ended') {
+      screenTrack.stop();
+    }
+
+    if (cameraTrack && screenTrack) {
+      transportRef.current.replaceTrack(screenTrack, cameraTrack);
+    }
+
+    currentStreamRef.current = localStream;
+    signalingRef.current.updateParticipant(roomId, myParticipantId.current, { isScreenSharing: false });
+    setIsScreenSharing(false);
+    setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: localStream, isScreenSharing: false } : p));
   };
 
   if (!isJoined) {
