@@ -113,6 +113,11 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         });
 
         transportRef.current.onDataReceived((peerId, data) => {
+          if (data.type === 'leaving') {
+            console.log("[BitMeet] Participante se ha ido:", peerId);
+            setParticipants(prev => prev.filter(p => p.peerId !== peerId));
+            return;
+          }
           if (data.type === 'status') {
             setParticipants(prev => prev.map(p => p.peerId === peerId ? {
               ...p,
@@ -214,6 +219,12 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
     transportRef.current.broadcastData({ type: 'status', isScreenSharing: false });
   };
 
+  const handleHangup = () => {
+    console.log("[BitMeet] Colgando y avisando a los demás...");
+    transportRef.current.broadcastData({ type: 'leaving' });
+    onHangup();
+  };
+
   const localParticipant = participants.find(p => p.isLocal);
 
   return (
@@ -241,7 +252,7 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
           <button className={`control-btn ${isScreenSharing ? 'active' : ''}`} onClick={toggleScreenShare}>
             {isScreenSharing ? <MonitorOff size={24} /> : <MonitorUp size={24} />}
           </button>
-          <button className="control-btn danger" onClick={onHangup}>
+          <button className="control-btn danger" onClick={handleHangup}>
             <PhoneOff size={24} />
           </button>
         </div>
