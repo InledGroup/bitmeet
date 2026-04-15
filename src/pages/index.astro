@@ -115,13 +115,15 @@ import '../styles/global.css';
 	import { BitIDService } from '../lib/bitid';
 	import { P2PTransport } from '../infrastructure/adapters/P2PTransport';
 	import { IndexedDBChatRepository } from '../infrastructure/adapters/IndexedDBChatRepository';
-	import { encryptText, decryptText } from '../lib/crypto';
+	import { encryptText, decryptText, generateFileKey, exportFileKey, importFileKey, encryptFile, decryptFile } from '../lib/crypto';
 	import { startCall, receiveCall } from '../lib/callStore';
+	import { getWebTorrentClient } from '../lib/webtorrent';
 	
 	// Estado global
 	const bitid = new BitIDService();
 	const p2p = new P2PTransport();
 	const chatRepo = new IndexedDBChatRepository();
+	let torrentClient: any = null;
 	let myIdentity: any = null;
 	let currentChatPubKey: string | null = null;
 	let currentChatId: string | null = null;
@@ -152,6 +154,8 @@ import '../styles/global.css';
 	const btnUnlockApp = document.getElementById('btn-unlock-app');
 	const btnTriggerImport = document.getElementById('btn-trigger-import');
 	const importFile = document.getElementById('import-file') as HTMLInputElement;
+	const btnAttach = document.getElementById('btn-attach');
+	const fileInput = document.getElementById('file-input') as HTMLInputElement;
 
 	const btnNewGroup = document.getElementById('btn-new-group');
 	const groupModal = document.getElementById('group-modal-overlay');
@@ -884,7 +888,7 @@ import '../styles/global.css';
 					groupId: isGroup ? msg.groupId : undefined,
 					content: text, 
 					timestamp: msg.timestamp, 
-					type: msg.type,
+					type: msg.msgType || (msg.type === 'system' ? 'system' : 'text'),
 					systemAction: msg.systemAction,
 					status: 'received', 
 					iv: msg.iv
@@ -977,51 +981,47 @@ import '../styles/global.css';
 				incomingPopup?.classList.remove('hidden');
 				ringtone?.play();
 				pendingCallPubKey = msg.senderPubKey;
-				
+
+				// Importante: Guardamos el PeerID del emisor que viene en el mensaje P2P
+				if (msg.peerId) {
+					console.log("[BitMeet] Call invite received with PeerID:", msg.peerId);
+					(window as any).pendingCallerPeerId = msg.peerId;
+				}
+
 				if (Notification.permission === "granted") {
 					new Notification("BitSuite Teams", { body: `Llamada entrante de @${msg.callerName}`, icon: "/favicon.svg" });
 				}
-				} else if (msg.type === 'call-reject') {
-				// Al ser rechazado, cerramos nuestro overlay local
+			} else if (msg.type === 'call-invite') {
+				document.getElementById('incoming-caller-name')!.textContent = msg.callerName || "Llamada entrante";
+				incomingPopup?.classList.remove('hidden');
+				ringtone?.play();
+				pendingCallPubKey = msg.senderPubKey;
+
+				if (msg.peerId) {
+					console.log("[BitMeet] Call invite received with PeerID:", msg.peerId);
+					(window as any).pendingCallerPeerId = msg.peerId;
+				}
+
+				if (Notification.permission === "granted") {
+					new Notification("BitSuite Teams", { body: `Llamada entrante de @${msg.callerName}`, icon: "/favicon.svg" });
+				}
+			} else if (msg.type === 'call-accept') {
+				console.log("[BitMeet] El receptor ha aceptado la llamada con PeerID:", msg.peerId);
+				window.dispatchEvent(new CustomEvent('bitmeet:call-accepted', { detail: msg }));
+			} else if (msg.type === 'call-reject') {
 				import('../lib/callStore').then(store => {
 					store.endCall();
 				});
 				alert(`@${msg.senderUsername} ha rechazado la llamada.`);
-				}
-				});
+			}
+		});
 
-				p2p.onIncomingCall(async (call: any) => {
-				console.log("[BitMeet] PeerJS Call incoming from:", call.peer);
-				const saved = await chatRepo.listContacts();
-				const colleagues = await bitid.getColleagues();
-				const all = [...saved, ...colleagues.map(c => ({ publicKey: c.publicKey || (c as any).public_key, username: c.username }))];
-
-				let caller = null;
-				for (const c of all) {
-				const pubKey = c.publicKey;
-				if (!pubKey) continue;
-				const h = await p2p.hashPubKey(pubKey);
-				if (h === call.peer) {
-					caller = c;
-					break;
-				}
-				}
-
-				if (caller) {
-				document.getElementById('incoming-caller-name')!.textContent = caller.username;
-				pendingCallPubKey = caller.publicKey;
-				}
-
-				incomingPopup?.classList.remove('hidden');
-				ringtone?.play();
-
-				if (Notification.permission === "granted" && !caller) {
-				new Notification("BitSuite Teams", { body: "Llamada entrante...", icon: "/favicon.svg" });
-				}
-
-				pendingCall = call;
-				
-				if (userAcceptedPending && pendingCallPubKey) {
+		p2p.onIncomingCall(async (call: any) => {
+			console.log("[BitMeet] PeerJS Call incoming from:", call.peer);
+			pendingCall = call;
+			
+			// Si ya habíamos aceptado por el mensaje de chat P2P, contestamos YA
+			if (userAcceptedPending && pendingCallPubKey) {
 				console.log("[BitMeet] Auto-answering call because user already clicked accept");
 				incomingPopup?.classList.add('hidden');
 				ringtone?.pause();
@@ -1031,37 +1031,43 @@ import '../styles/global.css';
 				pendingCall = null;
 				pendingCallPubKey = null;
 				userAcceptedPending = false;
-				}
-				});
-				}
+			}
+		});
+	}
 
 				// 4. ACCIONES DE LLAMADA
 				document.getElementById('btn-accept-call')?.addEventListener('click', async () => {
 				console.log("[BitMeet] Accept button clicked. pendingCall:", !!pendingCall, "pendingCallPubKey:", !!pendingCallPubKey);
-				
-				if (pendingCall && pendingCallPubKey) {
-				incomingPopup?.classList.add('hidden');
-				ringtone?.pause();
-				ringtone!.currentTime = 0;
 
-				const roomId = await getChatId(myIdentity.publicKey, pendingCallPubKey);
-				console.log("[BitMeet] Answering call for room:", roomId);
-				receiveCall(roomId, pendingCall, p2p.getPeer());
-				pendingCall = null;
-				pendingCallPubKey = null;
-				userAcceptedPending = false;
-				} else if (pendingCallPubKey) {
-				// No ha llegado la llamada PeerJS todavía, pero el usuario ya pulsó Aceptar.
-				// Esperamos a que onIncomingCall la reciba.
-				console.log("[BitMeet] Waiting for PeerJS call to arrive...");
-				userAcceptedPending = true;
-				const btnText = document.querySelector('#btn-accept-call span') || document.getElementById('btn-accept-call');
-				if (btnText) btnText.textContent = "...";
-				} else {
-				console.warn("[BitMeet] Cannot accept call: no metadata yet");
+				if (pendingCallPubKey) {
+					const roomId = await getChatId(myIdentity.publicKey, pendingCallPubKey);
+
+					// ENVIAMOS ACEPTACIÓN INMEDIATA POR P2P CHAT
+					p2p.sendP2PMessage(pendingCallPubKey, {
+						type: 'call-accept',
+						peerId: p2p.getPeer().id,
+						senderPubKey: myIdentity.publicKey,
+						senderUsername: myIdentity.username
+					});
+
+					incomingPopup?.classList.add('hidden');
+					ringtone?.pause();
+					ringtone!.currentTime = 0;
+
+					if (pendingCall) {
+						console.log("[BitMeet] Answering existing PeerJS call...");
+						receiveCall(roomId, pendingCall, p2p.getPeer());
+					} else {
+						console.log("[BitMeet] Waiting for PeerJS call to arrive in overlay...");
+						// Entramos en el overlay aunque el objeto 'call' no haya llegado aún
+						startCall(roomId, p2p.getPeer());
+					}
+
+					pendingCall = null;
+					pendingCallPubKey = null;
+					userAcceptedPending = false;
 				}
-				});
-	document.getElementById('btn-reject-call')?.addEventListener('click', () => {
+				});	document.getElementById('btn-reject-call')?.addEventListener('click', () => {
 		if (pendingCallPubKey) {
 			p2p.sendP2PMessage(pendingCallPubKey, { 
 				type: 'call-reject', 
@@ -1088,12 +1094,14 @@ import '../styles/global.css';
 		const targetPubKey = currentChatPubKey;
 
 		startCall(roomId, p2p.getPeer(), async () => {
-			console.log("[BitMeet] Sender ready, sending video invite to:", targetPubKey);
+			const myPeerId = p2p.getPeer().id;
+			console.log("[BitMeet] Sender ready, sending video invite to:", targetPubKey, "with PeerID:", myPeerId);
 			await p2p.sendP2PMessage(targetPubKey, {
 				type: 'call-invite',
 				roomId,
 				callerName: myIdentity.username,
-				senderPubKey: myIdentity.publicKey
+				senderPubKey: myIdentity.publicKey,
+				peerId: myPeerId // Enviamos nuestro ID de PeerJS directamente
 			});
 		});
 	});
@@ -1104,15 +1112,110 @@ import '../styles/global.css';
 		const targetPubKey = currentChatPubKey;
 
 		startCall(roomId, p2p.getPeer(), async () => {
-			console.log("[BitMeet] Sender ready, sending voice invite to:", targetPubKey);
+			const myPeerId = p2p.getPeer().id;
+			console.log("[BitMeet] Sender ready, sending voice invite to:", targetPubKey, "with PeerID:", myPeerId);
 			await p2p.sendP2PMessage(targetPubKey, {
 				type: 'call-invite',
 				roomId,
 				callerName: myIdentity.username,
-				senderPubKey: myIdentity.publicKey
+				senderPubKey: myIdentity.publicKey,
+				peerId: myPeerId
 			});
 		});
 	});
+	const TRACKERS = [
+		'wss://tracker.btorrent.xyz',
+		'wss://tracker.openwebtorrent.com',
+		'wss://tracker.files.fm:7073/announce',
+		'wss://tracker.gbitt.info:443/announce'
+	];
+
+	async function downloadFile(msgId: string) {
+		const msgEl = document.querySelector(`.message-bubble[data-id="${msgId}"]`);
+		if (!msgEl) return;
+		
+		const btn = msgEl.querySelector('.file-download-btn') as HTMLButtonElement;
+		if (btn) btn.disabled = true;
+		
+		const progressEl = msgEl.querySelector('.file-progress') as HTMLElement;
+		if (progressEl) {
+			progressEl.classList.remove('hidden');
+			progressEl.textContent = 'Iniciando...';
+		}
+
+		try {
+			const chat = await chatRepo.getChat(currentChatId!);
+			const msg = chat?.messages.find(m => m.id === msgId);
+			if (!msg || msg.type !== 'file') return;
+
+			const fileMeta = JSON.parse(msg.content);
+			if (!torrentClient) torrentClient = await getWebTorrentClient();
+
+			const onDone = async (t: any) => {
+				if (progressEl) progressEl.textContent = 'Descifrando...';
+				try {
+					const file = t.files[0];
+					const encryptedBuf = await file.arrayBuffer();
+					const key = await importFileKey(fileMeta.key);
+					const iv = new Uint8Array(atob(fileMeta.iv).split('').map(c => c.charCodeAt(0)));
+					
+					const decryptedBuf = await decryptFile(encryptedBuf, key, iv);
+					const blob = new Blob([decryptedBuf], { type: fileMeta.type });
+					const url = URL.createObjectURL(blob);
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = fileMeta.name;
+					a.click();
+					URL.revokeObjectURL(url);
+
+					if (progressEl) {
+						progressEl.textContent = 'Descargado';
+						setTimeout(() => progressEl.classList.add('hidden'), 3000);
+					}
+				} catch (err) {
+					console.error("Decryption error:", err);
+					if (progressEl) progressEl.textContent = 'Error al descifrar';
+				} finally {
+					if (btn) btn.disabled = false;
+				}
+			};
+
+			// Búsqueda manual robusta de torrent existente
+			let torrent = torrentClient.torrents.find((t: any) => 
+				t.magnetURI === fileMeta.magnetURI || t.infoHash === fileMeta.magnetURI || t.infoHash === fileMeta.magnetURI.split('btih:')[1]?.split('&')[0]
+			);
+			
+			if (torrent && typeof torrent.on === 'function') {
+				if (torrent.done) onDone(torrent);
+				else torrent.on('done', () => onDone(torrent));
+			} else {
+				try {
+					torrent = torrentClient.add(fileMeta.magnetURI, { announce: TRACKERS }, (t: any) => {
+						if (t && typeof t.on === 'function') {
+							t.on('download', () => {
+								if (progressEl) {
+									const percent = Math.round(t.progress * 100);
+									progressEl.textContent = `Descargando... ${percent}%`;
+								}
+							});
+							t.on('done', () => onDone(t));
+						}
+					});
+				} catch (e) {
+					// Fallback: intentar obtenerlo de nuevo tras el error de duplicado
+					const retry = torrentClient.get(fileMeta.magnetURI);
+					if (retry && typeof retry.on === 'function') onDone(retry);
+					else throw e;
+				}
+			}
+		} catch (err) {
+			console.error("Download failed:", err);
+			if (btn) btn.disabled = false;
+			if (progressEl) progressEl.textContent = 'Error';
+		}
+	}
+	(window as any).downloadFile = downloadFile;
+
 	async function loadContacts() {
 		const savedContacts = await chatRepo.listContacts();
 		const activeChats = await chatRepo.listAllChats();
@@ -1324,6 +1427,60 @@ import '../styles/global.css';
 		}
 	}
 
+	async function loadFilePreview(msgId: string) {
+		const msgEl = document.querySelector(`.message-bubble[data-id="${msgId}"]`);
+		const previewContainer = msgEl?.querySelector('.file-preview');
+		if (!previewContainer) return;
+
+		try {
+			const chat = await chatRepo.getChat(currentChatId!);
+			const msg = chat?.messages.find(m => m.id === msgId);
+			if (!msg || msg.type !== 'file') return;
+
+			const fileMeta = JSON.parse(msg.content);
+			if (!fileMeta.type.startsWith('image/')) return;
+
+			if (!torrentClient) torrentClient = await getWebTorrentClient();
+			
+			const onDone = async (t: any) => {
+				try {
+					const file = t.files[0];
+					const encryptedBuf = await file.arrayBuffer();
+					const key = await importFileKey(fileMeta.key);
+					const iv = new Uint8Array(atob(fileMeta.iv).split('').map(c => c.charCodeAt(0)));
+					
+					const decryptedBuf = await decryptFile(encryptedBuf, key, iv);
+					const blob = new Blob([decryptedBuf], { type: fileMeta.type });
+					const url = URL.createObjectURL(blob);
+					previewContainer.innerHTML = `<img src="${url}" alt="Preview" class="preview-img" onclick="window.open('${url}', '_blank')" />`;
+					previewContainer.classList.remove('loading');
+				} catch (e) {
+					console.error("Preview decryption error:", e);
+				}
+			};
+
+			let torrent = torrentClient.torrents.find((t: any) => 
+				t.magnetURI === fileMeta.magnetURI || t.infoHash === fileMeta.magnetURI || t.infoHash === fileMeta.magnetURI.split('btih:')[1]?.split('&')[0]
+			);
+
+			if (torrent && typeof torrent.on === 'function') {
+				if (torrent.done) onDone(torrent);
+				else torrent.on('done', () => onDone(torrent));
+			} else {
+				try {
+					torrentClient.add(fileMeta.magnetURI, { announce: TRACKERS }, (t: any) => {
+						if (t && typeof t.on === 'function') t.on('done', () => onDone(t));
+					});
+				} catch (e) {
+					const retry = torrentClient.get(fileMeta.magnetURI);
+					if (retry && typeof retry.on === 'function') onDone(retry);
+				}
+			}
+		} catch (e) {
+			console.error("Preview load error:", e);
+		}
+	}
+
 	function renderMessage(msg: any) {
 		const container = document.getElementById('messages-list')!;
 		const loading = container.querySelector('.loading-state');
@@ -1332,6 +1489,7 @@ import '../styles/global.css';
 		const isMine = msg.senderPubKey === myIdentity.publicKey;
 		const isGroup = currentChatType === 'group';
 		const isSystem = msg.type === 'system';
+		const isFile = msg.type === 'file';
 
 		const div = document.createElement('div');
 		div.setAttribute('data-id', msg.id);
@@ -1352,6 +1510,39 @@ import '../styles/global.css';
 			} catch (e) {}
 
 			div.innerHTML = `<span>${systemText}</span>`;
+		} else if (isFile) {
+			div.className = `message-bubble ${isMine ? 'mine' : 'theirs'} file-message`;
+			let fileMeta = { name: 'Archivo', size: 0, type: '' };
+			try { fileMeta = JSON.parse(msg.content); } catch(e) {}
+			
+			const isImage = fileMeta.type && fileMeta.type.startsWith('image/');
+			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
+
+			div.innerHTML = `
+				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || 'Alguien'}</div>` : ''}
+				<div class="file-content">
+					${isImage ? `<div class="file-preview loading" data-id="${msg.id}"><div class="spinner"></div></div>` : ''}
+					<div class="file-info">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="file-icon"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+						<div class="file-details">
+							<div class="file-name" title="${fileMeta.name}">${fileMeta.name}</div>
+							<div class="file-size">${(fileMeta.size / 1024 / 1024).toFixed(2)} MB</div>
+						</div>
+						<button class="file-download-btn" onclick="downloadFile('${msg.id}')" title="Descargar">
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+						</button>
+					</div>
+					<div class="file-progress hidden"></div>
+				</div>
+				<div class="msg-meta">
+					${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+					<span class="msg-status">${statusIcon}</span>
+				</div>
+			`;
+
+			if (isImage) {
+				setTimeout(() => loadFilePreview(msg.id), 100);
+			}
 		} else {
 			div.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
 			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
@@ -1380,6 +1571,102 @@ import '../styles/global.css';
 		const container = document.getElementById('messages-list')!;
 		container.scrollTop = container.scrollHeight;
 	}
+
+	btnAttach?.addEventListener('click', () => fileInput?.click());
+	fileInput?.addEventListener('change', async (e: any) => {
+		const file = e.target.files[0];
+		if (!file || !currentChatId) return;
+		
+		const isGroup = currentChatType === 'group';
+		if (!isGroup && !currentChatPubKey) return;
+
+		// 1. Cifrar archivo
+		const key = await generateFileKey();
+		const { iv, data } = await encryptFile(file, key);
+		const keyStr = await exportFileKey(key);
+		const ivStr = btoa(String.fromCharCode(...iv));
+
+		// 2. Iniciar WebTorrent
+		if (!torrentClient) torrentClient = await getWebTorrentClient();
+		const encryptedBlob = new Blob([data], { type: 'application/octet-stream' });
+		
+		torrentClient.seed(encryptedBlob, { 
+			name: file.name + '.encrypted',
+			announce: TRACKERS 
+		}, async (torrent: any) => {
+			const timestamp = Date.now();
+			const msgId = Math.random().toString(36).substring(7);
+			
+			const fileMetadata = {
+				name: file.name,
+				size: file.size,
+				type: file.type,
+				magnetURI: torrent.magnetURI,
+				iv: ivStr,
+				key: keyStr
+			};
+
+			const { ciphertext, iv: msgIv } = await encryptText(JSON.stringify(fileMetadata), currentChatId!);
+
+			const rawMessage: any = { 
+				id: msgId, 
+				senderPubKey: myIdentity.publicKey, 
+				senderUsername: myIdentity.username,
+				content: JSON.stringify(fileMetadata), 
+				timestamp, 
+				type: 'file',
+				status: 'pending', 
+				iv: msgIv 
+			};
+
+			if (isGroup) {
+				rawMessage.groupId = currentChatId;
+			} else {
+				rawMessage.receiverPubKey = currentChatPubKey;
+			}
+
+			renderMessage(rawMessage);
+			scrollToBottom();
+
+			const p2pPayload = { 
+				type: 'chat', 
+				msgType: 'file',
+				id: msgId, 
+				senderPubKey: myIdentity.publicKey, 
+				senderUsername: myIdentity.username,
+				content: ciphertext, 
+				timestamp, 
+				iv: msgIv,
+				groupId: isGroup ? currentChatId : undefined
+			};
+
+			if (isGroup) {
+				const others = currentGroupParticipants.filter(p => p !== myIdentity.publicKey);
+				let sentCount = 0;
+				await Promise.all(others.map(async (pubKey) => {
+					try {
+						await p2p.sendP2PMessage(pubKey, p2pPayload);
+						sentCount++;
+					} catch (err) {}
+				}));
+				if (sentCount > 0) {
+					rawMessage.status = 'sent';
+					updateMessageUIStatus(msgId, 'sent');
+				}
+			} else {
+				try { 
+					await p2p.sendP2PMessage(currentChatPubKey!, p2pPayload); 
+					rawMessage.status = 'sent'; 
+					updateMessageUIStatus(msgId, 'sent');
+				} catch (err) {}
+			}
+			
+			await chatRepo.addMessage(currentChatId!, rawMessage);
+			loadContacts();
+		});
+
+		fileInput.value = '';
+	});
 
 	document.getElementById('chat-form')?.addEventListener('submit', async (e) => {
 		e.preventDefault();
@@ -1416,6 +1703,7 @@ import '../styles/global.css';
 
 		const p2pPayload = { 
 			type: 'chat', 
+			msgType: 'text',
 			id: msgId, 
 			senderPubKey: myIdentity.publicKey, 
 			senderUsername: myIdentity.username,

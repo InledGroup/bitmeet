@@ -17,6 +17,15 @@ export interface MeetingMessage {
   timestamp: number;
   encrypted?: boolean;
   iv?: string;
+  file?: {
+    name: string;
+    size: number;
+    type: string;
+    url?: string;
+    magnetURI?: string;
+    key?: string;
+    iv?: string;
+  }
 }
 
 export interface MeetingRoom {

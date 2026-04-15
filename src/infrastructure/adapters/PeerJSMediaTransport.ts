@@ -76,18 +76,25 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
   }
 
   answer(call: any, stream: MediaStream): void {
+    console.log('[BitMeet] Answering call from:', call.peer);
     call.answer(stream);
     this.calls.set(call.peer, call);
     
     call.on('stream', (remoteStream: MediaStream) => {
+      console.log('[BitMeet] Remote stream received in answer from:', call.peer);
       if (this.onRemoteStreamCb) {
-        this.onRemoteStreamCb(call.peer, remoteStream, {});
+        this.onRemoteStreamCb(call.peer, remoteStream, { id: call.peer });
       }
     });
 
     call.on('close', () => {
+      console.log('[BitMeet] Call closed from:', call.peer);
       this.calls.delete(call.peer);
       if (this.onConnectionClosedCb) this.onConnectionClosedCb(call.peer);
+    });
+
+    call.on('error', (err: any) => {
+      console.error('[BitMeet] Call error:', err);
     });
   }
 

@@ -1,43 +1,79 @@
 ---
 // GroupSettingsModal.astro
 ---
+
 <div id="group-settings-overlay" class="auth-overlay hidden">
 	<div class="auth-card apple-card animate-in">
 		<div class="auth-header">
 			<div class="auth-icon group-icon">
-				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+				<svg
+					width="24"
+					height="24"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					><circle cx="12" cy="12" r="3"></circle><path
+						d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+					></path></svg
+				>
 			</div>
 			<h2>Ajustes del Grupo</h2>
-			<p id="group-settings-subtitle">Gestiona los participantes y el nombre.</p>
+			<p id="group-settings-subtitle">
+				Gestiona los participantes y el nombre.
+			</p>
 		</div>
 
 		<div class="auth-form group-form">
 			<div class="input-group" id="group-rename-section">
 				<label for="edit-group-name">Nombre del Grupo</label>
 				<div class="inline-action">
-					<input type="text" id="edit-group-name" placeholder="Nombre del grupo" autocomplete="off" />
-					<button id="btn-save-group-name" class="apple-button small">Guardar</button>
+					<input
+						type="text"
+						id="edit-group-name"
+						class="apple-input"
+						placeholder="Nombre al grupo..."
+						autocomplete="off"
+					/>
+					<button id="btn-save-group-name" class="apple-button small"
+						>Guardar</button
+					>
 				</div>
 			</div>
 
 			<div class="participants-section">
 				<label>Participantes</label>
-				<div id="current-group-participants" class="participants-list scrollable">
-					<!-- Lista de miembros con opción de expulsar si eres owner -->
+				<div
+					id="current-group-participants"
+					class="participants-list scrollable apple-scroll"
+				>
+					<!-- Lista de miembros -->
 				</div>
 			</div>
-			
+
 			<div id="add-more-section" class="participants-section">
 				<label>Añadir nuevos</label>
-				<div id="add-more-participants-list" class="participants-list scrollable">
-					<!-- Lista de contactos que NO están en el grupo -->
+				<div
+					id="add-more-participants-list"
+					class="participants-list scrollable apple-scroll"
+				>
+					<!-- Lista de contactos -->
 				</div>
-				<button id="btn-add-selected-members" class="apple-button small secondary full-width mt-2">Añadir Seleccionados</button>
+				<button
+					id="btn-add-selected-members"
+					class="apple-button-secondary full-width mt-2"
+					>Añadir Seleccionados</button
+				>
 			</div>
 
 			<div class="auth-actions vertical">
-				<button id="btn-leave-group" class="btn-danger">Abandonar Grupo</button>
-				<button id="btn-close-group-settings" class="btn-secondary">Cerrar</button>
+				<button
+					id="btn-close-group-settings"
+					class="apple-button btn-secondary">Cerrar</button
+				>
+				<button id="btn-leave-group" class="btn-danger-text"
+					>Abandonar Grupo</button
+				>
 			</div>
 		</div>
 	</div>
@@ -46,82 +82,250 @@
 <style>
 	.auth-overlay {
 		position: fixed;
-		top: 0; left: 0; right: 0; bottom: 0;
-		background: rgba(0,0,0,0.3);
-		backdrop-filter: blur(20px);
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(255, 255, 255, 0.4);
+		backdrop-filter: blur(20px) saturate(180%);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		z-index: 5500;
 	}
-	.auth-overlay.hidden { display: none; }
+	.auth-overlay.hidden {
+		display: none;
+	}
 
 	.auth-card {
 		background: rgba(255, 255, 255, 0.85);
 		backdrop-filter: blur(30px) saturate(180%);
 		width: 100%;
-		max-width: 450px;
+		max-width: 420px;
 		padding: 32px;
-		border-radius: 30px;
-		box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-		border: 1px solid rgba(255,255,255,0.3);
+		border-radius: 32px;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.4);
+		animation: modalFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
-	.auth-header { text-align: center; margin-bottom: 24px; }
-	.auth-header h2 { font-size: 22px; font-weight: 700; margin-top: 12px; }
-	.auth-header p { font-size: 14px; color: #86868B; }
+	@keyframes modalFadeUp {
+		from {
+			opacity: 0;
+			transform: translateY(20px) scale(0.98);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
 
-	.input-group { margin-bottom: 20px; }
-	.inline-action { display: flex; gap: 8px; }
-	.inline-action input { flex: 1; }
+	.auth-header {
+		text-align: center;
+		margin-bottom: 28px;
+	}
+	.auth-icon {
+		background: var(--apple-accent);
+		color: white;
+		width: 56px;
+		height: 56px;
+		border-radius: 14px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin: 0 auto 16px;
+		box-shadow: 0 8px 16px rgba(0, 122, 255, 0.2);
+	}
+	.auth-header h2 {
+		font-size: 24px;
+		font-weight: 700;
+		color: #1d1d1f;
+		letter-spacing: -0.5px;
+	}
+	.auth-header p {
+		font-size: 15px;
+		color: #86868b;
+		margin-top: 4px;
+	}
 
-	.participants-section { margin-bottom: 20px; text-align: left; }
-	.participants-section label { font-size: 13px; font-weight: 600; color: #1D1D1F; display: block; margin-bottom: 8px; }
-	
-	.participants-list.scrollable {
-		max-height: 150px;
-		overflow-y: auto;
-		border: 1px solid #D2D2D7;
+	.group-form {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.input-group {
+		margin-bottom: 24px;
+	}
+	.input-group label {
+		font-size: 13px;
+		font-weight: 600;
+		color: #1d1d1f;
+		display: block;
+		margin-bottom: 8px;
+		margin-left: 4px;
+	}
+
+	.apple-input {
+		width: 100%;
+		padding: 12px 16px;
 		border-radius: 12px;
-		background: rgba(255,255,255,0.5);
-		padding: 4px;
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		background: rgba(255, 255, 255, 0.8);
+		font-size: 16px;
+		color: #1d1d1f;
+		outline: none;
+		transition: all 0.2s ease;
+	}
+	.apple-input:focus {
+		border-color: var(--apple-accent);
+		box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+		background: #fff;
+	}
+
+	.inline-action {
+		display: flex;
+		gap: 10px;
+	}
+	.inline-action .apple-input {
+		flex: 1;
+	}
+
+	.participants-section {
+		margin-bottom: 24px;
+	}
+	.participants-section label {
+		font-size: 13px;
+		font-weight: 600;
+		color: #1d1d1f;
+		display: block;
+		margin-bottom: 8px;
+		margin-left: 4px;
+	}
+
+	.participants-list.scrollable {
+		max-height: 180px;
+		overflow-y: auto;
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		border-radius: 14px;
+		background: rgba(255, 255, 255, 0.4);
+		padding: 6px;
+	}
+
+	.apple-scroll::-webkit-scrollbar {
+		width: 6px;
+	}
+	.apple-scroll::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.1);
+		border-radius: 10px;
 	}
 
 	:global(.member-item) {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 6px 10px;
-		border-radius: 8px;
+		padding: 8px 12px;
+		border-radius: 10px;
+		transition: background 0.2s;
 	}
-	:global(.member-item:hover) { background: rgba(0,0,0,0.03); }
-	:global(.member-name) { font-size: 14px; flex: 1; }
+	:global(.member-item:hover) {
+		background: rgba(0, 0, 0, 0.03);
+	}
+	:global(.member-name) {
+		font-size: 15px;
+		color: #1d1d1f;
+	}
 	:global(.btn-kick) {
-		color: #FF3B30;
-		background: transparent;
+		color: #ff3b30;
+		background: rgba(255, 59, 48, 0.1);
 		border: none;
 		font-size: 12px;
 		font-weight: 600;
 		cursor: pointer;
-		padding: 4px 8px;
-		border-radius: 6px;
+		padding: 6px 12px;
+		border-radius: 20px;
+		transition: all 0.2s;
 	}
-	:global(.btn-kick:hover) { background: rgba(255,59,48,0.1); }
+	:global(.btn-kick:hover) {
+		background: rgba(255, 59, 48, 0.2);
+		transform: scale(1.02);
+	}
 
-	.auth-actions.vertical { display: flex; flex-direction: column; gap: 10px; }
-	.btn-danger {
-		background: #FF3B30;
-		color: white;
+	.auth-actions.vertical {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-top: 8px;
+	}
+
+	.apple-button {
+		background: var(--apple-accent);
+		color: #fff;
 		border: none;
-		padding: 12px;
+		padding: 14px 24px;
+		border-radius: 14px;
+		font-size: 16px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+		text-align: center;
+	}
+	.apple-button:hover {
+		opacity: 0.9;
+		transform: scale(0.995);
+	}
+	.apple-button:active {
+		transform: scale(0.97);
+	}
+
+	.apple-button.small {
+		padding: 10px 18px;
+		font-size: 14px;
 		border-radius: 12px;
+	}
+
+	.apple-button.btn-secondary {
+		background: rgba(0, 0, 0, 0.05);
+		color: #1d1d1f;
+	}
+	.apple-button.btn-secondary:hover {
+		background: rgba(0, 0, 0, 0.08);
+	}
+
+	.apple-button-secondary {
+		background: #fff;
+		color: var(--apple-accent);
+		border: 1px solid rgba(0, 122, 255, 0.2);
+		padding: 12px 24px;
+		border-radius: 14px;
+		font-size: 15px;
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s;
 	}
-	.btn-danger:hover { background: #D70015; }
-	.full-width { width: 100%; }
-	.mt-2 { margin-top: 8px; }
+	.apple-button-secondary:hover {
+		background: rgba(0, 122, 255, 0.05);
+		border-color: var(--apple-accent);
+	}
 
-	.apple-button.small { padding: 8px 16px; font-size: 13px; border-radius: 10px; }
+	.btn-danger-text {
+		background: transparent;
+		color: #ff3b30;
+		border: none;
+		padding: 8px;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: opacity 0.2s;
+	}
+	.btn-danger-text:hover {
+		opacity: 0.7;
+	}
+
+	.full-width {
+		width: 100%;
+	}
+	.mt-2 {
+		margin-top: 8px;
+	}
 </style>

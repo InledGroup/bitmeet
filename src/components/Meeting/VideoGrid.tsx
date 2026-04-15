@@ -13,40 +13,42 @@ function SpeakingIndicator({ stream, isMuted, size = '3rem' }: { stream?: MediaS
       return;
     }
 
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const analyser = audioContext.createAnalyser();
-    const source = audioContext.createMediaStreamSource(stream);
-    
-    analyser.fftSize = 256;
-    source.connect(analyser);
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      
+      analyser.fftSize = 256;
+      source.connect(analyser);
 
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
 
-    const updateVolume = () => {
-      analyser.getByteFrequencyData(dataArray);
-      let sum = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
-      }
-      const average = sum / bufferLength;
-      // Normalizamos el volumen para que sea útil para el CSS (0 a 1)
-      const normalizedVolume = Math.min(average / 60, 1.5); 
-      setVolume(normalizedVolume);
+      const updateVolume = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+        const normalizedVolume = Math.min(average / 60, 1.5); 
+        setVolume(normalizedVolume);
+        requestRef.current = requestAnimationFrame(updateVolume);
+      };
+
       requestRef.current = requestAnimationFrame(updateVolume);
-    };
 
-    requestRef.current = requestAnimationFrame(updateVolume);
-
-    return () => {
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      source.disconnect();
-      analyser.disconnect();
-      audioContext.close();
-    };
+      return () => {
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
+        source.disconnect();
+        analyser.disconnect();
+        audioContext.close();
+      };
+    } catch (e) {
+      console.warn("Speaking indicator failed", e);
+    }
   }, [stream, isMuted]);
 
-  // Si el volumen es muy bajo, no aplicamos escala extra
   const scale = 1 + (volume > 0.1 ? volume * 0.4 : 0);
   const opacity = 0.3 + (volume > 0.1 ? volume * 0.7 : 0);
 
@@ -75,9 +77,11 @@ function Video({ participant, isFocused, onFocus }: VideoProps) {
   useEffect(() => {
     if (videoRef.current && participant.stream) {
       videoRef.current.srcObject = participant.stream;
+      // IMPORTANTE: Aseguramos que el video SIEMPRE se reproduzca (aunque esté oculto el tag) 
+      // para que el audio no se detenga.
       videoRef.current.play().catch(e => console.warn("Video play interrupted", e));
     }
-  }, [participant.stream, participant.videoEnabled, participant.isScreenSharing]);
+  }, [participant.stream]);
 
   const isMirrored = participant.isLocal && !participant.isScreenSharing;
   const shouldShowVideo = participant.videoEnabled || participant.isScreenSharing;
@@ -95,13 +99,22 @@ function Video({ participant, isFocused, onFocus }: VideoProps) {
         </button>
       </div>
 
+      {/* 
+          MANTENEMOS EL ELEMENTO VIDEO SIEMPRE EN EL DOM 
+          Usamos visibilidad y opacidad en lugar de display: none para no matar el audio.
+      */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={participant.isLocal}
         style={{ 
-          display: shouldShowVideo ? 'block' : 'none',
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          opacity: shouldShowVideo ? 1 : 0,
+          position: shouldShowVideo ? 'relative' : 'absolute',
+          pointerEvents: shouldShowVideo ? 'auto' : 'none',
           backgroundColor: '#000'
         }}
       />
@@ -126,7 +139,6 @@ function Video({ participant, isFocused, onFocus }: VideoProps) {
           backgroundColor: '#1e1e24', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 5
         }}>
-          {/* Indicador de voz (anillos que pulsan) */}
           <SpeakingIndicator 
             stream={participant.stream} 
             isMuted={!participant.audioEnabled} 
@@ -158,10 +170,7 @@ function Video({ participant, isFocused, onFocus }: VideoProps) {
 
 export default function VideoGrid({ participants }: { participants: Participant[] }) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
-
-  // Si solo hay un participante (tú), no activamos modo spotlight
   const activeFocus = (participants.length > 1) ? focusedId : null;
-  
   const mainParticipant = participants.find(p => p.id === activeFocus);
   const secondaryParticipants = participants.filter(p => p.id !== activeFocus);
 
@@ -170,7 +179,7 @@ export default function VideoGrid({ participants }: { participants: Participant[
       <div className="video-grid">
         {participants.map(p => (
           <Video 
-            key={p.id} 
+            key={p.peerId || p.id} 
             participant={p} 
             isFocused={false} 
             onFocus={setFocusedId}
@@ -194,7 +203,7 @@ export default function VideoGrid({ participants }: { participants: Participant[
       <div className="secondary-videos">
         {secondaryParticipants.map(p => (
           <Video 
-            key={p.id} 
+            key={p.peerId || p.id} 
             participant={p} 
             isFocused={false} 
             onFocus={setFocusedId}

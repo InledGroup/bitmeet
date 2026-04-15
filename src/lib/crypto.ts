@@ -74,3 +74,63 @@ export async function decryptText(ciphertextBase64: string, ivBase64: string, ro
   const dec = new TextDecoder();
   return dec.decode(decryptedBuf);
 }
+
+export async function generateFileKey(): Promise<CryptoKey> {
+  return await window.crypto.subtle.generateKey(
+    {
+      name: "AES-GCM",
+      length: 256,
+    },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
+export async function exportFileKey(key: CryptoKey): Promise<string> {
+  const exported = await window.crypto.subtle.exportKey("raw", key);
+  return btoa(String.fromCharCode(...new Uint8Array(exported)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+}
+
+export async function importFileKey(keyStr: string): Promise<CryptoKey> {
+  const binary = atob(keyStr.replace(/-/g, "+").replace(/_/g, "/"));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  
+  return await window.crypto.subtle.importKey(
+    "raw",
+    bytes,
+    "AES-GCM",
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
+export async function encryptFile(file: File, key: CryptoKey): Promise<{iv: Uint8Array, data: ArrayBuffer}> {
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const fileBuffer = await file.arrayBuffer();
+  
+  const encryptedData = await window.crypto.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: iv,
+    },
+    key,
+    fileBuffer
+  );
+  
+  return { iv, data: encryptedData };
+}
+
+export async function decryptFile(encryptedData: ArrayBuffer, key: CryptoKey, iv: Uint8Array): Promise<ArrayBuffer> {
+  return await window.crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv: iv,
+    },
+    key,
+    encryptedData
+  );
+}
