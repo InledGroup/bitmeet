@@ -22,8 +22,8 @@
         <div class="header-actions">
             <select id="cal-view-selector" class="apple-select">
                 <option value="month">Mes</option>
-                <option value="week" disabled>Semana</option>
-                <option value="day" disabled>Día</option>
+                <option value="week">Semana</option>
+                <option value="day">Día</option>
             </select>
             <button id="cal-btn-add" class="apple-button primary small">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><path d="M12 5v14M5 12h14"/></svg>
@@ -257,6 +257,77 @@
     :global(.calendar-event-item:hover) { transform: scale(1.02); z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     :global(.calendar-event-item.meeting) { background: rgba(0, 122, 255, 0.12); color: #0060CC; border-left: 3px solid #007AFF; }
     :global(.calendar-event-item.busy) { background: rgba(142, 142, 147, 0.12); color: #3A3A3C; border-left: 3px solid #8E8E93; }
+
+    /* Vistas de Tiempo (Semana/Día) */
+    .week-view, .day-view {
+        display: flex;
+        background: #FFFFFF;
+        position: relative;
+        min-height: 1440px; /* 24h * 60px/h */
+    }
+    
+    .time-axis {
+        width: 60px;
+        background: #F5F5F7;
+        border-right: 1px solid var(--apple-border);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    :global(.time-label) {
+        height: 60px; /* 1 hora = 60px */
+        font-size: 11px;
+        color: #8E8E93;
+        text-align: right;
+        padding-right: 8px;
+        padding-top: 4px;
+        border-bottom: 1px solid rgba(0,0,0,0.02);
+    }
+    
+    .view-content {
+        flex: 1;
+        display: flex;
+        position: relative;
+    }
+    
+    :global(.day-column) {
+        flex: 1;
+        border-right: 1px solid var(--apple-border);
+        position: relative;
+        background-image: linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px);
+        background-size: 100% 60px; /* Líneas para cada hora */
+    }
+    
+    :global(.column-header) {
+        position: sticky;
+        top: 0;
+        background: #F5F5F7;
+        z-index: 10;
+        padding: 8px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--apple-border);
+    }
+    
+    :global(.calendar-event-item.real-space) {
+        position: absolute;
+        width: calc(100% - 8px);
+        left: 4px;
+        z-index: 5;
+        margin: 0;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        line-height: 1.2;
+    }
+    
+    :global(.calendar-event-item.real-space .event-time) {
+        font-size: 10px;
+        opacity: 0.8;
+        margin-top: 2px;
+    }
 
     /* Modal Styling */
     .modal-overlay {

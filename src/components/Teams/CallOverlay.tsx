@@ -201,6 +201,10 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         }
       });
 
+      transportRef.current.onConnectionClosed((pId) => {
+        setParticipants(prev => prev.filter(p => p.peerId !== pId));
+      });
+
       if (isIncoming && incomingCall) transportRef.current.answer(incomingCall, currentStreamRef.current as any);
       if (invitedPeers) {
         Object.entries(invitedPeers).forEach(([tId, info]) => {

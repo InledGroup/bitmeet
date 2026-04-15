@@ -42,7 +42,7 @@ export async function startCall(roomId: string, existingPeer?: any, onReady?: ()
   });
 }
 
-export async function receiveCall(roomId: string, call: any, existingPeer?: any, remotePubKey?: string, remoteUsername?: string, invitedPeers?: Record<string, { username: string, pubKey: string }>) {
+export async function receiveCall(roomId: string, call: any, existingPeer?: any, onReady?: () => void, remotePubKey?: string, remoteUsername?: string, invitedPeers?: Record<string, { username: string, pubKey: string }>) {
   currentCallStart = Date.now();
   callStore.set({ 
     isOpen: true, 
@@ -50,6 +50,7 @@ export async function receiveCall(roomId: string, call: any, existingPeer?: any,
     isIncoming: true, 
     incomingCall: call, 
     existingPeer,
+    onReady,
     remotePubKey,
     remoteUsername,
     invitedPeers

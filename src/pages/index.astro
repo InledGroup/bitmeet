@@ -129,7 +129,7 @@ import '../styles/global.css';
 	import { IndexedDBCalendarRepository } from '../infrastructure/adapters/IndexedDBCalendarRepository';
 	import { IndexedDBCallsRepository } from '../infrastructure/adapters/IndexedDBCallsRepository';
 	import { encryptText, decryptText, generateFileKey, exportFileKey, importFileKey, encryptFile, decryptFile } from '../lib/crypto';
-	import { startCall, receiveCall } from '../lib/callStore';
+	import { startCall, receiveCall, recordMissedCall } from '../lib/callStore';
 	import { getWebTorrentClient } from '../lib/webtorrent';
 	
 	// Estado global
@@ -1258,7 +1258,9 @@ import '../styles/global.css';
 				ringtone?.pause();
 				ringtone!.currentTime = 0;
 				const roomId = await getChatId(myIdentity.publicKey, pendingCallPubKey);
-				receiveCall(roomId, pendingCall, p2p.getPeer());
+				const name = document.getElementById('incoming-caller-name')!.textContent || "Usuario";
+				const invitedPeers = (window as any).pendingInvitedPeers || {};
+				receiveCall(roomId, pendingCall, p2p.getPeer(), undefined, pendingCallPubKey, name, invitedPeers);
 				pendingCall = null;
 				pendingCallPubKey = null;
 				userAcceptedPending = false;
@@ -1311,11 +1313,12 @@ import '../styles/global.css';
 
 					if (pendingCall) {
 						console.log("[BitMeet] Answering existing PeerJS call...");
-						receiveCall(roomId, pendingCall, p2p.getPeer(), pendingCallPubKey, name, fullInvitedPeers);
+						receiveCall(roomId, pendingCall, p2p.getPeer(), undefined, pendingCallPubKey, name, fullInvitedPeers);
 					} else {
 						console.log("[BitMeet] Waiting for PeerJS call to arrive in overlay...");
 						// Entramos en el overlay aunque el objeto 'call' no haya llegado aún
-						startCall(roomId, p2p.getPeer(), undefined, pendingCallPubKey, name, fullInvitedPeers);
+						// IMPORTANTE: Usamos receiveCall para que el estado sea 'isIncoming: true'
+						receiveCall(roomId, null, p2p.getPeer(), undefined, pendingCallPubKey, name, fullInvitedPeers);
 					}
 
 					pendingCall = null;
@@ -1330,14 +1333,20 @@ import '../styles/global.css';
 					loadCallsView();
 					}
 					});
-	document.getElementById('btn-reject-call')?.addEventListener('click', () => {
+	document.getElementById('btn-reject-call')?.addEventListener('click', async () => {
+		const name = document.getElementById('incoming-caller-name')!.textContent || "Usuario";
+		
 		if (pendingCallPubKey) {
 			p2p.sendP2PMessage(pendingCallPubKey, { 
 				type: 'call-reject', 
 				senderPubKey: myIdentity.publicKey,
 				senderUsername: myIdentity.username
 			});
+			// Registrar como llamada perdida/rechazada
+			await recordMissedCall(pendingCallPubKey, name);
+			loadCallsView();
 		}
+		
 		if (pendingCall) {
 			pendingCall.close();
 		}
@@ -1347,8 +1356,6 @@ import '../styles/global.css';
 		pendingCall = null;
 		pendingCallPubKey = null;
 		userAcceptedPending = false;
-		const btnText = document.querySelector('#btn-accept-call span') || document.getElementById('btn-accept-call');
-		if (btnText) btnText.textContent = ""; // Reset icon/text if needed
 	});
 
 	document.getElementById('btn-call-video')?.addEventListener('click', async () => {
@@ -1855,15 +1862,32 @@ import '../styles/global.css';
 		renderCalendar();
 	});
 
+	document.getElementById('cal-view-selector')?.addEventListener('change', () => {
+		renderCalendar();
+	});
+
 	async function renderCalendar() {
+		const view = (document.getElementById('cal-view-selector') as HTMLSelectElement)?.value || 'month';
+		const grid = document.getElementById('calendar-grid');
+		if (!grid) return;
+
+		grid.className = `calendar-grid ${view}-view`;
+		grid.innerHTML = '';
+
+		if (view === 'month') {
+			await renderMonthView(grid);
+		} else if (view === 'week') {
+			await renderWeekView(grid);
+		} else if (view === 'day') {
+			await renderDayView(grid);
+		}
+	}
+
+	async function renderMonthView(grid: HTMLElement) {
 		const periodEl = document.getElementById('cal-current-period');
 		if (periodEl) {
 			periodEl.textContent = currentCalendarDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 		}
-
-		const grid = document.getElementById('calendar-grid');
-		if (!grid) return;
-		grid.innerHTML = '';
 
 		// Cabecera días
 		const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -1877,16 +1901,13 @@ import '../styles/global.css';
 		const firstDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
 		const lastDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
 		
-		// Ajuste para que Lunes sea el primer día (0=Dom, 1=Lun...)
 		let startOffset = firstDay.getDay() - 1;
 		if (startOffset === -1) startOffset = 6;
 
-		// Celdas vacías iniciales
 		for (let i = 0; i < startOffset; i++) {
 			grid.appendChild(document.createElement('div'));
 		}
 
-		// Eventos del mes
 		const events = await calendarRepo.listEvents(firstDay.getTime(), lastDay.getTime());
 
 		for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -1910,9 +1931,132 @@ import '../styles/global.css';
 				});
 				cell.appendChild(evEl);
 			});
-
 			grid.appendChild(cell);
 		}
+	}
+
+	async function renderWeekView(grid: HTMLElement) {
+		const periodEl = document.getElementById('cal-current-period');
+		
+		// Calcular inicio de semana (Lunes)
+		const startOfWeek = new Date(currentCalendarDate);
+		const day = startOfWeek.getDay();
+		const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+		startOfWeek.setDate(diff);
+		startOfWeek.setHours(0,0,0,0);
+
+		const endOfWeek = new Date(startOfWeek);
+		endOfWeek.setDate(endOfWeek.getDate() + 6);
+		endOfWeek.setHours(23,59,59,999);
+
+		if (periodEl) {
+			periodEl.textContent = `${startOfWeek.getDate()} - ${endOfWeek.getDate()} ${endOfWeek.toLocaleString('es-ES', { month: 'short' })}`;
+		}
+
+		grid.innerHTML = `
+			<div class="time-axis"></div>
+			<div class="view-content"></div>
+		`;
+		
+		const timeAxis = grid.querySelector('.time-axis')!;
+		const content = grid.querySelector('.view-content')!;
+
+		// Eje de tiempo
+		for (let h = 0; h < 24; h++) {
+			const label = document.createElement('div');
+			label.className = 'time-label';
+			label.textContent = `${h}:00`;
+			timeAxis.appendChild(label);
+		}
+
+		const events = await calendarRepo.listEvents(startOfWeek.getTime(), endOfWeek.getTime());
+
+		// Columnas de días
+		for (let i = 0; i < 7; i++) {
+			const currentDay = new Date(startOfWeek);
+			currentDay.setDate(startOfWeek.getDate() + i);
+			
+			const column = document.createElement('div');
+			column.className = 'day-column';
+			column.innerHTML = `
+				<div class="column-header">
+					${currentDay.toLocaleString('es-ES', { weekday: 'short' })} ${currentDay.getDate()}
+				</div>
+			`;
+
+			const dayStart = new Date(currentDay).setHours(0,0,0,0);
+			const dayEnd = new Date(currentDay).setHours(23,59,59,999);
+
+			const dayEvents = events.filter(e => e.startTime >= dayStart && e.startTime <= dayEnd);
+			
+			dayEvents.forEach(e => {
+				const evEl = createRealSpaceEvent(e);
+				column.appendChild(evEl);
+			});
+
+			content.appendChild(column);
+		}
+	}
+
+	async function renderDayView(grid: HTMLElement) {
+		const periodEl = document.getElementById('cal-current-period');
+		if (periodEl) {
+			periodEl.textContent = currentCalendarDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+		}
+
+		grid.innerHTML = `
+			<div class="time-axis"></div>
+			<div class="view-content"></div>
+		`;
+		
+		const timeAxis = grid.querySelector('.time-axis')!;
+		const content = grid.querySelector('.view-content')!;
+
+		for (let h = 0; h < 24; h++) {
+			const label = document.createElement('div');
+			label.className = 'time-label';
+			label.textContent = `${h}:00`;
+			timeAxis.appendChild(label);
+		}
+
+		const dayStart = new Date(currentCalendarDate).setHours(0,0,0,0);
+		const dayEnd = new Date(currentCalendarDate).setHours(23,59,59,999);
+		const events = await calendarRepo.listEvents(dayStart, dayEnd);
+
+		const column = document.createElement('div');
+		column.className = 'day-column';
+		
+		events.forEach(e => {
+			const evEl = createRealSpaceEvent(e);
+			column.appendChild(evEl);
+		});
+
+		content.appendChild(column);
+	}
+
+	function createRealSpaceEvent(e: any) {
+		const date = new Date(e.startTime);
+		const startMins = date.getHours() * 60 + date.getMinutes();
+		const durationMins = Math.max(30, (e.endTime - e.startTime) / 60000);
+		
+		const top = (startMins / 60) * 60 + 40; // 60px por hora, +40px de header
+		const height = (durationMins / 60) * 60;
+
+		const evEl = document.createElement('div');
+		evEl.className = `calendar-event-item ${e.type} real-space`;
+		evEl.style.top = `${top}px`;
+		evEl.style.height = `${height}px`;
+		
+		evEl.innerHTML = `
+			<strong>${e.title}</strong>
+			<span class="event-time">${new Date(e.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+		`;
+		
+		evEl.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			showEventDetails(e.id);
+		});
+		return evEl;
 	}
 
 	async function showEventDetails(eventId: string) {
