@@ -1,0 +1,104 @@
+---
+// TeamsSettingsModal.astro
+---
+<div id="teams-settings-overlay" class="settings-overlay hidden">
+	<div class="settings-card fade-in">
+		<div class="settings-header">
+			<h2>Ajustes</h2>
+			<button id="btn-close-settings" class="close-btn">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+			</button>
+		</div>
+
+		<div class="settings-body">
+			<div class="setting-item">
+				<div class="setting-info">
+					<strong>Notificaciones Sonoras</strong>
+					<span>Reproducir un sonido al recibir mensajes</span>
+				</div>
+				<label class="apple-switch">
+					<input type="checkbox" id="check-notifications" checked>
+					<span class="slider"></span>
+				</label>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	.settings-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0,0,0,0.4);
+		backdrop-filter: blur(10px);
+		z-index: 5000;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.settings-card {
+		background: rgba(255, 255, 255, 0.9);
+		backdrop-filter: blur(20px);
+		border: 1px solid rgba(255,255,255,0.3);
+		border-radius: 24px;
+		width: 100%;
+		max-width: 400px;
+		padding: 24px;
+		box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+	}
+	.settings-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 24px;
+	}
+	.settings-header h2 { font-size: 20px; font-weight: 700; }
+	.close-btn {
+		background: none;
+		border: none;
+		color: var(--apple-text-secondary);
+		cursor: pointer;
+	}
+
+	.setting-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 16px 0;
+		border-bottom: 1px solid var(--apple-border);
+	}
+	.setting-info { display: flex; flex-direction: column; gap: 4px; }
+	.setting-info strong { font-size: 15px; }
+	.setting-info span { font-size: 12px; color: var(--apple-text-secondary); }
+
+	/* Apple Switch */
+	.apple-switch {
+		position: relative;
+		display: inline-block;
+		width: 50px;
+		height: 28px;
+	}
+	.apple-switch input { opacity: 0; width: 0; height: 0; }
+	.slider {
+		position: absolute;
+		cursor: pointer;
+		inset: 0;
+		background-color: #e9e9eb;
+		transition: .4s;
+		border-radius: 34px;
+	}
+	.slider:before {
+		position: absolute;
+		content: "";
+		height: 24px;
+		width: 24px;
+		left: 2px;
+		bottom: 2px;
+		background-color: white;
+		transition: .4s;
+		border-radius: 50%;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+	}
+	input:checked + .slider { background-color: #34C759; }
+	input:checked + .slider:before { transform: translateX(22px); }
+</style>

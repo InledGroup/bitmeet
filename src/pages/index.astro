@@ -1,325 +1,840 @@
 ---
-import '../styles/global.css';
+import Layout from '../layouts/Layout.astro';
+import Sidebar from '../components/Teams/Sidebar.astro';
+import ListPanel from '../components/Teams/ListPanel.astro';
+import ChatArea from '../components/Teams/ChatArea.astro';
+import CallOverlay from '../components/Teams/CallOverlay.astro';
+import AuthModal from '../components/Teams/AuthModal.astro';
+import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>BitMeet | Decentralized Video Calls</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-	</head>
-	<body>
-		<main class="container">
-			<section class="hero">
-        <div class="badge" style="background: var(--card-bg); color: var(--accent); padding: 8px 16px; border-radius: 20px; font-weight: 600; margin-bottom: 1rem;">
-          BETA
-        </div>
-				<h1>Connect Freely with <span style="color: var(--accent)">BitMeet</span></h1>
-				<p>High-quality video conferencing without servers. Join instantly via link. No tracking, no latency, just Peer-to-Peer.</p>
+<Layout title="BitSuite Teams">
+	<main id="teams-app" class="apple-container">
+		<Sidebar />
+		<ListPanel />
+		<ChatArea />
+		<CallOverlay />
+		<AuthModal />
+		<TeamsSettingsModal />
+
+		<!-- 6. POPUP DE LLAMADA ENTRANTE -->
+		<div id="incoming-call-popup" class="incoming-call-popup hidden">
+			<div class="incoming-info">
+				<div class="incoming-avatar" id="incoming-caller-avatar">?</div>
+				<div class="incoming-text">
+					<strong id="incoming-caller-name">Usuario</strong>
+					<span>Llamada entrante...</span>
+				</div>
+			</div>
+			<div class="incoming-actions">
+				<button class="incoming-btn accept" id="btn-accept-call">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+				</button>
+				<button class="incoming-btn decline" id="btn-reject-call">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+				</button>
+			</div>
+		</div>
+	</main>
+</Layout>
+
+<style>
+	.apple-container {
+		display: flex;
+		height: 100vh;
+		width: 100vw;
+		background: var(--apple-bg);
+		overflow: hidden;
+		color: var(--apple-text);
+		user-select: none;
+	}
+
+	/* Incoming Call Popup */
+	.incoming-call-popup {
+		position: fixed;
+		top: 24px;
+		right: 24px;
+		background: rgba(255, 255, 255, 0.8);
+		backdrop-filter: blur(30px) saturate(180%);
+		border: 1px solid var(--apple-border);
+		border-radius: 20px;
+		padding: 16px;
+		width: 320px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+		z-index: 4000;
+		animation: slideInRight 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+	}
+	@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+	.incoming-info { display: flex; align-items: center; gap: 12px; }
+	.incoming-avatar {
+		width: 44px;
+		height: 44px;
+		background: var(--apple-accent);
+		color: white;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 600;
+		font-size: 18px;
+	}
+	.incoming-text { display: flex; flex-direction: column; }
+	.incoming-text strong { font-size: 15px; }
+	.incoming-text span { font-size: 13px; color: var(--apple-text-secondary); }
+
+	.incoming-actions { display: flex; gap: 10px; }
+	.incoming-btn {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		border: none;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: white;
+		transition: transform 0.2s;
+	}
+	.incoming-btn:hover { transform: scale(1.1); }
+	.incoming-btn.accept { background: #34C759; }
+	.incoming-btn.decline { background: #FF3B30; }
+</style>
+
+<script>
+	import { BitIDService } from '../lib/bitid';
+	import { P2PTransport } from '../infrastructure/adapters/P2PTransport';
+	import { IndexedDBChatRepository } from '../infrastructure/adapters/IndexedDBChatRepository';
+	import { encryptText, decryptText } from '../lib/crypto';
+	
+	// Estado global
+	const bitid = new BitIDService();
+	const p2p = new P2PTransport();
+	const chatRepo = new IndexedDBChatRepository();
+	let myIdentity: any = null;
+	let currentChatPubKey: string | null = null;
+	let currentChatId: string | null = null;
+	let activeCall: any = null;
+	let localStreamCall: MediaStream | null = null;
+	let ringtone: HTMLAudioElement | null = null;
+	let messageSound: HTMLAudioElement | null = null;
+	let pendingCall: any = null;
+	let notificationsEnabled = localStorage.getItem('teams-notifications') !== 'false';
+	
+	// Elementos UI
+	const authOverlay = document.getElementById('auth-overlay');
+	const authUnlockView = document.getElementById('auth-unlock-view');
+	const authImportView = document.getElementById('auth-import-view');
+	const passwordInput = document.getElementById('master-password') as HTMLInputElement;
+	const viewNoChat = document.getElementById('view-no-chat');
+	const viewActiveChat = document.getElementById('view-active-chat');
+	const chatsList = document.getElementById('chats-list');
+	const searchResults = document.getElementById('search-results');
+	const globalSearch = document.getElementById('global-search') as HTMLInputElement;
+	const btnToggleContact = document.getElementById('btn-toggle-contact');
+	const incomingPopup = document.getElementById('incoming-call-popup');
+	const unknownActions = document.getElementById('unknown-user-actions');
+	const btnSaveContact = document.getElementById('btn-save-contact');
+	const btnBlockUser = document.getElementById('btn-block-user');
+	const btnUnlockApp = document.getElementById('btn-unlock-app');
+	const btnTriggerImport = document.getElementById('btn-trigger-import');
+	const importFile = document.getElementById('import-file') as HTMLInputElement;
+	
+	const settingsOverlay = document.getElementById('teams-settings-overlay');
+	const btnOpenSettings = document.getElementById('btn-open-settings');
+	const btnCloseSettings = document.getElementById('btn-close-settings');
+	const checkNotifications = document.getElementById('check-notifications') as HTMLInputElement;
+
+	// Iniciar
+	async function initApp() {
+		const id = await bitid.getIdentity();
+		authOverlay?.classList.remove('hidden');
+		
+		// Inicializar sonido
+		ringtone = new Audio('/notify.mp3'); 
+		ringtone.loop = true;
+		messageSound = new Audio('/notify.mp3'); // Mismo archivo por ahora
+
+		// Solicitar permisos notificaciones
+		if ("Notification" in window && Notification.permission === "default") {
+			Notification.requestPermission();
+		}
+
+		if (checkNotifications) {
+			checkNotifications.checked = notificationsEnabled;
+			checkNotifications.addEventListener('change', (e) => {
+				notificationsEnabled = (e.target as HTMLInputElement).checked;
+				localStorage.setItem('teams-notifications', String(notificationsEnabled));
+			});
+		}
+
+		btnOpenSettings?.addEventListener('click', () => settingsOverlay?.classList.remove('hidden'));
+		btnCloseSettings?.addEventListener('click', () => settingsOverlay?.classList.add('hidden'));
+
+		if (!id) {
+			authUnlockView?.classList.add('hidden');
+			authImportView?.classList.remove('hidden');
+		} else {
+			const autoKey = await bitid.autoUnlock();
+			if (autoKey) {
+				myIdentity = id;
+				authOverlay?.classList.add('hidden');
+				const welcomeName = document.getElementById('welcome-name');
+				if (welcomeName) welcomeName.textContent = id.username;
+				await startP2P();
+			} else {
+				authImportView?.classList.add('hidden');
+				authUnlockView?.classList.remove('hidden');
+			}
+		}
+	}
+
+	// 0. AUTH EVENT LISTENERS
+	btnUnlockApp?.addEventListener('click', async () => {
+		const pass = passwordInput.value;
+		if (!pass) return;
+		const key = await bitid.unlock(pass);
+		if (key) {
+			const id = await bitid.getIdentity();
+			myIdentity = id;
+			authOverlay?.classList.add('hidden');
+			const welcomeName = document.getElementById('welcome-name');
+			if (welcomeName) welcomeName.textContent = id!.username;
+			await startP2P();
+		} else {
+			alert("Contraseña incorrecta");
+		}
+	});
+
+	btnTriggerImport?.addEventListener('click', () => {
+		importFile.click();
+	});
+
+	importFile?.addEventListener('change', (e: any) => {
+		const file = e.target.files[0];
+		if (!file) return;
+		const reader = new FileReader();
+		reader.onload = async (ev) => {
+			try {
+				const data = JSON.parse(ev.target?.result as string);
+				await bitid.importIdentity(data);
+				window.location.reload();
+			} catch (err) {
+				alert("Error al importar: formato inválido.");
+			}
+		};
+		reader.readAsText(file);
+	});
+
+	// 1. GESTIÓN DE CONTACTOS Y BLOQUEO
+	btnToggleContact?.addEventListener('click', async () => {
+		await toggleContact();
+	});
+
+	btnSaveContact?.addEventListener('click', async () => {
+		await toggleContact();
+	});
+
+	async function toggleContact() {
+		if (!currentChatPubKey || !currentChatId) return;
+		const name = document.getElementById('active-chat-name')!.textContent || '';
+		const existing = await chatRepo.getContact(currentChatPubKey);
+		
+		if (existing) {
+			await chatRepo.deleteContact(currentChatPubKey);
+			btnToggleContact?.classList.remove('active');
+		} else {
+			await chatRepo.saveContact({
+				publicKey: currentChatPubKey,
+				username: name,
+				isFavorite: true
+			});
+			btnToggleContact?.classList.add('active');
+		}
+		await updateContactUI(currentChatPubKey);
+		loadContacts(); 
+	}
+
+	btnBlockUser?.addEventListener('click', async () => {
+		if (!currentChatPubKey) return;
+		if (confirm("¿Estás seguro de que quieres bloquear a este usuario? No volverás a ver sus mensajes.")) {
+			await chatRepo.saveContact({
+				publicKey: currentChatPubKey,
+				username: "Usuario Bloqueado",
+				isFavorite: false,
+				isBlocked: true
+			} as any);
+			viewActiveChat?.classList.add('hidden');
+			viewNoChat?.classList.remove('hidden');
+			loadContacts();
+		}
+	});
+
+	async function updateContactUI(pubKey: string) {
+		const contact = await chatRepo.getContact(pubKey);
+		if (contact) {
+			btnToggleContact?.classList.add('active');
+			unknownActions?.classList.add('hidden');
+		} else {
+			btnToggleContact?.classList.remove('active');
+			unknownActions?.classList.remove('hidden');
+		}
+	}
+
+	// 2. NAVEGACIÓN Y BÚSQUEDA
+	document.querySelectorAll('.sidebar-icon[data-view]').forEach(icon => {
+		icon.addEventListener('click', (e) => {
+			document.querySelectorAll('.sidebar-icon').forEach(i => i.classList.remove('active'));
+			const target = e.currentTarget as HTMLElement;
+			target.classList.add('active');
+			const view = target.getAttribute('data-view');
+			const panelTitle = document.getElementById('panel-title');
+			if (panelTitle) panelTitle.textContent = view!.charAt(0).toUpperCase() + view!.slice(1);
+			
+			if (view === 'chat') {
+				loadContacts();
+				searchResults?.classList.add('hidden');
+				chatsList?.classList.remove('hidden');
+			} else if (view === 'teams') {
+				loadColleagues(); 
+			} else {
+				if (chatsList) chatsList.innerHTML = `<div class="loading-state">Próximamente</div>`;
+			}
+		});
+	});
+
+	let searchTimeout: any;
+	globalSearch?.addEventListener('input', (e) => {
+		const q = (e.target as HTMLInputElement).value.trim();
+		clearTimeout(searchTimeout);
+		if (q.length < 2) {
+			searchResults?.classList.add('hidden');
+			chatsList?.classList.remove('hidden');
+			return;
+		}
+
+		searchTimeout = setTimeout(async () => {
+			searchResults?.classList.remove('hidden');
+			chatsList?.classList.add('hidden');
+			searchResults!.innerHTML = '<div class="loading-state">Buscando...</div>';
+			
+			const users = await bitid.searchUsers(q);
+			if (users.length === 0) {
+				searchResults!.innerHTML = '<div class="empty-results">Sin resultados</div>';
+			} else {
+				searchResults!.innerHTML = users.map((u: any) => `
+					<div class="chat-item search-item" data-pubkey="${u.public_key}" data-username="${u.username}">
+						<div class="chat-avatar">${u.username.charAt(0).toUpperCase()}</div>
+						<div class="chat-info">
+							<div class="chat-row"><strong>@${u.username}</strong></div>
+							<div class="preview">Conectar</div>
+						</div>
+					</div>
+				`).join('');
+
+				searchResults!.querySelectorAll('.search-item').forEach(item => {
+					item.addEventListener('click', async (ev) => {
+						const pubKey = (ev.currentTarget as HTMLElement).getAttribute('data-pubkey');
+						const username = (ev.currentTarget as HTMLElement).getAttribute('data-username');
+						globalSearch.value = '';
+						searchResults?.classList.add('hidden');
+						chatsList?.classList.remove('hidden');
+						await selectChat(pubKey!, username!);
+					});
+				});
+			}
+		}, 300);
+	});
+
+	// 3. P2P Y NOTIFICACIONES DE LLAMADA
+	async function startP2P() {
+		await p2p.initialize(myIdentity.publicKey);
+		document.querySelector('.status-circle')?.classList.replace('offline', 'online');
+		await loadContacts();
+
+		p2p.onMessageReceived(async (msg: any) => {
+			if (msg.type === 'chat') {
+				const chatId = await getChatId(msg.senderPubKey, myIdentity.publicKey);
 				
-        <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center; width: 100%;">
-          <div class="input-group">
-            <input type="text" id="roomInput" placeholder="Enter Room ID or paste link..." />
-            <button class="btn btn-primary" id="joinBtn">Join Meeting</button>
-          </div>
-          <span style="color: var(--text-secondary); font-size: 0.875rem;">OR</span>
-          <button class="btn btn-primary" id="createBtn" style="padding: 1rem 3rem; font-size: 1.125rem;">Create New Meeting</button>
-        </div>
-      </section>
+				// Verificar bloqueo
+				const contact = await chatRepo.getContact(msg.senderPubKey);
+				if (contact?.isBlocked) return;
 
-      <section class="features-section">
-        <div class="section-header">
-          <h2>Absolute Privacy & Freedom</h2>
-          <p>Designed to be secure, fast, and unrestricted.</p>
-        </div>
-        
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            </div>
-            <h3>Absolute Privacy</h3>
-            <p><strong>P2P</strong> connections via <strong>WebRTC</strong> with end-to-end encryption (E2EE). Your data never touches a central server.</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>
-            </div>
-            <h3>Unlimited Connection</h3>
-            <p>No time limits on your calls. Talk as much as you need without interruptions or subscriptions.</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            </div>
-            <h3>Unlimited Participants</h3>
-            <p>Invite as many participants as your connection and device allow. True decentralization has no limits.</p>
-          </div>
-        </div>
+				let text = msg.content;
+				try { text = await decryptText(msg.content, msg.iv, chatId); } catch (e) { text = "🔒 Error de cifrado"; }
 
-        <div class="image-preview">
-          <img src="/vistageneral.png" alt="BitMeet Interface" class="floating-img" />
-        </div>
-      </section>
+				const message = {
+					id: msg.id, 
+					senderPubKey: msg.senderPubKey, 
+					senderUsername: msg.senderUsername,
+					receiverPubKey: myIdentity.publicKey,
+					content: text, 
+					timestamp: msg.timestamp, 
+					status: 'received', 
+					iv: msg.iv
+				};
 
-      <section class="functions-section">
-        <div class="section-header">
-          <h2>Premium Features for Everyone</h2>
-          <p>All the tools you need for your professional and personal meetings.</p>
-        </div>
+				await chatRepo.addMessage(chatId, message as any);
+				
+				if (currentChatId === chatId) { 
+					renderMessage(message as any); 
+					scrollToBottom(); 
+				} else {
+					// Si es un chat nuevo o no activo, refrescar lista
+					await loadContacts();
+					const item = document.querySelector(`[data-pubkey="${msg.senderPubKey}"]`);
+					if (item) item.classList.add('unread');
+				}
 
-        <div class="functions-container">
-          <div class="image-preview">
-            <img src="/lobby.png" alt="BitMeet Lobby" class="floating-img" />
-          </div>
-          
-          <div class="functions-list">
-            <div class="function-item">
-              <div class="function-check">✓</div>
-              <div>
-                <h4>HD Audio & Video</h4>
-                <p>High-fidelity camera and microphone with instant controls.</p>
-              </div>
-            </div>
-            <div class="function-item">
-              <div class="function-check">✓</div>
-              <div>
-                <h4>Screen Sharing</h4>
-                <p>Present your ideas, documents, or code with a single click.</p>
-              </div>
-            </div>
-            <div class="function-item">
-              <div class="function-check">✓</div>
-              <div>
-                <h4>Encrypted Messages</h4>
-                <p>Real-time chat protected by the same end-to-end encryption.</p>
-              </div>
-            </div>
-            <div class="function-item">
-              <div class="function-check">✓</div>
-              <div>
-                <h4>Waiting Room</h4>
-                <p>Set up yout microphone and camera before joining the meeting.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
+				// Notificaciones
+				if (notificationsEnabled) {
+					messageSound?.play().catch(e => console.warn("Error playing sound", e));
+					
+					if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+						const notification = new Notification(`Mensaje de @${msg.senderUsername}`, {
+							body: text,
+							icon: "/favicon.svg"
+						});
+						notification.onclick = () => {
+							window.focus();
+							selectChat(msg.senderPubKey, msg.senderUsername);
+						};
+					}
+				}
+			}
+		});
 
-    <footer class="footer">
-      <div class="container footer-content">
-        <p>&copy; {new Date().getFullYear()} Inled Group. Code licensed under GNU GPLv3.0.</p>
-        <nav class="footer-links">
-          <a href="/legal/aviso-legal">Legal Notice</a>
-          <a href="/legal/privacidad">Privacy Policy</a>
-          <a href="/legal/terminos">Terms of Service</a>
-        </nav>
-      </div>
-    </footer>
+		p2p.onIncomingCall(async (call: any) => {
+			const saved = await chatRepo.listContacts();
+			const colleagues = await bitid.getColleagues();
+			const all = [...saved, ...colleagues.map(c => ({ publicKey: c.public_key, username: c.username }))];
+			
+			let caller = null;
+			for (const c of all) {
+				const pubKey = c.publicKey || (c as any).public_key;
+				if (!pubKey) continue;
+				const h = await p2p.hashPubKey(pubKey);
+				if (h === call.peer) {
+					caller = c;
+					break;
+				}
+			}
+			
+			document.getElementById('incoming-caller-name')!.textContent = caller?.username || "Llamada P2P";
+			incomingPopup?.classList.remove('hidden');
+			ringtone?.play();
 
-    <style>
-      .features-section, .functions-section {
-        padding: 4rem 0;
-        display: flex;
-        flex-direction: column;
-        gap: 3rem;
-      }
+			if (Notification.permission === "granted") {
+				new Notification("BitSuite Teams", { body: "Llamada entrante...", icon: "/favicon.svg" });
+			}
 
-      .section-header {
-        text-align: center;
-        max-width: 800px;
-        margin: 0 auto;
-      }
+			pendingCall = call;
+		});
+	}
 
-      .section-header h2 {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-        background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
+	// 4. ACCIONES DE LLAMADA
+	document.getElementById('btn-accept-call')?.addEventListener('click', async () => {
+		if (pendingCall) {
+			incomingPopup?.classList.add('hidden');
+			ringtone?.pause();
+			ringtone!.currentTime = 0;
+			await answerCall(pendingCall);
+			pendingCall = null;
+		}
+	});
 
-      .section-header p {
-        color: var(--text-secondary);
-        font-size: 1.125rem;
-      }
+	document.getElementById('btn-reject-call')?.addEventListener('click', () => {
+		if (pendingCall) {
+			pendingCall.close();
+			incomingPopup?.classList.add('hidden');
+			ringtone?.pause();
+			ringtone!.currentTime = 0;
+			pendingCall = null;
+		}
+	});
 
-      .features-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 2rem;
-      }
+	// Controladores de CallOverlay
+	document.getElementById('toggle-mic')?.addEventListener('click', (e) => {
+		if (localStreamCall) {
+			const audioTrack = localStreamCall.getAudioTracks()[0];
+			if (audioTrack) {
+				audioTrack.enabled = !audioTrack.enabled;
+				(e.currentTarget as HTMLElement).classList.toggle('disabled', !audioTrack.enabled);
+			}
+		}
+	});
 
-      .feature-card {
-        background-color: var(--bg-secondary);
-        padding: 2.5rem;
-        border-radius: 24px;
-        border: 1px solid var(--card-bg);
-        transition: transform 0.3s ease, border-color 0.3s ease;
-      }
+	document.getElementById('toggle-cam')?.addEventListener('click', (e) => {
+		if (localStreamCall) {
+			const videoTrack = localStreamCall.getVideoTracks()[0];
+			if (videoTrack) {
+				videoTrack.enabled = !videoTrack.enabled;
+				(e.currentTarget as HTMLElement).classList.toggle('disabled', !videoTrack.enabled);
+			}
+		}
+	});
 
-      .feature-card:hover {
-        transform: translateY(-5px);
-        border-color: var(--accent);
-      }
+	let isScreenSharingCall = false;
+	let screenStreamCall: MediaStream | null = null;
+	document.getElementById('toggle-screen')?.addEventListener('click', async (e) => {
+		if (!activeCall || !localStreamCall) return;
+		const btn = e.currentTarget as HTMLElement;
 
-      .feature-icon {
-        color: var(--accent);
-        margin-bottom: 1.5rem;
-        background: rgba(79, 70, 229, 0.1);
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-      }
+		if (!isScreenSharingCall) {
+			try {
+				screenStreamCall = await navigator.mediaDevices.getDisplayMedia({ video: true });
+				const screenTrack = screenStreamCall.getVideoTracks()[0];
+				if (activeCall.peerConnection) {
+					const sender = activeCall.peerConnection.getSenders().find((s: any) => s.track?.kind === 'video');
+					if (sender) sender.replaceTrack(screenTrack);
+				}
+				isScreenSharingCall = true;
+				btn.classList.add('active');
+				screenTrack.onended = () => stopScreenShareCall(btn);
+			} catch (err) { console.error(err); }
+		} else {
+			stopScreenShareCall(btn);
+		}
+	});
 
-      .feature-card h3 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-      }
+	function stopScreenShareCall(btn: HTMLElement) {
+		if (!activeCall || !localStreamCall) return;
+		const videoTrack = localStreamCall.getVideoTracks()[0];
+		if (activeCall.peerConnection && videoTrack) {
+			const sender = activeCall.peerConnection.getSenders().find((s: any) => s.track?.kind === 'video');
+			if (sender) sender.replaceTrack(videoTrack);
+		}
+		if (screenStreamCall) {
+			screenStreamCall.getTracks().forEach(t => t.stop());
+			screenStreamCall = null;
+		}
+		isScreenSharingCall = false;
+		btn.classList.remove('active');
+	}
 
-      .feature-card p {
-        color: var(--text-secondary);
-        line-height: 1.6;
-      }
+	async function loadContacts() {
+		const savedContacts = await chatRepo.listContacts();
+		const activeChats = await chatRepo.listAllChats();
+		const colleagues = await bitid.getColleagues();
+		
+		// Filtrar bloqueados
+		const filteredSaved = savedContacts.filter(c => !c.isBlocked);
 
-      .image-preview {
-        width: 100%;
-        max-width: 900px;
-        margin: 2rem auto;
-        position: relative;
-      }
+		// Fusionar listas
+		const all: any[] = [...filteredSaved];
+		
+		// Añadir colegas
+		colleagues.forEach(c => {
+			if (!all.find(a => a.publicKey === c.public_key)) {
+				all.push({ publicKey: c.public_key, username: c.username, online_status: c.online_status });
+			} else {
+				const existing = all.find(a => a.publicKey === c.public_key);
+				existing.online_status = c.online_status;
+			}
+		});
 
-      .floating-img {
-        width: 100%;
-        border-radius: 20px;
-        border: 1px solid var(--card-bg);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      }
+		// Añadir chats activos de desconocidos
+		for (const chat of activeChats) {
+			const otherPubKey = chat.participants.find(p => p !== myIdentity.publicKey);
+			if (otherPubKey && !all.find(a => a.publicKey === otherPubKey)) {
+				const contact = await chatRepo.getContact(otherPubKey);
+				if (contact?.isBlocked) continue;
+				
+				const lastMsg = chat.messages[chat.messages.length - 1];
+				const displayName = (lastMsg as any).senderUsername || `Desconocido (${otherPubKey.substring(0, 6)})`;
 
-      .functions-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 4rem;
-        align-items: center;
-      }
+				all.push({ 
+					publicKey: otherPubKey, 
+					username: displayName,
+					isNew: true 
+				});
+			}
+		}
 
-      .functions-list {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-      }
+		renderContactList(all);
+	}
 
-      .function-item {
-        display: flex;
-        gap: 1.5rem;
-        align-items: flex-start;
-      }
+	async function loadColleagues() {
+		const colleagues = await bitid.getColleagues();
+		renderContactList(colleagues.map(c => ({ publicKey: c.public_key, username: c.username, online_status: c.online_status })));
+	}
 
-      .function-check {
-        background: var(--accent);
-        color: white;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        font-weight: bold;
-        font-size: 0.875rem;
-      }
+	function renderContactList(list: any[]) {
+		if (chatsList) {
+			if (list.length === 0) {
+				chatsList.innerHTML = '<div class="empty-results">No hay contactos</div>';
+				return;
+			}
+			chatsList.innerHTML = list.map(c => `
+				<div class="chat-item ${c.isNew ? 'new-chat' : ''}" data-pubkey="${c.publicKey}">
+					<div class="chat-avatar">${c.username.charAt(0).toUpperCase()}</div>
+					<div class="chat-info">
+						<div class="chat-row">
+							<strong>${c.username}</strong> 
+							${c.online_status ? `<span class="status-dot ${c.online_status === 'online' ? 'online' : 'offline'}"></span>` : ''}
+						</div>
+						<div class="preview">${c.isNew ? 'Nuevo mensaje' : (c.online_status === 'online' ? 'Disponible' : 'Desconectado')}</div>
+					</div>
+				</div>
+			`).join('');
 
-      .function-item h4 {
-        font-size: 1.25rem;
-        margin-bottom: 0.5rem;
-      }
+			chatsList.querySelectorAll('.chat-item').forEach(item => {
+				item.addEventListener('click', async (e) => {
+					const pubKey = (e.currentTarget as HTMLElement).getAttribute('data-pubkey');
+					const name = (e.currentTarget as HTMLElement).querySelector('strong')?.textContent;
+					await selectChat(pubKey!, name!);
+				});
+			});
+		}
+	}
 
-      .function-item p {
-        color: var(--text-secondary);
-      }
+	async function selectChat(pubKey: string, name: string) {
+		viewNoChat?.classList.add('hidden');
+		viewActiveChat?.classList.remove('hidden');
+		document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
+		document.querySelector(`[data-pubkey="${pubKey}"]`)?.classList.remove('unread');
+		document.querySelector(`[data-pubkey="${pubKey}"]`)?.classList.add('active');
+		
+		document.getElementById('active-chat-name')!.textContent = name;
+		currentChatPubKey = pubKey;
+		currentChatId = await getChatId(myIdentity.publicKey, pubKey);
+		
+		await updateContactUI(pubKey);
 
-      @media (max-width: 1024px) {
-        .functions-container {
-          grid-template-columns: 1fr;
-        }
-        
-        .functions-container .image-preview {
-          order: 2;
-        }
-      }
+		const statusEl = document.getElementById('active-chat-status')!;
+		const statusDot = document.getElementById('active-chat-status-dot')!;
+		statusEl.textContent = 'Conectando...';
+		
+		const input = document.getElementById('chat-input') as HTMLInputElement;
+		input.value = ''; input.focus();
 
-      .footer {
-        padding: 2rem 0;
-        border-top: 1px solid var(--card-bg);
-        margin-top: 4rem;
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-      }
+		const connected = await p2p.connectToPeer(pubKey);
+		statusEl.textContent = connected ? 'Conexión Segura' : 'Offline';
+		statusDot.className = `status-dot ${connected ? 'online' : 'offline'}`;
 
-      .footer-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-      }
+		await loadChatHistory(currentChatId);
+	}
 
-      .footer-links {
-        display: flex;
-        gap: 2rem;
-      }
+	// 5. LLAMADAS Y MULTIMEDIA
+	async function getMediaStream(video = true) {
+		const constraints = { 
+			audio: true, 
+			video: video ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false 
+		};
 
-      .footer-links a {
-        color: var(--text-secondary);
-        text-decoration: none;
-        transition: color 0.2s;
-      }
+		try {
+			console.log("[BitMeet] Solicitando media con:", constraints);
+			return await navigator.mediaDevices.getUserMedia(constraints);
+		} catch (err: any) {
+			console.warn("[BitMeet] Fallo al obtener stream con video, reintentando solo audio...", err);
+			
+			// Si el error es que no hay cámara o el usuario denegó el video, intentamos solo audio
+			if (video) {
+				try {
+					return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+				} catch (err2) {
+					console.error("[BitMeet] Fallo crítico al obtener audio:", err2);
+				}
+			}
 
-      .footer-links a:hover {
-        color: var(--accent);
-      }
+			let errorMsg = "No se pudo acceder a la cámara o el micrófono.";
+			if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+				errorMsg = "Error de Seguridad: Las llamadas P2P requieren HTTPS o localhost para acceder a la cámara/micro.";
+			} else if (err.name === 'NotAllowedError') {
+				errorMsg = "Permiso denegado: Por favor, permite el acceso a la cámara y micro en la configuración de tu navegador.";
+			} else if (err.name === 'NotFoundError') {
+				errorMsg = "Hardware no encontrado: No se detecta cámara o micrófono conectado.";
+			}
 
-      @media (max-width: 640px) {
-        .footer-content {
-          flex-direction: column;
-          text-align: center;
-        }
-      }
-    </style>
+			alert(errorMsg);
+			throw err;
+		}
+	}
 
-    <script>
-      import { nanoid } from 'nanoid';
+	document.getElementById('btn-call-video')?.addEventListener('click', async () => {
+		if (!currentChatPubKey) return;
+		try {
+			localStreamCall = await getMediaStream(true);
+			setupVideoUI(localStreamCall, true);
+			activeCall = await p2p.callPeer(currentChatPubKey, localStreamCall);
+			if (activeCall) {
+				setupCallEvents(activeCall);
+			} else {
+				console.error("No se pudo iniciar la llamada");
+				endCallUI();
+			}
+		} catch (err) {
+			console.error("Error en videollamada:", err);
+		}
+	});
 
-      const createBtn = document.getElementById('createBtn');
-      const joinBtn = document.getElementById('joinBtn');
-      const roomInput = document.getElementById('roomInput') as HTMLInputElement;
+	document.getElementById('btn-call-voice')?.addEventListener('click', async () => {
+		if (!currentChatPubKey) return;
+		try {
+			localStreamCall = await getMediaStream(false);
+			setupVideoUI(localStreamCall, true);
+			activeCall = await p2p.callPeer(currentChatPubKey, localStreamCall);
+			if (activeCall) {
+				setupCallEvents(activeCall);
+			} else {
+				endCallUI();
+			}
+		} catch (err) {
+			console.error("Error en llamada de voz:", err);
+		}
+	});
 
-      createBtn?.addEventListener('click', () => {
-        const id = nanoid(10);
-        window.location.href = `/room/${id}`;
-      });
+	async function answerCall(call: any) {
+		try {
+			localStreamCall = await getMediaStream(true); 
+			setupVideoUI(localStreamCall, true);
+			call.answer(localStreamCall);
+			activeCall = call;
+			setupCallEvents(call);
+		} catch (err) {
+			console.error("Error al contestar llamada:", err);
+		}
+	}
 
-      joinBtn?.addEventListener('click', () => {
-        const value = roomInput.value.trim();
-        if (value) {
-          if (value.includes('/room/')) {
-            window.location.href = value;
-          } else {
-            window.location.href = `/room/${value}`;
-          }
-        }
-      });
-    </script>
-	</body>
-</html>
+	function setupCallEvents(call: any) {
+		call.on('stream', (remoteStream: MediaStream) => {
+			console.log("Recibiendo stream remoto", remoteStream.getTracks());
+			
+			let remoteVideo = document.getElementById('remote-call-video') as HTMLVideoElement;
+			if (!remoteVideo) {
+				remoteVideo = document.createElement('video');
+				remoteVideo.id = 'remote-call-video';
+				remoteVideo.autoplay = true;
+				remoteVideo.playsInline = true;
+				const container = document.getElementById('remote-video-container')!;
+				container.innerHTML = '';
+				container.appendChild(remoteVideo);
+			}
+			
+			remoteVideo.srcObject = remoteStream;
+			
+			// Forzar play por si acaso
+			remoteVideo.onloadedmetadata = () => {
+				remoteVideo.play().catch(e => console.warn("Auto-play failed", e));
+			};
+		});
+		call.on('close', () => { endCallUI(); });
+		call.on('error', (err: any) => { 
+			console.error("Error en la llamada P2P:", err);
+			endCallUI(); 
+		});
+	}
+
+	function setupVideoUI(stream: MediaStream, isLocal: boolean) {
+		const overlay = document.getElementById('call-overlay');
+		if (overlay) {
+			overlay.classList.remove('hidden');
+			console.log("Mostrando overlay de llamada");
+		}
+		if (isLocal) {
+			const localVideo = document.getElementById('local-video') as HTMLVideoElement;
+			if (localVideo) localVideo.srcObject = stream;
+		}
+	}
+
+	function endCallUI() {
+		document.getElementById('call-overlay')?.classList.add('hidden');
+		if (localStreamCall) { localStreamCall.getTracks().forEach(t => t.stop()); }
+		const remoteContainer = document.getElementById('remote-video-container');
+		if (remoteContainer) remoteContainer.innerHTML = '';
+		activeCall = null; localStreamCall = null;
+	}
+
+	document.getElementById('btn-hangup')?.addEventListener('click', () => {
+		if (activeCall) activeCall.close();
+		endCallUI();
+	});
+
+	// Resto de utilidades
+	async function loadChatHistory(chatId: string) {
+		const container = document.getElementById('messages-list')!;
+		container.innerHTML = '<div class="loading-state">Cargando...</div>';
+		const chat = await chatRepo.getChat(chatId);
+		container.innerHTML = '';
+		if (chat) {
+			chat.messages.forEach(m => renderMessage(m));
+			scrollToBottom();
+		}
+	}
+
+	function renderMessage(msg: any) {
+		const container = document.getElementById('messages-list')!;
+		const loading = container.querySelector('.loading-state');
+		if (loading) loading.remove();
+		const isMine = msg.senderPubKey === myIdentity.publicKey;
+		const div = document.createElement('div');
+		div.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
+		div.innerHTML = `<div class="msg-content">${msg.content}</div><div class="msg-meta">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+		container.appendChild(div);
+	}
+
+	function scrollToBottom() {
+		const container = document.getElementById('messages-list')!;
+		container.scrollTop = container.scrollHeight;
+	}
+
+	document.getElementById('chat-form')?.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		const input = document.getElementById('chat-input') as HTMLInputElement;
+		const text = input.value.trim();
+		if (!text || !currentChatPubKey || !currentChatId) return;
+		input.value = '';
+		const timestamp = Date.now();
+		const msgId = Math.random().toString(36).substring(7);
+		const { ciphertext, iv } = await encryptText(text, currentChatId);
+		const rawMessage = { 
+			id: msgId, 
+			senderPubKey: myIdentity.publicKey, 
+			senderUsername: myIdentity.username,
+			receiverPubKey: currentChatPubKey, 
+			content: text, 
+			timestamp, 
+			status: 'pending', 
+			iv 
+		};
+		renderMessage(rawMessage);
+		scrollToBottom();
+		try { 
+			await p2p.sendP2PMessage(currentChatPubKey, { 
+				type: 'chat', 
+				id: msgId, 
+				senderPubKey: myIdentity.publicKey, 
+				senderUsername: myIdentity.username,
+				content: ciphertext, 
+				timestamp, 
+				iv 
+			}); 
+			rawMessage.status = 'sent'; 
+		} catch (err) { 
+			console.warn("Peer offline."); 
+		}
+		await chatRepo.addMessage(currentChatId, rawMessage as any);
+	});
+document.getElementById('btn-hero-new-chat')?.addEventListener('click', () => {
+	globalSearch?.focus();
+});
+
+// Logout
+document.getElementById('btn-logout')?.addEventListener('click', () => {
+	bitid.lock();
+	window.location.reload();
+});
+
+async function getChatId(pub1: string, pub2: string) {
+	const combined = [pub1, pub2].sort().join('-');
+	const msgUint8 = new TextEncoder().encode(combined);
+	const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+}
+
+initApp();
+</script>

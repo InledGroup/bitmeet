@@ -1,0 +1,149 @@
+import Peer, { type DataConnection } from 'peerjs';
+import type { IWebRTCMediaTransport } from '../../core/webrtc/ports';
+
+export class PeerJSMediaTransport implements IWebRTCMediaTransport {
+  private peer: Peer | null = null;
+  private connections: Map<string, DataConnection> = new Map();
+  private calls: Map<string, any> = new Map();
+  private onRemoteStreamCb?: (peerId: string, stream: MediaStream, data: any) => void;
+  private onIncomingCallCb?: (call: any) => void;
+  private onDataReceivedCb?: (peerId: string, data: any) => void;
+  private onConnectionClosedCb?: (peerId: string) => void;
+
+  async initialize(participantId: string): Promise<string> {
+    this.peer = new Peer();
+    
+    return new Promise((resolve, reject) => {
+      this.peer?.on('open', (id: string) => {
+        console.log('[BitMeet] PeerJS Initialized with ID:', id);
+        
+        this.peer?.on('connection', (conn) => {
+          this.setupDataConnection(conn);
+        });
+
+        this.peer?.on('call', (call) => {
+          console.log('[BitMeet] Incoming call from:', call.peer);
+          if (this.onIncomingCallCb) {
+            this.onIncomingCallCb(call);
+          }
+        });
+
+        resolve(id);
+      });
+
+      this.peer?.on('error', (err) => {
+        console.error('[BitMeet] PeerJS Error:', err);
+        reject(err);
+      });
+    });
+  }
+
+  connect(peerId: string, stream: MediaStream, initialData: any): void {
+    if (!this.peer || this.calls.has(peerId)) return;
+
+    // Connect Data
+    const conn = this.peer.connect(peerId);
+    this.setupDataConnection(conn);
+
+    // Connect Media
+    const call = this.peer.call(peerId, stream);
+    this.calls.set(peerId, call);
+    
+    call.on('stream', (remoteStream: MediaStream) => {
+      if (this.onRemoteStreamCb) {
+        this.onRemoteStreamCb(peerId, remoteStream, initialData);
+      }
+    });
+
+    call.on('close', () => {
+      this.calls.delete(peerId);
+      if (this.onConnectionClosedCb) this.onConnectionClosedCb(peerId);
+    });
+  }
+
+  answer(call: any, stream: MediaStream): void {
+    call.answer(stream);
+    this.calls.set(call.peer, call);
+    
+    call.on('stream', (remoteStream: MediaStream) => {
+      if (this.onRemoteStreamCb) {
+        this.onRemoteStreamCb(call.peer, remoteStream, {});
+      }
+    });
+
+    call.on('close', () => {
+      this.calls.delete(call.peer);
+      if (this.onConnectionClosedCb) this.onConnectionClosedCb(call.peer);
+    });
+  }
+
+  broadcastData(data: any): void {
+    this.connections.forEach(conn => {
+      if (conn.open) {
+        conn.send(data);
+      }
+    });
+  }
+
+  sendToPeer(peerId: string, data: any): void {
+    const conn = this.connections.get(peerId);
+    if (conn && conn.open) {
+      conn.send(data);
+    }
+  }
+
+  replaceTrack(oldTrack: MediaStreamTrack, newTrack: MediaStreamTrack): void {
+    this.calls.forEach(call => {
+      if (call.peerConnection) {
+        const sender = call.peerConnection.getSenders().find((s: any) => s.track?.kind === oldTrack.kind);
+        if (sender) {
+          sender.replaceTrack(newTrack);
+        }
+      }
+    });
+  }
+
+  onRemoteStream(callback: (peerId: string, stream: MediaStream, data: any) => void): void {
+    this.onRemoteStreamCb = callback;
+  }
+
+  onIncomingCall(callback: (call: any) => void): void {
+    this.onIncomingCallCb = callback;
+  }
+
+  onDataReceived(callback: (peerId: string, data: any) => void): void {
+    this.onDataReceivedCb = callback;
+  }
+
+  onConnectionClosed(callback: (peerId: string) => void): void {
+    this.onConnectionClosedCb = callback;
+  }
+
+  private setupDataConnection(conn: DataConnection) {
+    conn.on('open', () => {
+      this.connections.set(conn.peer, conn);
+    });
+
+    conn.on('data', (data: any) => {
+      if (this.onDataReceivedCb) {
+        this.onDataReceivedCb(conn.peer, data);
+      }
+    });
+
+    conn.on('close', () => {
+      this.connections.delete(conn.peer);
+      if (this.onConnectionClosedCb) {
+        this.onConnectionClosedCb(conn.peer);
+      }
+    });
+  }
+
+  disconnect(): void {
+    this.calls.forEach(call => call.close());
+    this.connections.forEach(conn => conn.close());
+    this.peer?.destroy();
+    this.peer = null;
+    this.calls.clear();
+    this.connections.clear();
+  }
+}

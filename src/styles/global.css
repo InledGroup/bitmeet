@@ -824,3 +824,37 @@ body {
     display: none;
   }
 }
+
+.btn-notification-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--card-bg);
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.9375rem;
+}
+
+.btn-notification-toggle:hover {
+  border-color: var(--accent);
+  background-color: rgba(79, 70, 229, 0.1);
+}
+
+.btn-notification-toggle.enabled {
+  color: var(--success);
+}
+
+.btn-notification-toggle.disabled {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.btn-notification-toggle svg {
+  flex-shrink: 0;
+}

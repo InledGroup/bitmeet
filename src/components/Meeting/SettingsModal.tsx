@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
-import { X, User } from 'lucide-react';
+import { X, User, Bell, BellOff } from 'lucide-react';
 
 interface Props {
   userName: string;
   onUpdateName: (name: string) => void;
   onClose: () => void;
+  notificationsEnabled: boolean;
+  onToggleNotifications: (enabled: boolean) => void;
 }
 
-export default function SettingsModal({ userName, onUpdateName, onClose }: Props) {
+export default function SettingsModal({ 
+  userName, 
+  onUpdateName, 
+  onClose, 
+  notificationsEnabled, 
+  onToggleNotifications 
+}: Props) {
   const [name, setName] = useState(userName);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
       onUpdateName(name.trim());
-      onClose();
     }
+    onClose();
   };
 
   return (
@@ -39,6 +47,18 @@ export default function SettingsModal({ userName, onUpdateName, onClose }: Props
                 placeholder="Type your name..."
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>Notifications</label>
+            <button 
+              type="button"
+              className={`btn-notification-toggle ${notificationsEnabled ? 'enabled' : 'disabled'}`}
+              onClick={() => onToggleNotifications(!notificationsEnabled)}
+            >
+              {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
+              <span>{notificationsEnabled ? 'Sound Enabled' : 'Muted'}</span>
+            </button>
           </div>
           
           <button type="submit" className="btn btn-primary btn-block">

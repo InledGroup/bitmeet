@@ -1,16 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, X } from 'lucide-react';
-
-interface Message {
-  id: string;
-  senderName: string;
-  senderId: string;
-  text: string;
-  timestamp: number;
-}
+import type { MeetingMessage } from '../../core/webrtc/domain';
 
 interface Props {
-  messages: Message[];
+  messages: MeetingMessage[];
   onSendMessage: (text: string) => void;
   onClose: () => void;
   localParticipantId: string;

@@ -1,0 +1,102 @@
+---
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="BitSuite Teams - Colaboración P2P Zero-Knowledge" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>
+<style is:global>
+	:root {
+		--apple-accent: #007AFF;
+		--apple-bg: #F5F5F7;
+		--apple-card: #FFFFFF;
+		--apple-text: #1D1D1F;
+		--apple-text-secondary: #86868B;
+		--apple-border: rgba(0,0,0,0.1);
+		--apple-card-shadow: 0 8px 30px rgba(0,0,0,0.04);
+		--apple-glass: rgba(255,255,255,0.72);
+		--sidebar-bg: #E3E3E8;
+	}
+
+	* {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	html, body {
+		font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		background-color: var(--apple-bg);
+		color: var(--apple-text);
+		-webkit-font-smoothing: antialiased;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	.card {
+		background: var(--apple-card);
+		border-radius: 18px;
+		padding: 24px;
+		border: 1px solid var(--apple-border);
+		box-shadow: var(--apple-card-shadow);
+		transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+	}
+
+	.apple-button {
+		background: var(--apple-accent);
+		color: white;
+		border: none;
+		padding: 12px 24px;
+		border-radius: 12px;
+		font-size: 15px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.apple-button:hover {
+		background: #0062CC;
+		transform: scale(0.98);
+	}
+
+	.apple-button.secondary {
+		background: #E5E5EA;
+		color: var(--apple-text);
+	}
+	.apple-button.secondary:hover {
+		background: #D1D1D6;
+	}
+
+	.apple-button.small {
+		padding: 6px 12px;
+		font-size: 13px;
+		border-radius: 8px;
+	}
+
+	.status-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		display: inline-block;
+	}
+	.status-dot.online { background: #34C759; box-shadow: 0 0 8px rgba(52,199,89,0.5); }
+	.status-dot.offline { background: #86868B; }
+
+	.hidden { display: none !important; }
+</style>

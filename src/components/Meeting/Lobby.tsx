@@ -8,6 +8,13 @@ interface Props {
 
 export default function Lobby({ onJoin, initialName }: Props) {
   const [name, setName] = useState(initialName);
+  
+  useEffect(() => {
+    if (initialName) {
+      setName(initialName);
+    }
+  }, [initialName]);
+
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Copy, Check, Users, MonitorUp, MonitorOff, MessageSquare, Settings } from 'lucide-react';
+import type { Participant } from '../../core/webrtc/domain';
 
 interface Props {
   onToggleAudio: () => void;
@@ -9,9 +10,9 @@ interface Props {
   onOpenSettings: () => void;
   isScreenSharing: boolean;
   isChatOpen: boolean;
-  participants: any[];
+  participants: Participant[];
   roomId: string;
-  localParticipant?: any;
+  localParticipant?: Participant;
 }
 
 export default function Controls({ 

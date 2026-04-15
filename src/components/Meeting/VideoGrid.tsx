@@ -1,16 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Maximize2, Minimize2, Pin, PinOff, MicOff, Monitor } from 'lucide-react';
-
-interface Participant {
-  id: string;
-  peerId: string;
-  stream?: MediaStream;
-  name: string;
-  isLocal: boolean;
-  audioEnabled: boolean;
-  videoEnabled: boolean;
-  isScreenSharing?: boolean;
-}
+import type { Participant } from '../../core/webrtc/domain';
 
 // Subcomponente para detectar voz y animar el círculo
 function SpeakingIndicator({ stream, isMuted, size = '3rem' }: { stream?: MediaStream, isMuted: boolean, size?: string }) {
