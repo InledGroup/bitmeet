@@ -1100,6 +1100,7 @@ import "../styles/global.css";
 
 		loadCallsView();
 	}
+	let searchTimeout: any;
 	globalSearch?.addEventListener("input", (e) => {
 		const q = (e.target as HTMLInputElement).value.trim();
 		clearTimeout(searchTimeout);
