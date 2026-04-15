@@ -29,10 +29,10 @@ export class IndexedDBChatRepository implements IChatRepository {
     });
   }
 
-  async saveFileData(msgId: string, data: ArrayBuffer): Promise<void> {
+  async saveFileData(msgId: string, data: ArrayBuffer, magnetURI?: string): Promise<void> {
     const db = await this.getDB();
     const tx = db.transaction(this.fileDataStore, "readwrite");
-    await this.promisify(tx.objectStore(this.fileDataStore).put({ msgId, data, timestamp: Date.now() }));
+    await this.promisify(tx.objectStore(this.fileDataStore).put({ msgId, data, magnetURI, timestamp: Date.now() }));
   }
 
   async getFileData(msgId: string): Promise<ArrayBuffer | null> {

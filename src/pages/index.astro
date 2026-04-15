@@ -8,6 +8,8 @@ import AuthModal from '../components/Teams/AuthModal.astro';
 import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
 import GroupModal from '../components/Teams/GroupModal.astro';
 import GroupSettingsModal from '../components/Teams/GroupSettingsModal.astro';
+import CallsPanel from '../components/Teams/CallsPanel.astro';
+import CalendarModal from '../components/Teams/CalendarModal.astro';
 import CallOverlay from '../components/Teams/CallOverlay';
 import '../styles/global.css';
 ---
@@ -17,10 +19,12 @@ import '../styles/global.css';
 		<Sidebar />
 		<ListPanel />
 		<ChatArea />
+		<CallsPanel />
 		<AuthModal />
 		<TeamsSettingsModal />
 		<GroupModal />
 		<GroupSettingsModal />
+		<CalendarModal />
 		
 
 		<!-- 6. POPUP DE LLAMADA ENTRANTE -->
@@ -824,14 +828,19 @@ import '../styles/global.css';
 				console.log(`[BitMeet] Re-seedizando ${recentFiles.length} archivos...`);
 				if (!torrentClient) torrentClient = await getWebTorrentClient();
 				for (const f of recentFiles) {
-					// Buscamos el mensaje original para sacar los metadatos (magnetURI)
-					const chats = await chatRepo.listAllChats();
-					let magnetURI = null;
-					for(const c of chats) {
-						const msg = c.messages.find(m => m.id === f.msgId);
-						if (msg && msg.type === 'file') {
-							magnetURI = JSON.parse(msg.content).magnetURI;
-							break;
+					let magnetURI = f.magnetURI;
+					
+					// Fallback: si no tiene magnetURI guardado directamente, lo buscamos en los chats (compatibilidad con archivos guardados antes del cambio)
+					if (!magnetURI) {
+						const chats = await chatRepo.listAllChats();
+						for(const c of chats) {
+							const msg = c.messages.find(m => m.id === f.msgId);
+							if (msg && msg.type === 'file') {
+								try {
+									magnetURI = JSON.parse(msg.content).magnetURI;
+								} catch(e) {}
+								break;
+							}
 						}
 					}
 					
@@ -1186,6 +1195,10 @@ import '../styles/global.css';
 				try {
 					const file = t.files[0];
 					const encryptedBuf = await file.arrayBuffer();
+					
+					// GUARDAR PARA RE-SEEDING FUTURO
+					try { await chatRepo.saveFileData(msgId, encryptedBuf, fileMeta.magnetURI); } catch(e) {}
+
 					const key = await importFileKey(fileMeta.key);
 					const iv = new Uint8Array(atob(fileMeta.iv).split('').map(c => c.charCodeAt(0)));
 					
@@ -1476,6 +1489,10 @@ import '../styles/global.css';
 				try {
 					const file = t.files[0];
 					const encryptedBuf = await file.arrayBuffer();
+					
+					// GUARDAR PARA RE-SEEDING FUTURO
+					try { await chatRepo.saveFileData(msgId, encryptedBuf, fileMeta.magnetURI); } catch(e) {}
+
 					const key = await importFileKey(fileMeta.key);
 					const iv = new Uint8Array(atob(fileMeta.iv).split('').map(c => c.charCodeAt(0)));
 					
@@ -1628,7 +1645,7 @@ import '../styles/global.css';
 			const msgId = Math.random().toString(36).substring(7);
 			
 			// GUARDAR EN INDEXEDDB PARA AUTO-RESEEDING
-			try { await chatRepo.saveFileData(msgId, data); } catch(e) {}
+			try { await chatRepo.saveFileData(msgId, data, torrent.magnetURI); } catch(e) {}
 
 			const fileMetadata = {
 				name: file.name,

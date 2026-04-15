@@ -27,17 +27,22 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
   const myParticipantId = useRef<string>("");
   const currentStreamRef = useRef<MediaStream | null>(null);
 
+  // Obtener medios de forma robusta
   const getMedia = async (video: boolean = true) => {
     try {
-      console.log("[BitMeet] Solicitando medios (video:", video, ")...");
+      console.log("[BitMeet] Solicitando medios...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: true, 
         video: video ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false 
       });
       
-      // Si ya teníamos un stream, detenemos los tracks viejos
       if (currentStreamRef.current) {
-        currentStreamRef.current.getTracks().forEach(t => t.stop());
+        // Si ya había algo, intentamos reemplazar tracks en lugar de cerrar todo
+        const oldVideoTrack = currentStreamRef.current.getVideoTracks()[0];
+        const newVideoTrack = stream.getVideoTracks()[0];
+        if (oldVideoTrack && newVideoTrack) {
+          transportRef.current.replaceTrack(oldVideoTrack, newVideoTrack);
+        }
       }
 
       setLocalStream(stream);
@@ -45,9 +50,9 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       setMediaError(null);
       return stream;
     } catch (err) {
-      console.warn("[BitMeet] Error al obtener medios:", err);
+      console.warn("[BitMeet] Fallo al obtener video, reintentando solo audio...", err);
       if (video) return getMedia(false); 
-      setMediaError("No se pudo acceder a la cámara/micro.");
+      setMediaError("No se pudo acceder a la cámara o micro.");
       return null;
     }
   };
@@ -55,13 +60,26 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
   useEffect(() => {
     const handleCallAccepted = async (e: any) => {
       const remoteData = e.detail;
-      console.log("[BitMeet] Receptor aceptó. Conectando a:", remoteData.peerId);
+      console.log("[BitMeet] Evento call-accepted recibido para:", remoteData.peerId);
       
+      // ESPERAR A QUE ESTEMOS LISTOS (STREAM + PEERJS)
+      let attempts = 0;
+      while (isInitializing && attempts < 50) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+
+      if (!currentStreamRef.current) {
+        console.warn("[BitMeet] No hay stream local al aceptar. Reintentando obtenerlo...");
+        await getMedia();
+      }
+
+      console.log("[BitMeet] Conectando con Peer:", remoteData.peerId);
       setParticipants(prev => {
         if (prev.find(p => p.peerId === remoteData.peerId)) return prev;
         return [...prev, {
           id: remoteData.peerId, peerId: remoteData.peerId,
-          name: remoteData.senderUsername || "Participante",
+          name: remoteData.senderUsername || "Usuario",
           isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
         }];
       });
@@ -69,7 +87,8 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       transportRef.current.connect(remoteData.peerId, currentStreamRef.current as any, { name: identity?.username });
     };
 
-    async function init() {
+    async function start() {
+      // 1. Obtener identidad
       const id = await bitidRef.current.getIdentity();
       if (id) {
         setIdentity(id);
@@ -77,23 +96,51 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       }
 
       try {
+        // 2. PEDIR CÁMARA PRIMERO: No avanzamos hasta que el usuario responda al popup del navegador
+        const stream = await getMedia();
+        
+        // 3. Inicializar PeerJS una vez tenemos la cámara lista
         const peerId = await transportRef.current.initialize(myParticipantId.current, existingPeer);
         setIsInitializing(false);
 
+        // 4. Notificar que estamos listos para recibir la señal de 'call-accepted'
         if (onReady) onReady();
         window.addEventListener('bitmeet:call-accepted', handleCallAccepted);
 
+        // 5. Añadirme a mí mismo
         setParticipants([{
           id: myParticipantId.current, peerId, name: id?.username || 'Yo',
-          isLocal: true, audioEnabled: true, videoEnabled: true, isScreenSharing: false
+          stream: stream || undefined as any,
+          isLocal: true, 
+          audioEnabled: stream?.getAudioTracks()[0]?.enabled ?? false, 
+          videoEnabled: stream?.getVideoTracks()[0]?.enabled ?? false, 
+          isScreenSharing: false
         }]);
 
+        // 6. Configurar eventos de transporte
         transportRef.current.onRemoteStream((remotePeerId, remoteStream) => {
-          setParticipants(prev => prev.map(p => p.peerId === remotePeerId ? { ...p, stream: remoteStream } : p));
+          console.log("[BitMeet] Stream de User recibido!");
+          setParticipants(prev => prev.map(p => 
+            p.peerId === remotePeerId ? { ...p, stream: remoteStream } : p
+          ));
         });
 
-        transportRef.current.onIncomingCall((call) => {
-          transportRef.current.answer(call, currentStreamRef.current as any);
+        transportRef.current.onIncomingCall(async (call) => {
+          console.log("[BitMeet] Respondiendo a User de:", call.peer);
+          
+          // ESPERAR A QUE EL STREAM ESTÉ LISTO
+          let attempts = 0;
+          while (!currentStreamRef.current && attempts < 50) {
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+          }
+
+          if (currentStreamRef.current) {
+            transportRef.current.answer(call, currentStreamRef.current as any);
+          } else {
+            console.error("[BitMeet] No se pudo obtener stream local a tiempo para responder.");
+          }
+
           setParticipants(prev => {
             if (prev.find(p => p.peerId === call.peer)) return prev;
             return [...prev, {
@@ -104,6 +151,7 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         });
 
         transportRef.current.onConnectionOpened((remotePeerId) => {
+          console.log("[BitMeet] Canal de datos abierto con User");
           transportRef.current.sendToPeer(remotePeerId, {
             type: 'status',
             name: id?.username || 'Usuario',
@@ -114,11 +162,8 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
 
         transportRef.current.onDataReceived((peerId, data) => {
           if (data.type === 'leaving') {
-            console.log("[BitMeet] Participante se ha ido:", peerId);
             setParticipants(prev => prev.filter(p => p.peerId !== peerId));
-            return;
-          }
-          if (data.type === 'status') {
+          } else if (data.type === 'status') {
             setParticipants(prev => prev.map(p => p.peerId === peerId ? {
               ...p,
               name: data.name || p.name,
@@ -129,31 +174,27 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
           }
         });
 
-        transportRef.current.onConnectionClosed((peerId) => {
-          setParticipants(prev => prev.filter(p => p.peerId !== peerId));
-        });
-
-        const stream = await getMedia();
-        if (stream) {
-          setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream, videoEnabled: !!stream.getVideoTracks()[0] } : p));
-        }
-
         if (isIncoming && incomingCall) {
           transportRef.current.answer(incomingCall, currentStreamRef.current as any);
         }
 
       } catch (err) {
-        console.error("[BitMeet] Error en inicialización:", err);
+        console.error("[BitMeet] Error fatal:", err);
       }
     }
 
-    init();
+    start();
     return () => {
       window.removeEventListener('bitmeet:call-accepted', handleCallAccepted);
       transportRef.current.disconnect();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
     };
   }, [roomId]);
+
+  const handleHangup = () => {
+    transportRef.current.broadcastData({ type: 'leaving' });
+    onHangup();
+  };
 
   const toggleAudio = () => {
     if (localStream) {
@@ -171,7 +212,6 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       const s = await getMedia(true);
       if (s) {
         setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: s, videoEnabled: true } : p));
-        // Forzamos re-conexión o actualización si Peter ya estaba ahí
         transportRef.current.broadcastData({ type: 'status', videoEnabled: true });
       }
       return;
@@ -189,9 +229,7 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         const screenTrack = displayStream.getVideoTracks()[0];
         const cameraTrack = localStream.getVideoTracks()[0];
 
-        if (cameraTrack) {
-          transportRef.current.replaceTrack(cameraTrack, screenTrack);
-        }
+        if (cameraTrack) transportRef.current.replaceTrack(cameraTrack, screenTrack);
         
         const combined = new MediaStream([screenTrack, ...localStream.getAudioTracks()]);
         currentStreamRef.current = combined;
@@ -210,19 +248,11 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
     if (!localStream) return;
     const cameraTrack = localStream.getVideoTracks()[0];
     const screenTrack = currentStreamRef.current?.getVideoTracks()[0];
-    if (screenTrack && cameraTrack) {
-      transportRef.current.replaceTrack(screenTrack, cameraTrack);
-    }
+    if (screenTrack && cameraTrack) transportRef.current.replaceTrack(screenTrack, cameraTrack);
     currentStreamRef.current = localStream;
     setIsScreenSharing(false);
     setParticipants(prev => prev.map(p => p.isLocal ? { ...p, stream: localStream, isScreenSharing: false } : p));
     transportRef.current.broadcastData({ type: 'status', isScreenSharing: false });
-  };
-
-  const handleHangup = () => {
-    console.log("[BitMeet] Colgando y avisando a los demás...");
-    transportRef.current.broadcastData({ type: 'leaving' });
-    onHangup();
   };
 
   const localParticipant = participants.find(p => p.isLocal);
@@ -236,7 +266,18 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
             alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.9)', color: 'white'
           }}>
             <Loader2 className="animate-spin" size={48} />
-            <p style={{ marginTop: '20px' }}>Iniciando...</p>
+            <p style={{ marginTop: '20px' }}>Configurando medios y seguridad...</p>
+          </div>
+        )}
+
+        {mediaError && (
+          <div className="media-error-overlay" style={{
+            position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
+            zIndex: 200, background: 'rgba(255, 59, 48, 0.9)', color: 'white',
+            padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px'
+          }}>
+            <AlertCircle size={20} />
+            <span>{mediaError}</span>
           </div>
         )}
 

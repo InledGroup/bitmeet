@@ -1,0 +1,234 @@
+---
+// CalendarModal.astro
+---
+<div id="calendar-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card calendar-card">
+        <div class="modal-header">
+            <div class="header-left">
+                <h2>Calendario</h2>
+                <div class="calendar-nav">
+                    <button id="cal-btn-prev" class="nav-btn">&lt;</button>
+                    <span id="cal-current-period">Abril 2026</span>
+                    <button id="cal-btn-next" class="nav-btn">&gt;</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <select id="cal-view-selector" class="view-selector">
+                    <option value="month">Mes</option>
+                    <option value="week">Semana</option>
+                    <option value="day">Día</option>
+                </select>
+                <button id="cal-btn-add" class="btn-primary">Nueva Conferencia</button>
+                <button id="cal-btn-close" class="btn-close-modal">✕</button>
+            </div>
+        </div>
+
+        <div class="calendar-body">
+            <!-- Grid del calendario -->
+            <div id="calendar-grid" class="calendar-grid month-view">
+                <!-- Se rellena por JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar Evento -->
+<div id="event-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card event-card">
+        <div class="modal-header">
+            <h2>Nueva Conferencia</h2>
+            <button id="event-btn-close" class="btn-close-modal">✕</button>
+        </div>
+        <form id="event-form" class="modal-form">
+            <div class="form-group">
+                <label for="event-title">Título</label>
+                <input type="text" id="event-title" required placeholder="Ej: Daily Sync" />
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="event-start">Inicio</label>
+                    <input type="datetime-local" id="event-start" required />
+                </div>
+                <div class="form-group">
+                    <label for="event-end">Fin</label>
+                    <input type="datetime-local" id="event-end" required />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="event-type" value="meeting" checked /> Conferencia</label>
+                    <label><input type="radio" name="event-type" value="busy" /> No disponible</label>
+                </div>
+            </div>
+
+            <div id="meeting-fields">
+                <div class="form-group">
+                    <label>Participantes / Grupos</label>
+                    <div id="event-participants-container" class="participants-selector">
+                        <div id="selected-participants" class="chips-container"></div>
+                        <input type="text" id="participant-search" placeholder="Buscar contacto o grupo..." />
+                        <div id="participant-results" class="search-results-mini hidden"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Ubicación</label>
+                    <div class="toggle-group">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="event-is-native" checked />
+                            <span>Reunión Nativa (BitMeet)</span>
+                        </label>
+                    </div>
+                    <input type="url" id="event-link" placeholder="Enlace externo (si no es nativa)" class="hidden" />
+                </div>
+
+                <div class="form-group">
+                    <label for="event-desc">Descripción</label>
+                    <textarea id="event-desc" rows="3" placeholder="Detalles de la reunión..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" id="event-btn-cancel" class="btn-secondary">Cancelar</button>
+                <button type="submit" class="btn-primary">Guardar Evento</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .calendar-card {
+        width: 90vw;
+        max-width: 1200px;
+        height: 85vh;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--apple-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-left, .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .calendar-nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #F2F2F7;
+        padding: 4px 12px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    .nav-btn {
+        background: none;
+        border: none;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--apple-accent);
+    }
+
+    .calendar-body {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .calendar-grid {
+        height: 100%;
+        display: grid;
+    }
+
+    .month-view {
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: auto repeat(5, 1fr);
+    }
+
+    /* Event Modal */
+    .event-card {
+        width: 500px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 16px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    .participants-selector {
+        border: 1px solid var(--apple-border);
+        border-radius: 8px;
+        padding: 8px;
+        min-height: 44px;
+        position: relative;
+    }
+
+    .chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    .participant-chip {
+        background: var(--apple-accent);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .participant-chip button {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 0;
+    }
+
+    .search-results-mini {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid var(--apple-border);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 10;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .mini-result-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #F2F2F7;
+    }
+
+    .mini-result-item:hover {
+        background: #F2F2F7;
+    }
+</style>
