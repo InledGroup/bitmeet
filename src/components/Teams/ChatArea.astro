@@ -182,6 +182,7 @@ import EmojiPickerWrapper from './EmojiPickerWrapper';
 		line-height: 1.4;
 		position: relative;
 		word-break: break-word;
+		user-select: text;
 	}
 	:global(.message-bubble.mine) {
 		align-self: flex-end;
@@ -209,6 +210,26 @@ import EmojiPickerWrapper from './EmojiPickerWrapper';
 		justify-content: flex-end;
 		align-items: center;
 		gap: 4px;
+	}
+	
+	:global(.msg-link) {
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 2px;
+		cursor: pointer;
+		opacity: 0.9;
+		transition: opacity 0.2s;
+	}
+	:global(.msg-link:hover) {
+		opacity: 1;
+		color: #fff;
+	}
+	:global(.theirs .msg-link) {
+		color: var(--apple-accent);
+	}
+	:global(.theirs .msg-link:hover) {
+		color: #0056b3;
 	}
 	
 	:global(.system-message) {

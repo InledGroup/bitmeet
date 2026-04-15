@@ -2187,6 +2187,54 @@ import '../styles/global.css';
 		}
 	}
 
+	function formatMessageText(text: string) {
+		if (!text) return "";
+		// Escapar HTML para evitar XSS
+		const escaped = text.replace(/&/g, "&amp;")
+							.replace(/</g, "&lt;")
+							.replace(/>/g, "&gt;");
+
+		// Regex para URLs: http/https o cualquier cosa con patrón letra.letra (dominios)
+		// Detectamos dominios como google.com o incluso a.b
+		const urlRegex = /(https?:\/\/[^\s]+)|(\b[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b)/g;
+
+		return escaped.replace(urlRegex, (match) => {
+			let url = match;
+			if (!url.startsWith('http')) {
+				url = 'https://' + url;
+			}
+			return `<a href="${url}" class="msg-link" onclick="handleLinkClick(event)" ondblclick="handleLinkDblClick(event)">${match}</a>`;
+		});
+	}
+
+	(window as any).handleLinkClick = (e: MouseEvent) => {
+		e.preventDefault();
+		// Mostrar un pequeño aviso o usar alert como pidió Jaime
+		const Toast = (text: string) => {
+			const t = document.createElement('div');
+			t.textContent = text;
+			t.style.position = 'fixed';
+			t.style.bottom = '100px';
+			t.style.left = '50%';
+			t.style.transform = 'translateX(-50%)';
+			t.style.background = 'rgba(0,0,0,0.8)';
+			t.style.color = 'white';
+			t.style.padding = '8px 16px';
+			t.style.borderRadius = '20px';
+			t.style.fontSize = '12px';
+			t.style.zIndex = '9999';
+			t.style.pointerEvents = 'none';
+			document.body.appendChild(t);
+			setTimeout(() => t.remove(), 2000);
+		};
+		Toast("🚀 Haz doble clic para abrir en una pestaña nueva");
+	};
+
+	(window as any).handleLinkDblClick = (e: MouseEvent) => {
+		const target = e.currentTarget as HTMLAnchorElement;
+		window.open(target.href, '_blank', 'noopener,noreferrer');
+	};
+
 	function renderMessage(msg: any) {
 		const container = document.getElementById('messages-list')!;
 		const loading = container.querySelector('.loading-state');
@@ -2254,7 +2302,7 @@ import '../styles/global.css';
 			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
 			div.innerHTML = `
 				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || 'Alguien'}</div>` : ''}
-				<div class="msg-content">${msg.content}</div>
+				<div class="msg-content">${formatMessageText(msg.content)}</div>
 				<div class="msg-meta">
 					${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
 					<span class="msg-status">${statusIcon}</span>
