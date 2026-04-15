@@ -4,6 +4,13 @@ dist/
 .vercel/
 .cloudflare/
 
+# Wrangler (Cloudflare local dev state)
+.wrangler/
+.dev.vars
+
+# Temporary / backup files
+backups/
+
 # dependencies
 node_modules/
 
