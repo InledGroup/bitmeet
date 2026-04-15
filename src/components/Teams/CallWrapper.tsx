@@ -15,6 +15,7 @@ export default function CallWrapper() {
       incomingCall={$call.incomingCall}
       existingPeer={$call.existingPeer}
       onReady={$call.onReady}
+      invitedPeers={$call.invitedPeers}
       onHangup={endCall}
     />
   );

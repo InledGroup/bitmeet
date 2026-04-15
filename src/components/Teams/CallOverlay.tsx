@@ -12,9 +12,10 @@ interface Props {
   incomingCall?: any;
   existingPeer?: any;
   onReady?: () => void;
+  invitedPeers?: Record<string, { username: string, pubKey: string }>;
 }
 
-export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall, existingPeer, onReady }: Props) {
+export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall, existingPeer, onReady, invitedPeers }: Props) {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -62,6 +63,9 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       const remoteData = e.detail;
       console.log("[BitMeet] Evento call-accepted recibido para:", remoteData.peerId);
       
+      const myPeerId = transportRef.current.getPeerId?.() || transportRef.current.getPeer()?.id;
+      if (!myPeerId) return;
+
       // ESPERAR A QUE ESTEMOS LISTOS (STREAM + PEERJS)
       let attempts = 0;
       while (isInitializing && attempts < 50) {
@@ -74,17 +78,32 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         await getMedia();
       }
 
-      console.log("[BitMeet] Conectando con Peer:", remoteData.peerId);
-      setParticipants(prev => {
-        if (prev.find(p => p.peerId === remoteData.peerId)) return prev;
-        return [...prev, {
-          id: remoteData.peerId, peerId: remoteData.peerId,
-          name: remoteData.senderUsername || "Usuario",
-          isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
-        }];
-      });
-
-      transportRef.current.connect(remoteData.peerId, currentStreamRef.current as any, { name: identity?.username });
+      // FULL MESH: Solo el que tiene el ID más bajo inicia la llamada para evitar colisiones
+      if (myPeerId < remoteData.peerId) {
+        console.log("[BitMeet] Conectando con Peer (soy ID menor):", remoteData.peerId);
+        setParticipants(prev => {
+          if (prev.find(p => p.peerId === remoteData.peerId)) return prev;
+          const name = invitedPeers?.[remoteData.peerId]?.username || remoteData.senderUsername || "Usuario";
+          return [...prev, {
+            id: remoteData.peerId, peerId: remoteData.peerId,
+            name,
+            isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
+          }];
+        });
+        transportRef.current.connect(remoteData.peerId, currentStreamRef.current as any, { name: identity?.username });
+      } else {
+        console.log("[BitMeet] Esperando llamada del Peer (soy ID mayor):", remoteData.peerId);
+        // Añadimos al participante a la lista para que aparezca aunque esperemos su stream
+        setParticipants(prev => {
+          if (prev.find(p => p.peerId === remoteData.peerId)) return prev;
+          const name = invitedPeers?.[remoteData.peerId]?.username || remoteData.senderUsername || "Usuario";
+          return [...prev, {
+            id: remoteData.peerId, peerId: remoteData.peerId,
+            name,
+            isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
+          }];
+        });
+      }
     };
 
     async function start() {
@@ -119,10 +138,20 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
 
         // 6. Configurar eventos de transporte
         transportRef.current.onRemoteStream((remotePeerId, remoteStream) => {
-          console.log("[BitMeet] Stream de User recibido!");
-          setParticipants(prev => prev.map(p => 
-            p.peerId === remotePeerId ? { ...p, stream: remoteStream } : p
-          ));
+          console.log("[BitMeet] Stream de User recibido!", remotePeerId);
+          setParticipants(prev => {
+            const existing = prev.find(p => p.peerId === remotePeerId);
+            if (existing) {
+              return prev.map(p => p.peerId === remotePeerId ? { ...p, stream: remoteStream } : p);
+            }
+            
+            // Si el participante no existe aún (race condition), lo creamos usando invitedPeers
+            const name = invitedPeers?.[remotePeerId]?.username || "Participante";
+            return [...prev, {
+              id: remotePeerId, peerId: remotePeerId, name,
+              stream: remoteStream, isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
+            }];
+          });
         });
 
         transportRef.current.onIncomingCall(async (call) => {
@@ -137,14 +166,13 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
 
           if (currentStreamRef.current) {
             transportRef.current.answer(call, currentStreamRef.current as any);
-          } else {
-            console.error("[BitMeet] No se pudo obtener stream local a tiempo para responder.");
           }
 
           setParticipants(prev => {
             if (prev.find(p => p.peerId === call.peer)) return prev;
+            const name = invitedPeers?.[call.peer]?.username || "Participante";
             return [...prev, {
-              id: call.peer, peerId: call.peer, name: "Participante",
+              id: call.peer, peerId: call.peer, name,
               isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
             }];
           });
@@ -176,6 +204,26 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
 
         if (isIncoming && incomingCall) {
           transportRef.current.answer(incomingCall, currentStreamRef.current as any);
+        }
+
+        // FULL MESH: Si nos han pasado una lista de participantes invitados, intentamos conectar proactivamente
+        // con los que tengan un ID mayor que el nuestro (ellos esperarán nuestra llamada).
+        if (invitedPeers) {
+          const myPeerId = peerId;
+          Object.entries(invitedPeers).forEach(([targetPeerId, info]) => {
+            if (targetPeerId !== myPeerId && myPeerId < targetPeerId) {
+              console.log("[BitMeet] Intentando conexión inicial con participante invitado:", targetPeerId);
+              setParticipants(prev => {
+                if (prev.find(p => p.peerId === targetPeerId)) return prev;
+                return [...prev, {
+                  id: targetPeerId, peerId: targetPeerId,
+                  name: info.username || "Participante",
+                  isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
+                }];
+              });
+              transportRef.current.connect(targetPeerId, currentStreamRef.current as any, { name: identity?.username });
+            }
+          });
         }
 
       } catch (err) {

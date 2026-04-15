@@ -1254,28 +1254,49 @@ import '../styles/global.css';
 				if (pendingCallPubKey) {
 					const roomId = await getChatId(myIdentity.publicKey, pendingCallPubKey);
 
-					// ENVIAMOS ACEPTACIÓN INMEDIATA POR P2P CHAT
-					p2p.sendP2PMessage(pendingCallPubKey, {
+					// ENVIAMOS ACEPTACIÓN INMEDIATA POR P2P CHAT AL QUE LLAMA
+					const acceptPayload = {
 						type: 'call-accept',
 						peerId: p2p.getPeer().id,
 						senderPubKey: myIdentity.publicKey,
 						senderUsername: myIdentity.username
-					});
+					};
+					
+					p2p.sendP2PMessage(pendingCallPubKey, acceptPayload);
+
+					// FULL MESH: También enviamos aceptación a los demás invitados para que nos vean
+					const invitedPeersMap = (window as any).pendingInvitedPeers;
+					if (invitedPeersMap) {
+						Object.values(invitedPeersMap).forEach((peerInfo: any) => {
+							if (peerInfo.pubKey && peerInfo.pubKey !== myIdentity.publicKey && peerInfo.pubKey !== pendingCallPubKey) {
+								console.log("[BitMeet] Notificando a compañero de grupo que me uno:", peerInfo.username);
+								p2p.sendP2PMessage(peerInfo.pubKey, acceptPayload).catch(() => {});
+							}
+						});
+					}
 
 					incomingPopup?.classList.add('hidden');
 					ringtone?.pause();
 					ringtone!.currentTime = 0;
 
 					const name = document.getElementById('incoming-caller-name')!.textContent || "Usuario";
-					const invitedPeers = (window as any).pendingInvitedPeers;
+					const invitedPeers = (window as any).pendingInvitedPeers || {};
+					const callerPeerId = (window as any).pendingCallerPeerId;
+					
+					// FULL MESH: El receptor debe incluir al Host en su lista de 'invitedPeers' 
+					// para que la lógica de conexión automática en CallOverlay funcione para todos.
+					const fullInvitedPeers = { ...invitedPeers };
+					if (callerPeerId && pendingCallPubKey) {
+						fullInvitedPeers[callerPeerId] = { username: name, pubKey: pendingCallPubKey };
+					}
 
 					if (pendingCall) {
 						console.log("[BitMeet] Answering existing PeerJS call...");
-						receiveCall(roomId, pendingCall, p2p.getPeer(), pendingCallPubKey, name, invitedPeers);
+						receiveCall(roomId, pendingCall, p2p.getPeer(), pendingCallPubKey, name, fullInvitedPeers);
 					} else {
 						console.log("[BitMeet] Waiting for PeerJS call to arrive in overlay...");
 						// Entramos en el overlay aunque el objeto 'call' no haya llegado aún
-						startCall(roomId, p2p.getPeer(), undefined, pendingCallPubKey, name, invitedPeers);
+						startCall(roomId, p2p.getPeer(), undefined, pendingCallPubKey, name, fullInvitedPeers);
 					}
 
 					pendingCall = null;
@@ -1320,14 +1341,14 @@ import '../styles/global.css';
 		const name = document.getElementById('active-chat-name')!.textContent || "Sala";
 		
 		// Preparar lista de todos los invitados (INCLUYÉNDOME) para Full Mesh inmediato
-		const allParticipantsMap: Record<string, string> = {};
+		const allParticipantsMap: Record<string, { username: string, pubKey: string }> = {};
 		if (isGroup) {
 			const chat = await chatRepo.getChat(currentChatId!);
 			if (chat) {
 				for (const p of chat.participants) {
 					const contact = await chatRepo.getContact(p);
 					const username = p === myIdentity.publicKey ? myIdentity.username : (contact?.username || "Usuario");
-					allParticipantsMap[await p2p.hashPubKey(p)] = username;
+					allParticipantsMap[await p2p.hashPubKey(p)] = { username, pubKey: p };
 				}
 			}
 		}
@@ -1370,22 +1391,26 @@ import '../styles/global.css';
 		const name = document.getElementById('active-chat-name')!.textContent || "Sala";
 
 		// Preparar lista de todos los invitados para Full Mesh inmediato
-		const allParticipantsMap: Record<string, string> = {};
+		const allParticipantsMap: Record<string, { username: string, pubKey: string }> = {};
 		if (isGroup) {
 			const chat = await chatRepo.getChat(currentChatId!);
 			if (chat) {
 				for (const p of chat.participants) {
-					if (p === myIdentity.publicKey) continue;
 					const contact = await chatRepo.getContact(p);
-					allParticipantsMap[await p2p.hashPubKey(p)] = contact?.username || "Usuario";
+					const username = p === myIdentity.publicKey ? myIdentity.username : (contact?.username || "Usuario");
+					allParticipantsMap[await p2p.hashPubKey(p)] = { username, pubKey: p };
 				}
 			}
 		}
 
 		startCall(roomId, p2p.getPeer(), async () => {
-			const myPeerId = p2p.getPeer().id;
+			const myPeerId = await p2p.hashPubKey(myIdentity.publicKey);
 			console.log("[BitMeet] Sender ready, sending voice invite to:", isGroup ? "Group" : targetPubKey, "with PeerID:", myPeerId);
 			
+			// Quitamos nuestro propio ID del payload que se envía a los demás
+			const othersParticipantsMap = { ...allParticipantsMap };
+			delete othersParticipantsMap[myPeerId];
+
 			const payload = {
 				type: 'call-invite',
 				roomId,
@@ -1393,7 +1418,7 @@ import '../styles/global.css';
 				senderPubKey: myIdentity.publicKey,
 				peerId: myPeerId,
 				groupId: isGroup ? currentChatId : undefined,
-				invitedPeers: allParticipantsMap
+				invitedPeers: othersParticipantsMap
 			};
 
 			if (isGroup) {

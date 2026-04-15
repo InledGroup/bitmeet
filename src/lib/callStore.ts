@@ -12,7 +12,7 @@ export interface CallState {
   onReady?: () => void;
   remotePubKey?: string;
   remoteUsername?: string;
-  invitedPeers?: Record<string, string>;
+  invitedPeers?: Record<string, { username: string, pubKey: string }>;
 }
 
 export const callStore = atom<CallState>({
@@ -27,7 +27,7 @@ export const callStore = atom<CallState>({
 
 let currentCallStart = 0;
 
-export async function startCall(roomId: string, existingPeer?: any, onReady?: () => void, remotePubKey?: string, remoteUsername?: string, invitedPeers?: Record<string, string>) {
+export async function startCall(roomId: string, existingPeer?: any, onReady?: () => void, remotePubKey?: string, remoteUsername?: string, invitedPeers?: Record<string, { username: string, pubKey: string }>) {
   currentCallStart = Date.now();
   callStore.set({ 
     isOpen: true, 
@@ -42,7 +42,7 @@ export async function startCall(roomId: string, existingPeer?: any, onReady?: ()
   });
 }
 
-export async function receiveCall(roomId: string, call: any, existingPeer?: any, remotePubKey?: string, remoteUsername?: string, invitedPeers?: Record<string, string>) {
+export async function receiveCall(roomId: string, call: any, existingPeer?: any, remotePubKey?: string, remoteUsername?: string, invitedPeers?: Record<string, { username: string, pubKey: string }>) {
   currentCallStart = Date.now();
   callStore.set({ 
     isOpen: true, 

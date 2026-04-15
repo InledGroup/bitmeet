@@ -10,15 +10,25 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
   private onDataReceivedCb?: (peerId: string, data: any) => void;
   private onConnectionOpenedCb?: (peerId: string) => void;
   private onConnectionClosedCb?: (peerId: string) => void;
+  private peerId: string | null = null;
+
+  getPeer() {
+    return this.peer;
+  }
+
+  getPeerId() {
+    return this.peerId || this.peer?.id || null;
+  }
 
   async initialize(participantId: string, existingPeer?: any): Promise<string> {
     if (existingPeer) {
       this.peer = existingPeer;
+      this.peerId = existingPeer.id;
       // Setup listeners on existing peer
-      this.peer.on('connection', (conn: any) => {
+      this.peer!.on('connection', (conn: any) => {
         this.setupDataConnection(conn);
       });
-      this.peer.on('call', (call: any) => {
+      this.peer!.on('call', (call: any) => {
         if (this.onIncomingCallCb) this.onIncomingCallCb(call);
       });
 
@@ -38,6 +48,7 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
     return new Promise((resolve, reject) => {
       this.peer?.on('open', (id: string) => {
         console.log('[BitMeet] PeerJS Initialized with Deterministic ID:', id);
+        this.peerId = id;
         
         this.peer?.on('connection', (conn) => {
           this.setupDataConnection(conn);
