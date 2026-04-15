@@ -816,6 +816,36 @@ import '../styles/global.css';
 		await p2p.initialize(myIdentity.publicKey);
 		document.querySelector('.status-circle')?.classList.replace('offline', 'online');
 		await loadContacts();
+
+		// RE-ACTIVAR SEEDING DE ÚLTIMAS 24H
+		try {
+			const recentFiles = await chatRepo.listRecentFiles(24 * 60 * 60 * 1000);
+			if (recentFiles.length > 0) {
+				console.log(`[BitMeet] Re-seedizando ${recentFiles.length} archivos...`);
+				if (!torrentClient) torrentClient = await getWebTorrentClient();
+				for (const f of recentFiles) {
+					// Buscamos el mensaje original para sacar los metadatos (magnetURI)
+					const chats = await chatRepo.listAllChats();
+					let magnetURI = null;
+					for(const c of chats) {
+						const msg = c.messages.find(m => m.id === f.msgId);
+						if (msg && msg.type === 'file') {
+							magnetURI = JSON.parse(msg.content).magnetURI;
+							break;
+						}
+					}
+					
+					if (magnetURI && !torrentClient.get(magnetURI)) {
+						const blob = new Blob([f.data], { type: 'application/octet-stream' });
+						torrentClient.seed(blob, { announce: TRACKERS }, (t: any) => {
+							console.log(`[BitMeet] Re-seeding: ${t.infoHash}`);
+						});
+					}
+				}
+			}
+		} catch (e) {
+			console.error("[BitMeet] Error in auto-seeding", e);
+		}
 		
 		p2p.onPeerConnected(async (pubKey: string) => {
 			console.log(`Peer conectado: ${pubKey}, sincronizando...`);
@@ -1597,6 +1627,9 @@ import '../styles/global.css';
 			const timestamp = Date.now();
 			const msgId = Math.random().toString(36).substring(7);
 			
+			// GUARDAR EN INDEXEDDB PARA AUTO-RESEEDING
+			try { await chatRepo.saveFileData(msgId, data); } catch(e) {}
+
 			const fileMetadata = {
 				name: file.name,
 				size: file.size,

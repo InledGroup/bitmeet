@@ -5,12 +5,13 @@ export class IndexedDBChatRepository implements IChatRepository {
   private dbName = "BitMeet_Chats";
   private storeName = "chats";
   private contactsStore = "contacts";
+  private fileDataStore = "file_data"; // Nuevo almacén para los blobs cifrados
   private db: IDBDatabase | null = null;
 
   private async getDB(): Promise<IDBDatabase> {
     if (this.db) return this.db;
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 2);
+      const request = indexedDB.open(this.dbName, 3); // Subimos versión
       request.onupgradeneeded = (e: any) => {
         const db = request.result;
         if (!db.objectStoreNames.contains(this.storeName)) {
@@ -19,10 +20,34 @@ export class IndexedDBChatRepository implements IChatRepository {
         if (!db.objectStoreNames.contains(this.contactsStore)) {
           db.createObjectStore(this.contactsStore, { keyPath: "publicKey" });
         }
+        if (!db.objectStoreNames.contains(this.fileDataStore)) {
+          db.createObjectStore(this.fileDataStore, { keyPath: "msgId" });
+        }
       };
       request.onsuccess = () => { this.db = request.result; resolve(this.db); };
       request.onerror = () => reject(request.error);
     });
+  }
+
+  async saveFileData(msgId: string, data: ArrayBuffer): Promise<void> {
+    const db = await this.getDB();
+    const tx = db.transaction(this.fileDataStore, "readwrite");
+    await this.promisify(tx.objectStore(this.fileDataStore).put({ msgId, data, timestamp: Date.now() }));
+  }
+
+  async getFileData(msgId: string): Promise<ArrayBuffer | null> {
+    const db = await this.getDB();
+    const tx = db.transaction(this.fileDataStore, "readonly");
+    const res = await this.promisify(tx.objectStore(this.fileDataStore).get(msgId));
+    return res ? res.data : null;
+  }
+
+  async listRecentFiles(maxAgeMs: number = 24 * 60 * 60 * 1000): Promise<any[]> {
+    const db = await this.getDB();
+    const tx = db.transaction(this.fileDataStore, "readonly");
+    const all = await this.promisify(tx.objectStore(this.fileDataStore).getAll());
+    const now = Date.now();
+    return all.filter((f: any) => (now - f.timestamp) < maxAgeMs);
   }
 
   async saveContact(contact: { publicKey: string, username: string, isFavorite: boolean }): Promise<void> {
