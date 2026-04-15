@@ -1,5 +1,6 @@
 ---
 // ChatArea.astro
+import EmojiPickerWrapper from './EmojiPickerWrapper';
 ---
 <section class="apple-content">
 	<!-- Vista: Sin chat seleccionado -->
@@ -51,10 +52,16 @@
 		<div class="messages-container" id="messages-list"></div>
 
 		<div class="chat-input-area">
+			<div id="emoji-picker-container" class="emoji-picker-wrapper hidden">
+				<EmojiPickerWrapper client:only="react" />
+			</div>
 			<form id="chat-form">
 				<div class="input-wrapper">
 					<input type="text" id="chat-input" placeholder="Mensaje..." autocomplete="off" />
 					<div class="input-actions">
+						<button type="button" id="btn-emoji" class="emoji-btn" title="Emojis">
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+						</button>
 						<button type="button" id="btn-attach" class="attach-btn" title="Adjuntar archivo">
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
 						</button>
@@ -268,6 +275,7 @@
 	.chat-input-area {
 		padding: 16px 24px 24px;
 		background: #FFFFFF;
+		position: relative;
 	}
 	.input-wrapper {
 		display: flex;
@@ -318,4 +326,95 @@
 	#btn-send:hover { transform: scale(1.05); }
 	#btn-send:active { transform: scale(0.95); }
 	#btn-send:disabled { opacity: 0.3; cursor: default; }
+
+	.emoji-btn {
+		background: transparent;
+		border: none;
+		color: #86868B;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		transition: color 0.2s;
+	}
+	.emoji-btn:hover { color: var(--apple-accent); }
+
+	.emoji-picker-wrapper {
+		position: absolute;
+		bottom: 90px;
+		right: 30px;
+		z-index: 1000;
+		box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+		border-radius: 16px;
+		overflow: hidden;
+		background: rgba(255, 255, 255, 0.8);
+		backdrop-filter: blur(20px) saturate(180%);
+		border: 1px solid rgba(0,0,0,0.1);
+		transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+		width: 320px;
+	}
+	.emoji-picker-wrapper.hidden {
+		display: none;
+		opacity: 0;
+		transform: translateY(10px) scale(0.95);
+	}
+	.emoji-picker-wrapper:not(.hidden) {
+		display: block;
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+
+	/* Contenedor del picker de Frimousse */
+	.frimousse-picker-container {
+		display: flex;
+		flex-direction: column;
+		height: 420px;
+	}
 </style>
+
+<script>
+	function initEmojiPicker() {
+		const emojiBtn = document.getElementById('btn-emoji');
+		const pickerContainer = document.getElementById('emoji-picker-container');
+		const chatInput = document.getElementById('chat-input') as HTMLInputElement;
+
+		if (!emojiBtn || !pickerContainer || !chatInput) return;
+
+		// Mostrar/Ocultar picker
+		emojiBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			pickerContainer.classList.toggle('hidden');
+		});
+
+		// Escuchar selección de emoji desde el componente React
+		window.addEventListener('emoji-selected', (e: any) => {
+			const emoji = e.detail;
+			const start = chatInput.selectionStart || 0;
+			const end = chatInput.selectionEnd || 0;
+			const text = chatInput.value;
+			
+			// Insertar en la posición del cursor
+			chatInput.value = text.substring(0, start) + emoji + text.substring(end);
+			
+			// Reposicionar cursor
+			const newPos = start + emoji.length;
+			chatInput.setSelectionRange(newPos, newPos);
+			
+			chatInput.focus();
+			// Opcional: Cerrar al seleccionar
+			// pickerContainer.classList.add('hidden');
+		});
+
+		// Cerrar al hacer clic fuera
+		document.addEventListener('click', (e) => {
+			if (!pickerContainer.contains(e.target as Node) && e.target !== emojiBtn) {
+				pickerContainer.classList.add('hidden');
+			}
+		});
+	}
+
+	// Ejecutar en carga y en transiciones de Astro
+	document.addEventListener('astro:page-load', initEmojiPicker);
+	initEmojiPicker();
+</script>
