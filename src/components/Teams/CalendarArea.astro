@@ -1,0 +1,436 @@
+---
+// CalendarArea.astro
+---
+<div id="view-calendar" class="apple-content hidden">
+    <div class="chat-header-main">
+        <div class="recipient-info">
+            <div class="name-row">
+                <h3 id="calendar-title">Calendario</h3>
+            </div>
+            <div class="status-wrapper">
+                <div class="calendar-nav">
+                    <button id="cal-btn-prev" class="nav-btn" title="Mes anterior">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <span id="cal-current-period">Abril 2026</span>
+                    <button id="cal-btn-next" class="nav-btn" title="Mes siguiente">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <select id="cal-view-selector" class="apple-select">
+                <option value="month">Mes</option>
+                <option value="week" disabled>Semana</option>
+                <option value="day" disabled>Día</option>
+            </select>
+            <button id="cal-btn-add" class="apple-button primary small">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;"><path d="M12 5v14M5 12h14"/></svg>
+                Nueva Conferencia
+            </button>
+        </div>
+    </div>
+
+    <div class="calendar-viewport">
+        <div id="calendar-grid" class="calendar-grid month-view">
+            <!-- Se rellena por JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar Evento (Este sí se mantiene como modal) -->
+<div id="event-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card event-card">
+        <div class="modal-header">
+            <h2>Nueva Conferencia</h2>
+            <button id="event-btn-close" class="btn-close-modal">✕</button>
+        </div>
+        <form id="event-form" class="modal-form">
+            <div class="form-group">
+                <label for="event-title">Título</label>
+                <input type="text" id="event-title" required placeholder="Ej: Daily Sync" class="apple-input" />
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="event-start">Inicio</label>
+                    <input type="datetime-local" id="event-start" required class="apple-input" />
+                </div>
+                <div class="form-group">
+                    <label for="event-end">Fin</label>
+                    <input type="datetime-local" id="event-end" required class="apple-input" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo de evento</label>
+                <div class="radio-group-apple">
+                    <label class="radio-label">
+                        <input type="radio" name="event-type" value="meeting" checked />
+                        <span>Conferencia</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="event-type" value="busy" />
+                        <span>No disponible</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="meeting-fields">
+                <div class="form-group">
+                    <label>Participantes / Grupos</label>
+                    <div id="event-participants-container" class="participants-selector">
+                        <div id="selected-participants" class="chips-container"></div>
+                        <input type="text" id="participant-search" placeholder="Buscar contacto o grupo..." class="apple-input-ghost" />
+                        <div id="participant-results" class="search-results-mini hidden"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Configuración de llamada</label>
+                    <div class="checkbox-group-apple">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="event-is-native" checked />
+                            <span>Reunión Nativa (BitMeet)</span>
+                        </label>
+                    </div>
+                    <input type="url" id="event-link" placeholder="Enlace externo (si no es nativa)" class="apple-input hidden" style="margin-top: 8px;" />
+                </div>
+
+                <div class="form-group">
+                    <label for="event-desc">Descripción</label>
+                    <textarea id="event-desc" rows="3" placeholder="Detalles de la reunión..." class="apple-input"></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" id="event-btn-cancel" class="apple-button secondary">Cancelar</button>
+                <button type="submit" class="apple-button primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para Ver/Eliminar Evento -->
+<div id="event-detail-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card event-card">
+        <div class="modal-header">
+            <h2 id="detail-event-title">Detalles del Evento</h2>
+            <button id="detail-event-btn-close" class="btn-close-modal">✕</button>
+        </div>
+        <div id="event-detail-content" class="modal-form">
+            <!-- Contenido se inyecta dinámicamente -->
+        </div>
+        <div class="form-actions" style="padding: 0 24px 24px;">
+             <button type="button" id="detail-event-btn-delete" class="apple-button danger">Eliminar</button>
+             <button type="button" id="detail-event-btn-edit" class="apple-button primary">Editar</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estructura Principal del Calendario */
+    .apple-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #FFFFFF;
+        height: 100%;
+        overflow: hidden;
+    }
+    .calendar-viewport {
+        flex: 1;
+        overflow-y: auto;
+        background: #FFFFFF;
+    }
+    .calendar-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #F2F2F7;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-weight: 600;
+        margin-left: 12px;
+    }
+    .nav-btn {
+        background: transparent;
+        border: none;
+        padding: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--apple-accent);
+        border-radius: 6px;
+        transition: background 0.2s;
+    }
+    .nav-btn:hover { background: rgba(0,0,0,0.05); }
+    #cal-current-period { font-size: 14px; min-width: 120px; text-align: center; color: var(--apple-text); }
+    
+    /* Controles Header */
+    .header-actions {
+        margin-left: auto;
+    }
+    .apple-select, .apple-button.small {
+        height: 36px;
+        padding-top: 0;
+        padding-bottom: 0;
+        display: inline-flex;
+        align-items: center;
+    }
+    .apple-select {
+        appearance: none;
+        background: #F5F5F7;
+        border: 1px solid var(--apple-border);
+        border-radius: 8px;
+        padding: 6px 30px 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+    }
+    .apple-select:hover { background-color: #E5E5EA; }
+    .calendar-grid {
+        display: grid;
+        width: 100%;
+        min-height: 100%;
+        background: var(--apple-border);
+        gap: 1px;
+    }
+    .month-view {
+        grid-template-columns: repeat(7, 1fr);
+        grid-auto-rows: minmax(120px, 1fr);
+    }
+    :global(.calendar-day-header) {
+        background: #F5F5F7;
+        padding: 10px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: #86868B;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    :global(.calendar-day-cell) {
+        background: #FFFFFF;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: background 0.2s;
+        min-width: 0;
+    }
+    :global(.calendar-day-cell:hover) { background: #FAFAFB; }
+    :global(.calendar-day-cell.other-month) { background: #F9F9FB; opacity: 0.5; }
+    :global(.calendar-day-cell.today) { background: #F0F7FF; }
+    :global(.calendar-day-cell.today .day-number) {
+        background: var(--apple-accent);
+        color: white;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+    :global(.day-number) {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: var(--apple-text);
+    }
+    :global(.calendar-event-item) {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+    :global(.calendar-event-item:hover) { transform: scale(1.02); z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    :global(.calendar-event-item.meeting) { background: rgba(0, 122, 255, 0.12); color: #0060CC; border-left: 3px solid #007AFF; }
+    :global(.calendar-event-item.busy) { background: rgba(142, 142, 147, 0.12); color: #3A3A3C; border-left: 3px solid #8E8E93; }
+
+    /* Modal Styling */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.4);
+        backdrop-filter: blur(10px) saturate(150%);
+        z-index: 5000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal-card.event-card {
+        width: 480px;
+        padding: 0;
+        overflow: hidden;
+        background: #F9F9FB;
+        border-radius: 14px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        border: 1px solid rgba(0,0,0,0.05);
+        animation: slideInUp 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--apple-border);
+        background: transparent;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h2 { font-size: 18px; font-weight: 700; color: #1D1D1F; }
+    .btn-close-modal {
+        background: #E5E5EA;
+        border-radius: 50%;
+        color: #86868B;
+        width: 28px;
+        height: 28px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-close-modal:hover { background: #D1D1D6; }
+    
+    .modal-form { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: #1D1D1F; }
+    .apple-input {
+        background: #F5F5F7;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    .apple-input:focus { background: #FFFFFF; border-color: var(--apple-accent); box-shadow: 0 0 0 4px rgba(0,122,255,0.1); outline: none; }
+    .form-row { display: flex; gap: 16px; }
+    .form-row .form-group { flex: 1; }
+    .radio-group-apple, .checkbox-group-apple { display: flex; gap: 12px; }
+    .radio-label, .toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        background: #F5F5F7;
+        padding: 8px 14px;
+        border-radius: 10px;
+        flex: 1;
+        transition: background 0.2s;
+    }
+    .radio-label:has(input:checked), .toggle-label:has(input:checked) { background: rgba(0,122,255,0.08); color: var(--apple-accent); }
+    .radio-label input, .toggle-label input { accent-color: var(--apple-accent); }
+    .participants-selector {
+        background: #F5F5F7;
+        border-radius: 10px;
+        padding: 6px;
+        min-height: 44px;
+        position: relative;
+    }
+    .apple-input-ghost {
+        background: transparent;
+        border: none;
+        padding: 6px 8px;
+        width: 100%;
+        font-size: 14px;
+        outline: none;
+    }
+    .chips-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+    :global(.participant-chip) {
+        background: white;
+        color: #1D1D1F;
+        padding: 4px 10px;
+        border-radius: 100px;
+        font-size: 12px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--apple-border);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    :global(.participant-chip button) {
+        background: #D1D1D6;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 10px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+    :global(.participant-chip button:hover) { background: #FF3B30; }
+    .search-results-mini {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--apple-border);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        z-index: 100;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    :global(.mini-result-item) {
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 13px;
+        border-bottom: 1px solid var(--apple-border);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    :global(.mini-result-item:hover) { background: var(--apple-accent); color: white; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+
+    /* Estilos del modal de detalle */
+    #event-detail-content {
+        line-height: 1.6;
+    }
+    #event-detail-content .detail-row {
+        margin-bottom: 12px;
+    }
+    #event-detail-content strong {
+        display: block;
+        font-size: 12px;
+        color: #86868B;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    #event-detail-content p {
+        font-size: 14px;
+        color: #1D1D1F;
+    }
+    .apple-button.danger {
+        background: #FF3B30;
+        color: white;
+        margin-right: auto; /* Alinea el botón de eliminar a la izquierda */
+    }
+    .apple-button.danger:hover {
+        background: #D9362B;
+    }
+</style>

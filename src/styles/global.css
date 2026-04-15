@@ -1001,4 +1001,143 @@ body {
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Estilos para Calendario y Llamadas */
+.calendar-day-header {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-text-secondary);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--apple-border);
+}
+
+.calendar-day-cell {
+    min-height: 100px;
+    border-right: 1px solid var(--apple-border);
+    border-bottom: 1px solid var(--apple-border);
+    padding: 8px;
+    background: white;
+    transition: background 0.2s;
+}
+
+.calendar-day-cell:hover {
+    background: #F9F9FB;
+}
+
+.day-number {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.calendar-event-item {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.calendar-event-item.meeting {
+    background: rgba(0, 122, 255, 0.1);
+    color: #007AFF;
+    border-left: 3px solid #007AFF;
+}
+
+.calendar-event-item.busy {
+    background: rgba(255, 59, 48, 0.1);
+    color: #FF3B30;
+    border-left: 3px solid #FF3B30;
+}
+
+/* Call Cards & Invitations */
+.item-card {
+    background: #F2F2F7;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s;
+}
+
+.item-card:hover {
+    transform: scale(1.01);
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.item-info strong { font-size: 16px; color: var(--apple-text); }
+.item-info span { font-size: 14px; color: var(--apple-text-secondary); }
+.item-info small { font-size: 12px; color: var(--apple-text-tertiary); }
+
+.item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-right: 16px;
+}
+
+.item-icon.incoming { background: rgba(52, 199, 89, 0.1); color: #34C759; }
+.item-icon.outgoing { background: rgba(0, 122, 255, 0.1); color: #007AFF; }
+.item-icon.missed { background: rgba(255, 59, 48, 0.1); color: #FF3B30; }
+
+.item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-accept-inv {
+    background: #34C759;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-reject-inv {
+    background: #FF3B30;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-call-back {
+    background: white;
+    color: var(--apple-accent);
+    border: 1px solid var(--apple-border);
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    text-transform: uppercase;
+}
+
+.invitation-card.accepted .status-badge { background: rgba(52, 199, 89, 0.1); color: #34C759; }
+.invitation-card.rejected .status-badge { background: rgba(255, 59, 48, 0.1); color: #FF3B30; }
+
+.hidden { display: none !important; }

@@ -25,11 +25,19 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
       return existingPeer.id;
     }
 
-    this.peer = new Peer();
+    // Usamos el mismo método de hashing que P2PTransport para que los IDs coincidan
+    const msgUint8 = new TextEncoder().encode(participantId);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const deterministicId = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+
+    this.peer = new Peer(deterministicId, {
+      debug: 2
+    });
     
     return new Promise((resolve, reject) => {
       this.peer?.on('open', (id: string) => {
-        console.log('[BitMeet] PeerJS Initialized with ID:', id);
+        console.log('[BitMeet] PeerJS Initialized with Deterministic ID:', id);
         
         this.peer?.on('connection', (conn) => {
           this.setupDataConnection(conn);

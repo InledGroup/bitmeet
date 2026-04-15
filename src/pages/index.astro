@@ -6,10 +6,11 @@ import ChatArea from '../components/Teams/ChatArea.astro';
 import CallWrapper from '../components/Teams/CallWrapper';
 import AuthModal from '../components/Teams/AuthModal.astro';
 import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
-import GroupModal from '../components/Teams/GroupModal.astro';
 import GroupSettingsModal from '../components/Teams/GroupSettingsModal.astro';
 import CallsPanel from '../components/Teams/CallsPanel.astro';
-import CalendarModal from '../components/Teams/CalendarModal.astro';
+import GroupModal from '../components/Teams/GroupModal.astro';
+
+import CalendarArea from '../components/Teams/CalendarArea.astro';
 import CallOverlay from '../components/Teams/CallOverlay';
 import '../styles/global.css';
 ---
@@ -17,14 +18,18 @@ import '../styles/global.css';
 <Layout title="BitSuite Teams">
 	<main id="teams-app" class="apple-container">
 		<Sidebar />
+		<!-- Sidebar Izquierda (Lista) -->
 		<ListPanel />
-		<ChatArea />
 		<CallsPanel />
+
+		<!-- Área Principal (Contenido) -->
+		<ChatArea />
+		<CalendarArea />
+
 		<AuthModal />
 		<TeamsSettingsModal />
 		<GroupModal />
 		<GroupSettingsModal />
-		<CalendarModal />
 		
 
 		<!-- 6. POPUP DE LLAMADA ENTRANTE -->
@@ -119,6 +124,8 @@ import '../styles/global.css';
 	import { BitIDService } from '../lib/bitid';
 	import { P2PTransport } from '../infrastructure/adapters/P2PTransport';
 	import { IndexedDBChatRepository } from '../infrastructure/adapters/IndexedDBChatRepository';
+	import { IndexedDBCalendarRepository } from '../infrastructure/adapters/IndexedDBCalendarRepository';
+	import { IndexedDBCallsRepository } from '../infrastructure/adapters/IndexedDBCallsRepository';
 	import { encryptText, decryptText, generateFileKey, exportFileKey, importFileKey, encryptFile, decryptFile } from '../lib/crypto';
 	import { startCall, receiveCall } from '../lib/callStore';
 	import { getWebTorrentClient } from '../lib/webtorrent';
@@ -127,6 +134,8 @@ import '../styles/global.css';
 	const bitid = new BitIDService();
 	const p2p = new P2PTransport();
 	const chatRepo = new IndexedDBChatRepository();
+	const calendarRepo = new IndexedDBCalendarRepository();
+	const callsRepo = new IndexedDBCallsRepository();
 	let torrentClient: any = null;
 	let myIdentity: any = null;
 	let currentChatPubKey: string | null = null;
@@ -140,6 +149,14 @@ import '../styles/global.css';
 	
 	// Elementos UI
 	const teamsApp = document.getElementById('teams-app');
+	const sidebarIcons = document.querySelectorAll('.sidebar-icon[data-view]');
+	const listPanel = document.querySelector('.apple-list-panel:not(#view-calls)'); // ListPanel.astro usa .apple-list-panel
+	const chatArea = document.querySelector('.apple-content:not(#view-calendar)'); // ChatArea.astro usa .apple-content
+	const viewCalls = document.getElementById('view-calls');
+	const viewCalendar = document.getElementById('view-calendar');
+	const eventModal = document.getElementById('event-modal-overlay');
+	const eventDetailModal = document.getElementById('event-detail-modal-overlay');
+	
 	const authOverlay = document.getElementById('auth-overlay');
 	const authCard = document.getElementById('auth-card');
 	const authUnlockView = document.getElementById('auth-unlock-view');
@@ -649,19 +666,143 @@ import '../styles/global.css';
 			const panelTitle = document.getElementById('panel-title');
 			if (panelTitle) panelTitle.textContent = view!.charAt(0).toUpperCase() + view!.slice(1);
 			
+			// Ocultar todas las vistas principales
+			listPanel?.classList.add('hidden');
+			chatArea?.classList.add('hidden');
+			viewCalls?.classList.add('hidden');
+			viewCalendar?.classList.add('hidden');
+
 			if (view === 'chat') {
+				listPanel?.classList.remove('hidden');
+				chatArea?.classList.remove('hidden');
 				loadContacts();
 				searchResults?.classList.add('hidden');
 				chatsList?.classList.remove('hidden');
+			} else if (view === 'calls') {
+				viewCalls?.classList.remove('hidden');
+				viewCalendar?.classList.remove('hidden');
+				loadCallsView();
+				renderCalendar();
 			} else if (view === 'teams') {
+				listPanel?.classList.remove('hidden');
+				chatArea?.classList.remove('hidden');
 				loadColleagues(); 
-			} else {
-				if (chatsList) chatsList.innerHTML = `<div class="loading-state">Próximamente</div>`;
 			}
 		});
 	});
 
-	let searchTimeout: any;
+	async function loadCallsView() {
+		const invitations = await calendarRepo.listInvitations();
+		const history = await callsRepo.listCallHistory();
+		
+		const invList = document.getElementById('calendar-invitations-list');
+		const callList = document.getElementById('calls-history-list');
+
+		if (invList) {
+			if (invitations.length === 0) {
+				invList.innerHTML = '<div class="empty-results">No tienes invitaciones pendientes</div>';
+			} else {
+				invList.innerHTML = invitations.map(inv => `
+					<div class="item-card invitation-card ${inv.status}">
+						<div class="item-info">
+							<strong>${inv.title}</strong>
+							<span>Organizado por @${inv.organizerUsername}</span>
+							<small>${new Date(inv.startTime).toLocaleString()} - ${new Date(inv.endTime).toLocaleTimeString()}</small>
+						</div>
+						<div class="item-actions">
+							${inv.status === 'pending' ? `
+								<button class="btn-accept-inv" data-id="${inv.id}">Aceptar</button>
+								<button class="btn-reject-inv" data-id="${inv.id}">Rechazar</button>
+							` : `<span class="status-badge">${inv.status === 'accepted' ? 'Aceptada' : 'Rechazada'}</span>`}
+						</div>
+					</div>
+				`).join('');
+
+				invList.querySelectorAll('.btn-accept-inv').forEach(btn => {
+					btn.addEventListener('click', async (e) => {
+						const id = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
+						await respondToInvitation(id, 'accepted');
+					});
+				});
+
+				invList.querySelectorAll('.btn-reject-inv').forEach(btn => {
+					btn.addEventListener('click', async (e) => {
+						const id = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
+						await respondToInvitation(id, 'rejected');
+					});
+				});
+			}
+		}
+
+		if (callList) {
+			if (history.length === 0) {
+				callList.innerHTML = '<div class="empty-results">Historial de llamadas vacío</div>';
+			} else {
+				callList.innerHTML = history.map(call => `
+					<div class="item-card call-card">
+						<div class="item-icon ${call.type}">
+							${call.type === 'missed' ? '✕' : (call.type === 'incoming' ? '↙' : '↗')}
+						</div>
+						<div class="item-info">
+							<strong>@${call.remoteUsername}</strong>
+							<span>${call.isVideo ? 'Videollamada' : 'Llamada de voz'} ${call.type === 'missed' ? 'perdida' : ''}</span>
+							<small>${new Date(call.startTime).toLocaleString()} ${call.duration ? `· ${Math.floor(call.duration/60)}m ${call.duration%60}s` : ''}</small>
+						</div>
+						<div class="item-actions">
+							<button class="btn-call-back" data-pubkey="${call.remotePubKey}">Llamar</button>
+						</div>
+					</div>
+				`).join('');
+
+				callList.querySelectorAll('.btn-call-back').forEach(btn => {
+					btn.addEventListener('click', (e) => {
+						const pubKey = (e.currentTarget as HTMLElement).getAttribute('data-pubkey')!;
+						// Lógica para devolver llamada
+						currentChatPubKey = pubKey;
+						document.getElementById('btn-call-video')?.click();
+					});
+				});
+			}
+		}
+	}
+
+	async function respondToInvitation(id: string, status: 'accepted' | 'rejected') {
+		const inv = await calendarRepo.getInvitation(id);
+		if (!inv) return;
+
+		await calendarRepo.updateInvitationStatus(id, status);
+		
+		// Notificar al organizador
+		try {
+			await p2p.sendP2PMessage(inv.organizerPubKey, {
+				type: 'calendar-response',
+				eventId: inv.eventId,
+				invitationId: id,
+				status: status,
+				responderPubKey: myIdentity.publicKey,
+				responderUsername: myIdentity.username
+			});
+		} catch (e) {}
+
+		if (status === 'accepted') {
+			// Añadir al calendario personal
+			await calendarRepo.saveEvent({
+				id: inv.eventId,
+				title: inv.title,
+				description: inv.description,
+				startTime: inv.startTime,
+				endTime: inv.endTime,
+				type: 'meeting',
+				meetingLink: inv.meetingLink,
+				isNative: inv.isNative,
+				organizerPubKey: inv.organizerPubKey,
+				participants: [], // Solo yo en mi copia local
+				status: 'confirmed'
+			});
+		}
+		
+		loadCallsView();
+	}
 	globalSearch?.addEventListener('input', (e) => {
 		const q = (e.target as HTMLInputElement).value.trim();
 		clearTimeout(searchTimeout);
@@ -899,6 +1040,49 @@ import '../styles/global.css';
 				return;
 			}
 
+			if (msg.type === 'calendar-invite') {
+				await calendarRepo.saveInvitation({
+					id: msg.id,
+					eventId: msg.eventId,
+					organizerPubKey: msg.organizerPubKey,
+					organizerUsername: msg.organizerUsername,
+					title: msg.title,
+					description: msg.description,
+					startTime: msg.startTime,
+					endTime: msg.endTime,
+					meetingLink: msg.meetingLink,
+					isNative: msg.isNative,
+					status: 'pending',
+					receivedAt: Date.now()
+				});
+				if (notificationsEnabled) {
+					new Notification("Nueva invitación a reunión", { body: `${msg.organizerUsername} te ha invitado a "${msg.title}"`, icon: "/favicon.svg" });
+				}
+				if (!viewCalls?.classList.contains('hidden')) loadCallsView();
+				return;
+			}
+
+			if (msg.type === 'calendar-response') {
+				const event = await calendarRepo.getEvent(msg.eventId);
+				if (event) {
+					// En una implementación real, podríamos guardar quién aceptó. 
+					// Por ahora, notificamos al organizador.
+					if (notificationsEnabled) {
+						new Notification("Respuesta a reunión", { body: `${msg.responderUsername} ha ${msg.status === 'accepted' ? 'aceptado' : 'rechazado'} la reunión "${event.title}"`, icon: "/favicon.svg" });
+					}
+				}
+				return;
+			}
+
+			if (msg.type === 'calendar-cancel') {
+				await calendarRepo.deleteEvent(msg.eventId);
+				// Si la vista de calendario está activa, refrescarla
+				if (!viewCalendar?.classList.contains('hidden')) {
+					renderCalendar();
+				}
+				return;
+			}
+
 			if (msg.type === 'chat' || msg.type === 'system') {
 				const isGroup = !!msg.groupId;
 				const chatId = isGroup ? msg.groupId : await getChatId(msg.senderPubKey, myIdentity.publicKey);
@@ -1021,21 +1205,10 @@ import '../styles/global.css';
 				ringtone?.play();
 				pendingCallPubKey = msg.senderPubKey;
 
+				// GUARDAR INVITED PEERS PARA EL OVERLAY
+				(window as any).pendingInvitedPeers = msg.invitedPeers;
+
 				// Importante: Guardamos el PeerID del emisor que viene en el mensaje P2P
-				if (msg.peerId) {
-					console.log("[BitMeet] Call invite received with PeerID:", msg.peerId);
-					(window as any).pendingCallerPeerId = msg.peerId;
-				}
-
-				if (Notification.permission === "granted") {
-					new Notification("BitSuite Teams", { body: `Llamada entrante de @${msg.callerName}`, icon: "/favicon.svg" });
-				}
-			} else if (msg.type === 'call-invite') {
-				document.getElementById('incoming-caller-name')!.textContent = msg.callerName || "Llamada entrante";
-				incomingPopup?.classList.remove('hidden');
-				ringtone?.play();
-				pendingCallPubKey = msg.senderPubKey;
-
 				if (msg.peerId) {
 					console.log("[BitMeet] Call invite received with PeerID:", msg.peerId);
 					(window as any).pendingCallerPeerId = msg.peerId;
@@ -1093,20 +1266,31 @@ import '../styles/global.css';
 					ringtone?.pause();
 					ringtone!.currentTime = 0;
 
+					const name = document.getElementById('incoming-caller-name')!.textContent || "Usuario";
+					const invitedPeers = (window as any).pendingInvitedPeers;
+
 					if (pendingCall) {
 						console.log("[BitMeet] Answering existing PeerJS call...");
-						receiveCall(roomId, pendingCall, p2p.getPeer());
+						receiveCall(roomId, pendingCall, p2p.getPeer(), pendingCallPubKey, name, invitedPeers);
 					} else {
 						console.log("[BitMeet] Waiting for PeerJS call to arrive in overlay...");
 						// Entramos en el overlay aunque el objeto 'call' no haya llegado aún
-						startCall(roomId, p2p.getPeer());
+						startCall(roomId, p2p.getPeer(), undefined, pendingCallPubKey, name, invitedPeers);
 					}
 
 					pendingCall = null;
 					pendingCallPubKey = null;
 					userAcceptedPending = false;
-				}
-				});	document.getElementById('btn-reject-call')?.addEventListener('click', () => {
+					}
+					});
+
+					document.getElementById('btn-clear-calls')?.addEventListener('click', async () => {
+					if (confirm("¿Estás seguro de que quieres limpiar el historial de llamadas?")) {
+					await callsRepo.clearHistory();
+					loadCallsView();
+					}
+					});
+	document.getElementById('btn-reject-call')?.addEventListener('click', () => {
 		if (pendingCallPubKey) {
 			p2p.sendP2PMessage(pendingCallPubKey, { 
 				type: 'call-reject', 
@@ -1128,39 +1312,97 @@ import '../styles/global.css';
 	});
 
 	document.getElementById('btn-call-video')?.addEventListener('click', async () => {
-		if (!currentChatPubKey) return;
-		const roomId = await getChatId(myIdentity.publicKey, currentChatPubKey);
-		const targetPubKey = currentChatPubKey;
+		const isGroup = currentChatType === 'group';
+		if (!isGroup && !currentChatPubKey) return;
 
+		const roomId = isGroup ? currentChatId! : await getChatId(myIdentity.publicKey, currentChatPubKey!);
+		const targetPubKey = isGroup ? null : currentChatPubKey;
+		const name = document.getElementById('active-chat-name')!.textContent || "Sala";
+		
+		// Preparar lista de todos los invitados (INCLUYÉNDOME) para Full Mesh inmediato
+		const allParticipantsMap: Record<string, string> = {};
+		if (isGroup) {
+			const chat = await chatRepo.getChat(currentChatId!);
+			if (chat) {
+				for (const p of chat.participants) {
+					const contact = await chatRepo.getContact(p);
+					const username = p === myIdentity.publicKey ? myIdentity.username : (contact?.username || "Usuario");
+					allParticipantsMap[await p2p.hashPubKey(p)] = username;
+				}
+			}
+		}
+
+		// Y AHORA, pasamos el mapa completo a nuestro propio CallOverlay
 		startCall(roomId, p2p.getPeer(), async () => {
-			const myPeerId = p2p.getPeer().id;
-			console.log("[BitMeet] Sender ready, sending video invite to:", targetPubKey, "with PeerID:", myPeerId);
-			await p2p.sendP2PMessage(targetPubKey, {
+			const myPeerId = await p2p.hashPubKey(myIdentity.publicKey);
+			
+			// Quitamos nuestro propio ID del payload que se envía a los demás
+			const othersParticipantsMap = { ...allParticipantsMap };
+			delete othersParticipantsMap[myPeerId];
+
+			const payload = {
 				type: 'call-invite',
 				roomId,
 				callerName: myIdentity.username,
 				senderPubKey: myIdentity.publicKey,
-				peerId: myPeerId // Enviamos nuestro ID de PeerJS directamente
-			});
-		});
+				peerId: myPeerId,
+				groupId: isGroup ? currentChatId : undefined,
+				invitedPeers: othersParticipantsMap
+			};
+
+			console.log("[BitMeet] Enviando invitaciones a:", othersParticipantsMap);
+
+			if (isGroup) {
+				const others = currentGroupParticipants.filter(p => p !== myIdentity.publicKey);
+				others.forEach(pub => p2p.sendP2PMessage(pub, payload).catch(() => {}));
+			} else {
+				await p2p.sendP2PMessage(targetPubKey!, payload);
+			}
+		}, targetPubKey, name, allParticipantsMap);
 	});
 
 	document.getElementById('btn-call-voice')?.addEventListener('click', async () => {
-		if (!currentChatPubKey) return;
-		const roomId = await getChatId(myIdentity.publicKey, currentChatPubKey);
-		const targetPubKey = currentChatPubKey;
+		const isGroup = currentChatType === 'group';
+		if (!isGroup && !currentChatPubKey) return;
+
+		const roomId = isGroup ? currentChatId! : await getChatId(myIdentity.publicKey, currentChatPubKey!);
+		const targetPubKey = isGroup ? null : currentChatPubKey;
+		const name = document.getElementById('active-chat-name')!.textContent || "Sala";
+
+		// Preparar lista de todos los invitados para Full Mesh inmediato
+		const allParticipantsMap: Record<string, string> = {};
+		if (isGroup) {
+			const chat = await chatRepo.getChat(currentChatId!);
+			if (chat) {
+				for (const p of chat.participants) {
+					if (p === myIdentity.publicKey) continue;
+					const contact = await chatRepo.getContact(p);
+					allParticipantsMap[await p2p.hashPubKey(p)] = contact?.username || "Usuario";
+				}
+			}
+		}
 
 		startCall(roomId, p2p.getPeer(), async () => {
 			const myPeerId = p2p.getPeer().id;
-			console.log("[BitMeet] Sender ready, sending voice invite to:", targetPubKey, "with PeerID:", myPeerId);
-			await p2p.sendP2PMessage(targetPubKey, {
+			console.log("[BitMeet] Sender ready, sending voice invite to:", isGroup ? "Group" : targetPubKey, "with PeerID:", myPeerId);
+			
+			const payload = {
 				type: 'call-invite',
 				roomId,
 				callerName: myIdentity.username,
 				senderPubKey: myIdentity.publicKey,
-				peerId: myPeerId
-			});
-		});
+				peerId: myPeerId,
+				groupId: isGroup ? currentChatId : undefined,
+				invitedPeers: allParticipantsMap
+			};
+
+			if (isGroup) {
+				const others = currentGroupParticipants.filter(p => p !== myIdentity.publicKey);
+				others.forEach(pub => p2p.sendP2PMessage(pub, payload).catch(() => {}));
+			} else {
+				await p2p.sendP2PMessage(targetPubKey!, payload);
+			}
+		}, targetPubKey, name, allParticipantsMap);
 	});
 	const TRACKERS = [
 		'wss://tracker.btorrent.xyz',
@@ -1258,6 +1500,23 @@ import '../styles/global.css';
 		}
 	}
 	(window as any).downloadFile = downloadFile;
+
+	window.addEventListener('bitmeet:invite-to-call', async (e: any) => {
+		const { publicKey, roomId, isVideo } = e.detail;
+		console.log("[BitMeet] Enviando invitación externa a:", publicKey, "para sala:", roomId);
+		
+		try {
+			await p2p.sendP2PMessage(publicKey, {
+				type: 'call-invite',
+				roomId,
+				callerName: myIdentity.username,
+				senderPubKey: myIdentity.publicKey,
+				peerId: p2p.getPeer().id
+			});
+		} catch (err) {
+			console.error("[BitMeet] Error al enviar invitación externa:", err);
+		}
+	});
 
 	async function loadContacts() {
 		const savedContacts = await chatRepo.listContacts();
@@ -1417,13 +1676,13 @@ import '../styles/global.css';
 
 			statusEl.textContent = `${currentGroupParticipants.length} participantes`;
 			statusDot.className = 'status-dot online';
-			
-			if (btnVoice) btnVoice.classList.add('hidden');
-			if (btnVideo) btnVideo.classList.add('hidden');
-			if (btnGSettings) {
-				btnGSettings.classList.remove('hidden');
+
+			if (btnGSettings) {				btnGSettings.classList.remove('hidden');
 				console.log("[BitMeet] Mostrando botón de ajustes de grupo");
 			}
+			// HABILITAR BOTONES DE LLAMADA EN GRUPOS
+			if (btnVoice) btnVoice.classList.remove('hidden');
+			if (btnVideo) btnVideo.classList.remove('hidden');
 		} else {
 			currentChatId = await getChatId(myIdentity.publicKey, id);
 			currentChatPubKey = id;
@@ -1459,6 +1718,283 @@ import '../styles/global.css';
 	}
 
 	// Resto de utilidades
+	// --- LÓGICA DE CALENDARIO ---
+	let currentCalendarDate = new Date();
+	let selectedParticipants: {pubKey: string, username: string}[] = [];
+
+	document.getElementById('cal-btn-close')?.addEventListener('click', () => calendarModal?.classList.add('hidden'));
+	document.getElementById('cal-btn-prev')?.addEventListener('click', () => {
+		currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+		renderCalendar();
+	});
+	document.getElementById('cal-btn-next')?.addEventListener('click', () => {
+		currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+		renderCalendar();
+	});
+
+	async function renderCalendar() {
+		const periodEl = document.getElementById('cal-current-period');
+		if (periodEl) {
+			periodEl.textContent = currentCalendarDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+		}
+
+		const grid = document.getElementById('calendar-grid');
+		if (!grid) return;
+		grid.innerHTML = '';
+
+		// Cabecera días
+		const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+		days.forEach(d => {
+			const cell = document.createElement('div');
+			cell.className = 'calendar-day-header';
+			cell.textContent = d;
+			grid.appendChild(cell);
+		});
+
+		const firstDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+		const lastDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
+		
+		// Ajuste para que Lunes sea el primer día (0=Dom, 1=Lun...)
+		let startOffset = firstDay.getDay() - 1;
+		if (startOffset === -1) startOffset = 6;
+
+		// Celdas vacías iniciales
+		for (let i = 0; i < startOffset; i++) {
+			grid.appendChild(document.createElement('div'));
+		}
+
+		// Eventos del mes
+		const events = await calendarRepo.listEvents(firstDay.getTime(), lastDay.getTime());
+
+		for (let d = 1; d <= lastDay.getDate(); d++) {
+			const cell = document.createElement('div');
+			cell.className = 'calendar-day-cell';
+			cell.innerHTML = `<span class="day-number">${d}</span>`;
+			
+			const dayStart = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), d, 0, 0, 0).getTime();
+			const dayEnd = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), d, 23, 59, 59).getTime();
+			
+			const dayEvents = events.filter(e => e.startTime >= dayStart && e.startTime <= dayEnd);
+			dayEvents.forEach(e => {
+				const evEl = document.createElement('div');
+				evEl.className = `calendar-event-item ${e.type}`;
+				evEl.textContent = e.title;
+				evEl.title = `${e.title}\n${new Date(e.startTime).toLocaleTimeString()} - ${new Date(e.endTime).toLocaleTimeString()}`;
+				evEl.setAttribute('data-event-id', e.id);
+				evEl.addEventListener('click', (ev) => {
+					ev.stopPropagation();
+					showEventDetails(e.id);
+				});
+				cell.appendChild(evEl);
+			});
+
+			grid.appendChild(cell);
+		}
+	}
+
+	async function showEventDetails(eventId: string) {
+		currentlyOpenEventId = eventId;
+		const event = await calendarRepo.getEvent(eventId);
+		if (!event) return;
+
+		const contentEl = document.getElementById('event-detail-content');
+		const titleEl = document.getElementById('detail-event-title');
+		if (!contentEl || !titleEl) return;
+
+		titleEl.textContent = event.title;
+
+		const format = (d: number) => new Date(d).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' });
+
+		contentEl.innerHTML = `
+			<div class="detail-row">
+				<strong>Cuando</strong>
+				<p>${format(event.startTime)} - ${format(event.endTime)}</p>
+			</div>
+			${event.description ? `
+			<div class="detail-row">
+				<strong>Descripción</strong>
+				<p>${event.description}</p>
+			</div>` : ''}
+			${event.type === 'meeting' ? `
+			<div class="detail-row">
+				<strong>Enlace</strong>
+				<p><a href="${event.meetingLink}" target="_blank">${event.meetingLink}</a></p>
+			</div>
+			<div class="detail-row">
+				<strong>Organizador</strong>
+				<p>${event.organizerPubKey === myIdentity.publicKey ? 'Tú' : 'Otro usuario'}</p>
+			</div>
+			` : ''}
+		`;
+
+		const deleteBtn = document.getElementById('detail-event-btn-delete');
+		if (deleteBtn) {
+			// Solo el organizador puede eliminar
+			if (event.organizerPubKey === myIdentity.publicKey) {
+				deleteBtn.classList.remove('hidden');
+			} else {
+				deleteBtn.classList.add('hidden');
+			}
+		}
+
+		eventDetailModal?.classList.remove('hidden');
+	}
+
+	let currentlyOpenEventId: string | null = null;
+
+	document.getElementById('cal-btn-add')?.addEventListener('click', () => {
+		eventModal?.classList.remove('hidden');
+		(document.getElementById('event-form') as HTMLFormElement).reset();
+		selectedParticipants = [];
+		updateParticipantChips();
+	});
+
+	document.getElementById('event-btn-close')?.addEventListener('click', () => eventModal?.classList.add('hidden'));
+	document.getElementById('event-btn-cancel')?.addEventListener('click', () => eventModal?.classList.add('hidden'));
+	
+	document.getElementById('detail-event-btn-close')?.addEventListener('click', () => eventDetailModal?.classList.add('hidden'));
+
+	document.getElementById('detail-event-btn-delete')?.addEventListener('click', async () => {
+		if (!currentlyOpenEventId) return;
+
+		if (confirm("¿Estás seguro de que quieres eliminar este evento? Esta acción no se puede deshacer.")) {
+			const event = await calendarRepo.getEvent(currentlyOpenEventId);
+			if (event) {
+				// Notificar a los participantes
+				if (event.participants && event.participants.length > 0) {
+					event.participants.forEach(async (pubKey) => {
+						try {
+							await p2p.sendP2PMessage(pubKey, {
+								type: 'calendar-cancel',
+								eventId: event.id,
+							});
+						} catch (e) {}
+					});
+				}
+			}
+
+			await calendarRepo.deleteEvent(currentlyOpenEventId);
+			eventDetailModal?.classList.add('hidden');
+			renderCalendar();
+		}
+	});
+
+
+	const participantSearch = document.getElementById('participant-search') as HTMLInputElement;
+	const participantResults = document.getElementById('participant-results');
+
+	participantSearch?.addEventListener('input', async () => {
+		const q = participantSearch.value.trim().toLowerCase();
+		if (q.length < 2) {
+			participantResults?.classList.add('hidden');
+			return;
+		}
+
+		const contacts = await chatRepo.listContacts();
+		const colleagues = await bitid.getColleagues();
+		const all = [...contacts, ...colleagues.map(c => ({ publicKey: c.public_key, username: c.username }))];
+		
+		const filtered = all.filter(c => c.username.toLowerCase().includes(q) && !selectedParticipants.find(p => p.pubKey === c.publicKey));
+
+		if (participantResults) {
+			participantResults.innerHTML = filtered.map(c => `
+				<div class="mini-result-item" data-pubkey="${c.publicKey}" data-username="${c.username}">
+					@${c.username}
+				</div>
+			`).join('');
+			participantResults.classList.remove('hidden');
+
+			participantResults.querySelectorAll('.mini-result-item').forEach(item => {
+				item.addEventListener('click', (e) => {
+					const pubKey = (e.currentTarget as HTMLElement).getAttribute('data-pubkey')!;
+					const username = (e.currentTarget as HTMLElement).getAttribute('data-username')!;
+					selectedParticipants.push({ pubKey, username });
+					updateParticipantChips();
+					participantSearch.value = '';
+					participantResults.classList.add('hidden');
+				});
+			});
+		}
+	});
+
+	function updateParticipantChips() {
+		const container = document.getElementById('selected-participants');
+		if (container) {
+			container.innerHTML = selectedParticipants.map(p => `
+				<div class="participant-chip">
+					${p.username}
+					<button type="button" data-pubkey="${p.pubKey}">✕</button>
+				</div>
+			`).join('');
+
+			container.querySelectorAll('button').forEach(btn => {
+				btn.addEventListener('click', () => {
+					const pubKey = btn.getAttribute('data-pubkey');
+					selectedParticipants = selectedParticipants.filter(p => p.pubKey !== pubKey);
+					updateParticipantChips();
+				});
+			});
+		}
+	}
+
+	document.getElementById('event-form')?.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		const title = (document.getElementById('event-title') as HTMLInputElement).value;
+		const start = new Date((document.getElementById('event-start') as HTMLInputElement).value).getTime();
+		const end = new Date((document.getElementById('event-end') as HTMLInputElement).value).getTime();
+		const type = (document.querySelector('input[name="event-type"]:checked') as HTMLInputElement).value as 'meeting' | 'busy';
+		const isNative = (document.getElementById('event-is-native') as HTMLInputElement).checked;
+		const link = (document.getElementById('event-link') as HTMLInputElement).value;
+		const desc = (document.getElementById('event-desc') as HTMLTextAreaElement).value;
+
+		const eventId = Math.random().toString(36).substring(7);
+		const nativeLink = isNative ? `${window.location.origin}/room/${eventId}` : link;
+
+		const event: any = {
+			id: eventId,
+			title,
+			description: desc,
+			startTime: start,
+			endTime: end,
+			type,
+			meetingLink: nativeLink,
+			isNative,
+			organizerPubKey: myIdentity.publicKey,
+			participants: selectedParticipants.map(p => p.pubKey),
+			status: 'confirmed'
+		};
+
+		await calendarRepo.saveEvent(event);
+		
+		// Enviar invitaciones P2P
+		if (type === 'meeting') {
+			selectedParticipants.forEach(async (p) => {
+				try {
+					await p2p.sendP2PMessage(p.pubKey, {
+						type: 'calendar-invite',
+						id: Math.random().toString(36).substring(7),
+						eventId: eventId,
+						organizerPubKey: myIdentity.publicKey,
+						organizerUsername: myIdentity.username,
+						title,
+						description: desc,
+						startTime: start,
+						endTime: end,
+						meetingLink: nativeLink,
+						isNative
+					});
+				} catch (err) {
+					console.warn(`No se pudo enviar invitación a @${p.username}. Se reintentará al conectar.`);
+				}
+			});
+		}
+
+		eventModal?.classList.add('hidden');
+		renderCalendar();
+		alert("Evento guardado");
+	});
+
+	// --- FIN LÓGICA DE CALENDARIO ---
 	async function loadChatHistory(chatId: string) {
 		const container = document.getElementById('messages-list')!;
 		container.innerHTML = '<div class="loading-state">Cargando...</div>';
