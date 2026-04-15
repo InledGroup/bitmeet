@@ -1,22 +1,22 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Sidebar from '../components/Teams/Sidebar.astro';
-import ListPanel from '../components/Teams/ListPanel.astro';
-import ChatArea from '../components/Teams/ChatArea.astro';
-import CallWrapper from '../components/Teams/CallWrapper';
-import AuthModal from '../components/Teams/AuthModal.astro';
-import TeamsSettingsModal from '../components/Teams/TeamsSettingsModal.astro';
-import GroupSettingsModal from '../components/Teams/GroupSettingsModal.astro';
-import CallsPanel from '../components/Teams/CallsPanel.astro';
-import GroupModal from '../components/Teams/GroupModal.astro';
+import Layout from "../layouts/Layout.astro";
+import Sidebar from "../components/Teams/Sidebar.astro";
+import ListPanel from "../components/Teams/ListPanel.astro";
+import ChatArea from "../components/Teams/ChatArea.astro";
+import CallWrapper from "../components/Teams/CallWrapper";
+import AuthModal from "../components/Teams/AuthModal.astro";
+import TeamsSettingsModal from "../components/Teams/TeamsSettingsModal.astro";
+import GroupSettingsModal from "../components/Teams/GroupSettingsModal.astro";
+import CallsPanel from "../components/Teams/CallsPanel.astro";
+import GroupModal from "../components/Teams/GroupModal.astro";
 
-import CalendarArea from '../components/Teams/CalendarArea.astro';
-import BetaModal from '../components/Teams/BetaModal.astro';
-import CallOverlay from '../components/Teams/CallOverlay';
-import '../styles/global.css';
+import CalendarArea from "../components/Teams/CalendarArea.astro";
+import BetaModal from "../components/Teams/BetaModal.astro";
+import CallOverlay from "../components/Teams/CallOverlay";
+import "../styles/global.css";
 ---
 
-<Layout title="BitSuite Teams">
+<Layout title="BitMeet">
 	<main id="teams-app" class="apple-container">
 		<Sidebar />
 		<!-- Sidebar Izquierda (Lista) -->
@@ -32,7 +32,6 @@ import '../styles/global.css';
 		<GroupModal />
 		<GroupSettingsModal />
 		<BetaModal />
-		
 
 		<!-- 6. POPUP DE LLAMADA ENTRANTE -->
 		<div id="incoming-call-popup" class="incoming-call-popup hidden">
@@ -45,10 +44,32 @@ import '../styles/global.css';
 			</div>
 			<div class="incoming-actions">
 				<button class="incoming-btn accept" id="btn-accept-call">
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						><path
+							d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+						></path></svg
+					>
 				</button>
 				<button class="incoming-btn decline" id="btn-reject-call">
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						><line x1="18" y1="6" x2="6" y2="18"></line><line
+							x1="6"
+							y1="6"
+							x2="18"
+							y2="18"></line></svg
+					>
 				</button>
 			</div>
 		</div>
@@ -81,13 +102,26 @@ import '../styles/global.css';
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 		z-index: 4000;
 		animation: slideInRight 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 	}
-	@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+	@keyframes slideInRight {
+		from {
+			transform: translateX(100%);
+			opacity: 0;
+		}
+		to {
+			transform: translateX(0);
+			opacity: 1;
+		}
+	}
 
-	.incoming-info { display: flex; align-items: center; gap: 12px; }
+	.incoming-info {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
 	.incoming-avatar {
 		width: 44px;
 		height: 44px;
@@ -100,11 +134,22 @@ import '../styles/global.css';
 		font-weight: 600;
 		font-size: 18px;
 	}
-	.incoming-text { display: flex; flex-direction: column; }
-	.incoming-text strong { font-size: 15px; }
-	.incoming-text span { font-size: 13px; color: var(--apple-text-secondary); }
+	.incoming-text {
+		display: flex;
+		flex-direction: column;
+	}
+	.incoming-text strong {
+		font-size: 15px;
+	}
+	.incoming-text span {
+		font-size: 13px;
+		color: var(--apple-text-secondary);
+	}
 
-	.incoming-actions { display: flex; gap: 10px; }
+	.incoming-actions {
+		display: flex;
+		gap: 10px;
+	}
 	.incoming-btn {
 		width: 40px;
 		height: 40px;
@@ -117,9 +162,15 @@ import '../styles/global.css';
 		color: white;
 		transition: transform 0.2s;
 	}
-	.incoming-btn:hover { transform: scale(1.1); }
-	.incoming-btn.accept { background: #34C759; }
-	.incoming-btn.decline { background: #FF3B30; }
+	.incoming-btn:hover {
+		transform: scale(1.1);
+	}
+	.incoming-btn.accept {
+		background: #34c759;
+	}
+	.incoming-btn.decline {
+		background: #ff3b30;
+	}
 
 	/* Calendar Invite Card */
 	.calendar-invite-card {
@@ -129,7 +180,7 @@ import '../styles/global.css';
 		padding: 12px;
 		margin: 8px 0;
 		max-width: 280px;
-		box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 	}
 	.dark .calendar-invite-card {
 		background: rgba(44, 44, 46, 0.95);
@@ -173,15 +224,23 @@ import '../styles/global.css';
 </style>
 
 <script>
-	import { BitIDService } from '../lib/bitid';
-	import { P2PTransport } from '../infrastructure/adapters/P2PTransport';
-	import { IndexedDBChatRepository } from '../infrastructure/adapters/IndexedDBChatRepository';
-	import { IndexedDBCalendarRepository } from '../infrastructure/adapters/IndexedDBCalendarRepository';
-	import { IndexedDBCallsRepository } from '../infrastructure/adapters/IndexedDBCallsRepository';
-	import { encryptText, decryptText, generateFileKey, exportFileKey, importFileKey, encryptFile, decryptFile } from '../lib/crypto';
-	import { startCall, receiveCall, recordMissedCall } from '../lib/callStore';
-	import { getWebTorrentClient } from '../lib/webtorrent';
-	
+	import { BitIDService } from "../lib/bitid";
+	import { P2PTransport } from "../infrastructure/adapters/P2PTransport";
+	import { IndexedDBChatRepository } from "../infrastructure/adapters/IndexedDBChatRepository";
+	import { IndexedDBCalendarRepository } from "../infrastructure/adapters/IndexedDBCalendarRepository";
+	import { IndexedDBCallsRepository } from "../infrastructure/adapters/IndexedDBCallsRepository";
+	import {
+		encryptText,
+		decryptText,
+		generateFileKey,
+		exportFileKey,
+		importFileKey,
+		encryptFile,
+		decryptFile,
+	} from "../lib/crypto";
+	import { startCall, receiveCall, recordMissedCall } from "../lib/callStore";
+	import { getWebTorrentClient } from "../lib/webtorrent";
+
 	// Estado global
 	const bitid = new BitIDService();
 	const p2p = new P2PTransport();
@@ -198,117 +257,156 @@ import '../styles/global.css';
 	let pendingCall: any = null;
 	let pendingCallPubKey: string | null = null;
 	let userAcceptedPending = false;
-	let notificationsEnabled = localStorage.getItem('teams-notifications') !== 'false';
-	
+	let notificationsEnabled =
+		localStorage.getItem("teams-notifications") !== "false";
+
 	// Elementos UI
-	const teamsApp = document.getElementById('teams-app');
-	const sidebarIcons = document.querySelectorAll('.sidebar-icon[data-view]');
-	const listPanel = document.querySelector('.apple-list-panel:not(#view-calls)'); // ListPanel.astro usa .apple-list-panel
-	const chatArea = document.querySelector('.apple-content:not(#view-calendar)'); // ChatArea.astro usa .apple-content
-	const viewCalls = document.getElementById('view-calls');
-	const viewCalendar = document.getElementById('view-calendar');
-	const eventModal = document.getElementById('event-modal-overlay');
-	const eventDetailModal = document.getElementById('event-detail-modal-overlay');
-	
-	const authOverlay = document.getElementById('auth-overlay');
-	const authCard = document.getElementById('auth-card');
-	const authUnlockView = document.getElementById('auth-unlock-view');
-	const authImportView = document.getElementById('auth-import-view');
-	const passwordInput = document.getElementById('master-password') as HTMLInputElement;
-	const viewNoChat = document.getElementById('view-no-chat');
-	const viewActiveChat = document.getElementById('view-active-chat');
-	const chatsList = document.getElementById('chats-list');
-	const searchResults = document.getElementById('search-results');
-	const globalSearch = document.getElementById('global-search') as HTMLInputElement;
-	const btnToggleContact = document.getElementById('btn-toggle-contact');
-	const incomingPopup = document.getElementById('incoming-call-popup');
-	const unknownActions = document.getElementById('unknown-user-actions');
-	const btnSaveContact = document.getElementById('btn-save-contact');
-	const btnBlockUser = document.getElementById('btn-block-user');
-	const btnUnlockApp = document.getElementById('btn-unlock-app');
-	const btnTriggerImport = document.getElementById('btn-trigger-import');
-	const importFile = document.getElementById('import-file') as HTMLInputElement;
-	const btnAttach = document.getElementById('btn-attach');
-	const fileInput = document.getElementById('file-input') as HTMLInputElement;
+	const teamsApp = document.getElementById("teams-app");
+	const sidebarIcons = document.querySelectorAll(".sidebar-icon[data-view]");
+	const listPanel = document.querySelector(
+		".apple-list-panel:not(#view-calls)",
+	); // ListPanel.astro usa .apple-list-panel
+	const chatArea = document.querySelector(
+		".apple-content:not(#view-calendar)",
+	); // ChatArea.astro usa .apple-content
+	const viewCalls = document.getElementById("view-calls");
+	const viewCalendar = document.getElementById("view-calendar");
+	const eventModal = document.getElementById("event-modal-overlay");
+	const eventDetailModal = document.getElementById(
+		"event-detail-modal-overlay",
+	);
 
-	const betaModal = document.getElementById('beta-modal-overlay');
-	const btnBetaClose = document.getElementById('btn-beta-close');
-	let betaNoticeShown = localStorage.getItem('bitmeet-beta-notice') === 'true';
+	const authOverlay = document.getElementById("auth-overlay");
+	const authCard = document.getElementById("auth-card");
+	const authUnlockView = document.getElementById("auth-unlock-view");
+	const authImportView = document.getElementById("auth-import-view");
+	const passwordInput = document.getElementById(
+		"master-password",
+	) as HTMLInputElement;
+	const viewNoChat = document.getElementById("view-no-chat");
+	const viewActiveChat = document.getElementById("view-active-chat");
+	const chatsList = document.getElementById("chats-list");
+	const searchResults = document.getElementById("search-results");
+	const globalSearch = document.getElementById(
+		"global-search",
+	) as HTMLInputElement;
+	const btnToggleContact = document.getElementById("btn-toggle-contact");
+	const incomingPopup = document.getElementById("incoming-call-popup");
+	const unknownActions = document.getElementById("unknown-user-actions");
+	const btnSaveContact = document.getElementById("btn-save-contact");
+	const btnBlockUser = document.getElementById("btn-block-user");
+	const btnUnlockApp = document.getElementById("btn-unlock-app");
+	const btnTriggerImport = document.getElementById("btn-trigger-import");
+	const importFile = document.getElementById(
+		"import-file",
+	) as HTMLInputElement;
+	const btnAttach = document.getElementById("btn-attach");
+	const fileInput = document.getElementById("file-input") as HTMLInputElement;
 
-	const btnNewGroup = document.getElementById('btn-new-group');
-	const groupModal = document.getElementById('group-modal-overlay');
-	const btnCancelGroup = document.getElementById('btn-cancel-group');
-	const btnCreateGroup = document.getElementById('btn-create-group');
-	const groupNameInput = document.getElementById('group-name') as HTMLInputElement;
-	const groupParticipantsList = document.getElementById('group-participants-list');
+	const betaModal = document.getElementById("beta-modal-overlay");
+	const btnBetaClose = document.getElementById("btn-beta-close");
+	let betaNoticeShown =
+		localStorage.getItem("bitmeet-beta-notice") === "true";
 
-	const btnGroupSettings = document.getElementById('btn-group-settings');
-	const groupSettingsModal = document.getElementById('group-settings-overlay');
-	const btnCloseGroupSettings = document.getElementById('btn-close-group-settings');
-	const editGroupNameInput = document.getElementById('edit-group-name') as HTMLInputElement;
-	const btnSaveGroupName = document.getElementById('btn-save-group-name');
-	const currentGroupParticipantsEl = document.getElementById('current-group-participants');
-	const addMoreParticipantsEl = document.getElementById('add-more-participants-list');
-	const btnAddMembers = document.getElementById('btn-add-selected-members');
-	const btnLeaveGroup = document.getElementById('btn-leave-group');
-	
-	const settingsOverlay = document.getElementById('teams-settings-overlay');
-	const btnOpenSettings = document.getElementById('btn-open-settings');
-	const btnCloseSettings = document.getElementById('btn-close-settings');
-	const checkNotifications = document.getElementById('check-notifications') as HTMLInputElement;
+	const btnNewGroup = document.getElementById("btn-new-group");
+	const groupModal = document.getElementById("group-modal-overlay");
+	const btnCancelGroup = document.getElementById("btn-cancel-group");
+	const btnCreateGroup = document.getElementById("btn-create-group");
+	const groupNameInput = document.getElementById(
+		"group-name",
+	) as HTMLInputElement;
+	const groupParticipantsList = document.getElementById(
+		"group-participants-list",
+	);
 
-	let currentChatType: 'direct' | 'group' = 'direct';
+	const btnGroupSettings = document.getElementById("btn-group-settings");
+	const groupSettingsModal = document.getElementById(
+		"group-settings-overlay",
+	);
+	const btnCloseGroupSettings = document.getElementById(
+		"btn-close-group-settings",
+	);
+	const editGroupNameInput = document.getElementById(
+		"edit-group-name",
+	) as HTMLInputElement;
+	const btnSaveGroupName = document.getElementById("btn-save-group-name");
+	const currentGroupParticipantsEl = document.getElementById(
+		"current-group-participants",
+	);
+	const addMoreParticipantsEl = document.getElementById(
+		"add-more-participants-list",
+	);
+	const btnAddMembers = document.getElementById("btn-add-selected-members");
+	const btnLeaveGroup = document.getElementById("btn-leave-group");
+
+	const settingsOverlay = document.getElementById("teams-settings-overlay");
+	const btnOpenSettings = document.getElementById("btn-open-settings");
+	const btnCloseSettings = document.getElementById("btn-close-settings");
+	const checkNotifications = document.getElementById(
+		"check-notifications",
+	) as HTMLInputElement;
+
+	let currentChatType: "direct" | "group" = "direct";
 	let currentGroupParticipants: string[] = [];
 	let currentGroupOwner: string | null = null;
 
 	// Iniciar
 	async function initApp() {
 		console.log("[BitMeet] Starting initApp...");
-		authOverlay?.classList.remove('hidden');
-		authUnlockView?.classList.add('hidden');
-		authImportView?.classList.add('hidden');
-		
+		authOverlay?.classList.remove("hidden");
+		authUnlockView?.classList.add("hidden");
+		authImportView?.classList.add("hidden");
+
 		// 1. Splash Screen de 3 segundos
 		console.log("[BitMeet] Waiting for splash...");
-		await new Promise(resolve => setTimeout(resolve, 3000));
+		await new Promise((resolve) => setTimeout(resolve, 3000));
 
 		try {
 			console.log("[BitMeet] Checking identity...");
 			const id = await bitid.getIdentity();
 			console.log("[BitMeet] Identity result:", id);
-			
+
 			// Inicializar sonidos
-			ringtone = new Audio('/notify.mp3'); 
+			ringtone = new Audio("/notify.mp3");
 			ringtone.loop = true;
-			messageSound = new Audio('/notify.mp3');
+			messageSound = new Audio("/notify.mp3");
 
 			if (!id) {
-				console.log("[BitMeet] No identity found, showing import view.");
-				authImportView?.classList.remove('hidden');
+				console.log(
+					"[BitMeet] No identity found, showing import view.",
+				);
+				authImportView?.classList.remove("hidden");
 			} else {
 				console.log("[BitMeet] Identity found, trying auto-unlock...");
 				const autoKey = await bitid.autoUnlock();
-				console.log("[BitMeet] Auto-unlock result:", autoKey ? "Success" : "Failed/No session");
-				
+				console.log(
+					"[BitMeet] Auto-unlock result:",
+					autoKey ? "Success" : "Failed/No session",
+				);
+
 				if (autoKey) {
 					myIdentity = id;
-					authOverlay?.classList.add('hidden');
-					teamsApp?.classList.remove('hidden');
-					const welcomeName = document.getElementById('welcome-name');
+					authOverlay?.classList.add("hidden");
+					teamsApp?.classList.remove("hidden");
+					const welcomeName = document.getElementById("welcome-name");
 					if (welcomeName) welcomeName.textContent = id.username;
 					console.log("[BitMeet] Starting P2P...");
 					await startP2P();
 					console.log("[BitMeet] P2P Started.");
 				} else {
-					console.log("[BitMeet] Auto-unlock failed or no session, showing unlock view.");
-					authUnlockView?.classList.remove('hidden');
+					console.log(
+						"[BitMeet] Auto-unlock failed or no session, showing unlock view.",
+					);
+					authUnlockView?.classList.remove("hidden");
 				}
 			}
 		} catch (err) {
 			console.error("[BitMeet] Critical error during initApp:", err);
 			// Si hay un error crítico, al menos intentamos mostrar algo al usuario
-			authImportView?.classList.remove('hidden');
-			alert("Error al cargar la identidad. Por favor, revisa la consola.");
+			authImportView?.classList.remove("hidden");
+			alert(
+				"Error al cargar la identidad. Por favor, revisa la consola.",
+			);
 		}
 
 		// Solicitar permisos notificaciones
@@ -318,37 +416,44 @@ import '../styles/global.css';
 
 		if (checkNotifications) {
 			checkNotifications.checked = notificationsEnabled;
-			checkNotifications.addEventListener('change', (e) => {
+			checkNotifications.addEventListener("change", (e) => {
 				notificationsEnabled = (e.target as HTMLInputElement).checked;
-				localStorage.setItem('teams-notifications', String(notificationsEnabled));
+				localStorage.setItem(
+					"teams-notifications",
+					String(notificationsEnabled),
+				);
 			});
 		}
 
-		btnOpenSettings?.addEventListener('click', () => settingsOverlay?.classList.remove('hidden'));
-		btnCloseSettings?.addEventListener('click', () => settingsOverlay?.classList.add('hidden'));
+		btnOpenSettings?.addEventListener("click", () =>
+			settingsOverlay?.classList.remove("hidden"),
+		);
+		btnCloseSettings?.addEventListener("click", () =>
+			settingsOverlay?.classList.add("hidden"),
+		);
 
-		btnBetaClose?.addEventListener('click', () => {
-			betaModal?.classList.add('hidden');
+		btnBetaClose?.addEventListener("click", () => {
+			betaModal?.classList.add("hidden");
 			betaNoticeShown = true;
-			localStorage.setItem('bitmeet-beta-notice', 'true');
+			localStorage.setItem("bitmeet-beta-notice", "true");
 		});
 	}
 
 	// 0. AUTH EVENT LISTENERS
-	btnUnlockApp?.addEventListener('click', async () => {
+	btnUnlockApp?.addEventListener("click", async () => {
 		const pass = passwordInput.value;
 		if (!pass) return;
 		const key = await bitid.unlock(pass);
 		if (key) {
 			const id = await bitid.getIdentity();
 			myIdentity = id;
-			
+
 			// Animación de éxito Apple ID
-			authCard?.classList.add('unlock-success');
+			authCard?.classList.add("unlock-success");
 			setTimeout(async () => {
-				authOverlay?.classList.add('hidden');
-				teamsApp?.classList.remove('hidden');
-				const welcomeName = document.getElementById('welcome-name');
+				authOverlay?.classList.add("hidden");
+				teamsApp?.classList.remove("hidden");
+				const welcomeName = document.getElementById("welcome-name");
 				if (welcomeName) welcomeName.textContent = id!.username;
 				await startP2P();
 			}, 600);
@@ -357,204 +462,273 @@ import '../styles/global.css';
 		}
 	});
 
-	passwordInput?.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter') btnUnlockApp?.click();
+	passwordInput?.addEventListener("keydown", (e) => {
+		if (e.key === "Enter") btnUnlockApp?.click();
 	});
 
-	btnTriggerImport?.addEventListener('click', () => {
+	btnTriggerImport?.addEventListener("click", () => {
 		importFile.click();
 	});
 
 	// 0.1 GROUP MODAL EVENT LISTENERS
-	btnNewGroup?.addEventListener('click', async () => {
+	btnNewGroup?.addEventListener("click", async () => {
 		const savedContacts = await chatRepo.listContacts();
 		const colleagues = await bitid.getColleagues();
-		const all: any[] = [...savedContacts.filter(c => !c.isBlocked)];
-		colleagues.forEach(c => {
-			if (!all.find(a => a.publicKey === c.public_key)) {
+		const all: any[] = [...savedContacts.filter((c) => !c.isBlocked)];
+		colleagues.forEach((c) => {
+			if (!all.find((a) => a.publicKey === c.public_key)) {
 				all.push({ publicKey: c.public_key, username: c.username });
 			}
 		});
 
 		if (groupParticipantsList) {
-			groupParticipantsList.innerHTML = all.map(c => `
+			groupParticipantsList.innerHTML = all
+				.map(
+					(c) => `
 				<div class="participant-item">
 					<input type="checkbox" id="p-${c.publicKey}" value="${c.publicKey}" data-username="${c.username}" class="group-p-checkbox" />
 					<label for="p-${c.publicKey}">${c.username}</label>
 				</div>
-			`).join('');
+			`,
+				)
+				.join("");
 		}
-		
-		groupNameInput.value = '';
-		groupModal?.classList.remove('hidden');
+
+		groupNameInput.value = "";
+		groupModal?.classList.remove("hidden");
 	});
 
-	btnGroupSettings?.addEventListener('click', async () => {
-		console.log("[BitMeet] Click en ajustes de grupo. Tipo:", currentChatType, "ID:", currentChatId);
-		if (currentChatType !== 'group' || !currentChatId) return;
-		
+	btnGroupSettings?.addEventListener("click", async () => {
+		console.log(
+			"[BitMeet] Click en ajustes de grupo. Tipo:",
+			currentChatType,
+			"ID:",
+			currentChatId,
+		);
+		if (currentChatType !== "group" || !currentChatId) return;
+
 		const chat = await chatRepo.getChat(currentChatId);
 		if (!chat) {
-			console.error("[BitMeet] No se encontró el chat en el repo para ID:", currentChatId);
+			console.error(
+				"[BitMeet] No se encontró el chat en el repo para ID:",
+				currentChatId,
+			);
 			return;
 		}
-		
-		editGroupNameInput.value = chat.name || '';
+
+		editGroupNameInput.value = chat.name || "";
 		currentGroupOwner = chat.owner || null;
-		
+
 		// Solo owner puede renombrar o añadir/echar
 		const isOwner = currentGroupOwner === myIdentity.publicKey;
-		console.log("[BitMeet] Abriendo modal de ajustes. ¿Es owner?:", isOwner);
+		console.log(
+			"[BitMeet] Abriendo modal de ajustes. ¿Es owner?:",
+			isOwner,
+		);
 
-		const renameSection = document.getElementById('group-rename-section');
-		const addSection = document.getElementById('add-more-section');
-		const subtitle = document.getElementById('group-settings-subtitle');
-		
-		if (renameSection) renameSection.classList.toggle('hidden', !isOwner);
-		if (addSection) addSection.classList.toggle('hidden', !isOwner);
-		if (subtitle) subtitle.textContent = isOwner ? "Gestiona los participantes y el nombre." : "Lista de participantes";
-		
+		const renameSection = document.getElementById("group-rename-section");
+		const addSection = document.getElementById("add-more-section");
+		const subtitle = document.getElementById("group-settings-subtitle");
+
+		if (renameSection) renameSection.classList.toggle("hidden", !isOwner);
+		if (addSection) addSection.classList.toggle("hidden", !isOwner);
+		if (subtitle)
+			subtitle.textContent = isOwner
+				? "Gestiona los participantes y el nombre."
+				: "Lista de participantes";
+
 		await renderGroupParticipants(chat.participants, isOwner);
 		if (isOwner) {
 			await renderAddMoreParticipants(chat.participants);
 		} else {
-			if (addMoreParticipantsEl) addMoreParticipantsEl.innerHTML = '';
+			if (addMoreParticipantsEl) addMoreParticipantsEl.innerHTML = "";
 		}
-		
-		groupSettingsModal?.classList.remove('hidden');
+
+		groupSettingsModal?.classList.remove("hidden");
 	});
 
-	async function renderGroupParticipants(participants: string[], isOwner: boolean) {
+	async function renderGroupParticipants(
+		participants: string[],
+		isOwner: boolean,
+	) {
 		if (!currentGroupParticipantsEl) return;
-		
-		const list = await Promise.all(participants.map(async p => {
-			const contact = await chatRepo.getContact(p);
-			const name = p === myIdentity.publicKey ? 'Tú' : (contact?.username || `Desconocido (${p.substring(0,6)})`);
-			const canKick = isOwner && p !== myIdentity.publicKey;
-			
-			return `
+
+		const list = await Promise.all(
+			participants.map(async (p) => {
+				const contact = await chatRepo.getContact(p);
+				const name =
+					p === myIdentity.publicKey
+						? "Tú"
+						: contact?.username ||
+							`Desconocido (${p.substring(0, 6)})`;
+				const canKick = isOwner && p !== myIdentity.publicKey;
+
+				return `
 				<div class="member-item">
-					<span class="member-name">${name} ${p === currentGroupOwner ? '👑' : ''}</span>
-					${canKick ? `<button class="btn-kick" data-pubkey="${p}">Expulsar</button>` : ''}
+					<span class="member-name">${name} ${p === currentGroupOwner ? "👑" : ""}</span>
+					${canKick ? `<button class="btn-kick" data-pubkey="${p}">Expulsar</button>` : ""}
 				</div>
 			`;
-		}));
-		
-		currentGroupParticipantsEl.innerHTML = list.join('');
-		
-		currentGroupParticipantsEl.querySelectorAll('.btn-kick').forEach(btn => {
-			btn.addEventListener('click', async (e) => {
-				const pubKey = (e.currentTarget as HTMLElement).getAttribute('data-pubkey');
-				if (pubKey) await removeMember(pubKey);
+			}),
+		);
+
+		currentGroupParticipantsEl.innerHTML = list.join("");
+
+		currentGroupParticipantsEl
+			.querySelectorAll(".btn-kick")
+			.forEach((btn) => {
+				btn.addEventListener("click", async (e) => {
+					const pubKey = (
+						e.currentTarget as HTMLElement
+					).getAttribute("data-pubkey");
+					if (pubKey) await removeMember(pubKey);
+				});
 			});
-		});
 	}
 
 	async function renderAddMoreParticipants(currentParticipants: string[]) {
 		if (!addMoreParticipantsEl) return;
-		
+
 		const contacts = await chatRepo.listContacts();
 		const colleagues = await bitid.getColleagues();
-		const all = [...contacts.filter(c => !c.isBlocked)];
-		colleagues.forEach(c => {
-			if (!all.find(a => a.publicKey === c.public_key)) all.push({ publicKey: c.public_key, username: c.username });
+		const all = [...contacts.filter((c) => !c.isBlocked)];
+		colleagues.forEach((c) => {
+			if (!all.find((a) => a.publicKey === c.public_key))
+				all.push({ publicKey: c.public_key, username: c.username });
 		});
-		
-		const available = all.filter(c => !currentParticipants.includes(c.publicKey));
-		
-		addMoreParticipantsEl.innerHTML = available.map(c => `
+
+		const available = all.filter(
+			(c) => !currentParticipants.includes(c.publicKey),
+		);
+
+		addMoreParticipantsEl.innerHTML = available
+			.map(
+				(c) => `
 			<div class="participant-item">
 				<input type="checkbox" id="add-${c.publicKey}" value="${c.publicKey}" class="add-member-checkbox" />
 				<label for="add-${c.publicKey}">${c.username}</label>
 			</div>
-		`).join('');
-		
-		if (available.length === 0) addMoreParticipantsEl.innerHTML = '<div class="empty-results">No hay más contactos</div>';
+		`,
+			)
+			.join("");
+
+		if (available.length === 0)
+			addMoreParticipantsEl.innerHTML =
+				'<div class="empty-results">No hay más contactos</div>';
 	}
 
-	btnCloseGroupSettings?.addEventListener('click', () => {
-		groupSettingsModal?.classList.add('hidden');
+	btnCloseGroupSettings?.addEventListener("click", () => {
+		groupSettingsModal?.classList.add("hidden");
 	});
 
-	btnSaveGroupName?.addEventListener('click', async () => {
+	btnSaveGroupName?.addEventListener("click", async () => {
 		const newName = editGroupNameInput.value.trim();
 		if (!newName || !currentChatId) return;
-		
-		await broadcastSystemMessage('group_renamed', { newName });
+
+		await broadcastSystemMessage("group_renamed", { newName });
 		await chatRepo.updateGroupMetadata(currentChatId, { name: newName });
-		document.getElementById('active-chat-name')!.textContent = newName;
+		document.getElementById("active-chat-name")!.textContent = newName;
 		await loadContacts();
 		alert("Nombre actualizado");
 	});
 
-	btnAddMembers?.addEventListener('click', async () => {
-		const selected = Array.from(document.querySelectorAll('.add-member-checkbox:checked')) as HTMLInputElement[];
+	btnAddMembers?.addEventListener("click", async () => {
+		const selected = Array.from(
+			document.querySelectorAll(".add-member-checkbox:checked"),
+		) as HTMLInputElement[];
 		if (selected.length === 0 || !currentChatId) return;
-		
-		const newKeys = selected.map(s => s.value);
+
+		const newKeys = selected.map((s) => s.value);
 		const chat = await chatRepo.getChat(currentChatId);
 		if (!chat) return;
-		
+
 		const updatedParticipants = [...chat.participants, ...newKeys];
-		await broadcastSystemMessage('member_added', { 
+		await broadcastSystemMessage(
+			"member_added",
+			{
+				participants: updatedParticipants,
+				name: chat.name,
+				owner: chat.owner,
+			},
+			updatedParticipants,
+		); // Mandar a todos los nuevos también
+
+		await chatRepo.updateGroupMetadata(currentChatId, {
 			participants: updatedParticipants,
-			name: chat.name,
-			owner: chat.owner
-		}, updatedParticipants); // Mandar a todos los nuevos también
-		
-		await chatRepo.updateGroupMetadata(currentChatId, { participants: updatedParticipants });
+		});
 		await renderGroupParticipants(updatedParticipants, true);
 		await renderAddMoreParticipants(updatedParticipants);
 		loadContacts();
 	});
 
 	async function removeMember(pubKey: string) {
-		if (!currentChatId || !confirm("¿Expulsar a este participante?")) return;
-		
+		if (!currentChatId || !confirm("¿Expulsar a este participante?"))
+			return;
+
 		const chat = await chatRepo.getChat(currentChatId);
 		if (!chat) return;
-		
-		const updatedParticipants = chat.participants.filter(p => p !== pubKey);
-		
+
+		const updatedParticipants = chat.participants.filter(
+			(p) => p !== pubKey,
+		);
+
 		// Notificar al expulsado y a los demás
-		await broadcastSystemMessage('member_removed', { participants: updatedParticipants }, chat.participants);
-		
-		await chatRepo.updateGroupMetadata(currentChatId, { participants: updatedParticipants });
+		await broadcastSystemMessage(
+			"member_removed",
+			{ participants: updatedParticipants },
+			chat.participants,
+		);
+
+		await chatRepo.updateGroupMetadata(currentChatId, {
+			participants: updatedParticipants,
+		});
 		await renderGroupParticipants(updatedParticipants, true);
 		await renderAddMoreParticipants(updatedParticipants);
 		loadContacts();
 	}
 
-	btnLeaveGroup?.addEventListener('click', async () => {
-		if (!currentChatId || !confirm("¿Seguro que quieres irte del grupo?")) return;
-		
+	btnLeaveGroup?.addEventListener("click", async () => {
+		if (!currentChatId || !confirm("¿Seguro que quieres irte del grupo?"))
+			return;
+
 		const chat = await chatRepo.getChat(currentChatId);
 		if (!chat) return;
-		
-		const updatedParticipants = chat.participants.filter(p => p !== myIdentity.publicKey);
-		
-		// Si soy el owner, el grupo se queda sin owner o podríamos pasar el testigo. 
+
+		const updatedParticipants = chat.participants.filter(
+			(p) => p !== myIdentity.publicKey,
+		);
+
+		// Si soy el owner, el grupo se queda sin owner o podríamos pasar el testigo.
 		// Por simplicidad, notificamos que nos vamos.
-		await broadcastSystemMessage('member_left', { participants: updatedParticipants });
-		
+		await broadcastSystemMessage("member_left", {
+			participants: updatedParticipants,
+		});
+
 		// Borrar el chat localmente o marcarlo como abandonado
 		// Por ahora lo borramos para salir de la vista
 		const db = (chatRepo as any).db;
 		const tx = db.transaction("chats", "readwrite");
 		tx.objectStore("chats").delete(currentChatId);
-		
-		groupSettingsModal?.classList.add('hidden');
-		viewActiveChat?.classList.add('hidden');
-		viewNoChat?.classList.remove('hidden');
+
+		groupSettingsModal?.classList.add("hidden");
+		viewActiveChat?.classList.add("hidden");
+		viewNoChat?.classList.remove("hidden");
 		loadContacts();
 	});
 
-	async function broadcastSystemMessage(action: string, data: any, customParticipants?: string[]) {
+	async function broadcastSystemMessage(
+		action: string,
+		data: any,
+		customParticipants?: string[],
+	) {
 		if (!currentChatId) return;
-		
-		const { ciphertext, iv } = await encryptText(JSON.stringify(data), currentChatId);
+
+		const { ciphertext, iv } = await encryptText(
+			JSON.stringify(data),
+			currentChatId,
+		);
 		const msgId = Math.random().toString(36).substring(7);
-		
+
 		const systemMsg: any = {
 			id: msgId,
 			senderPubKey: myIdentity.publicKey,
@@ -562,43 +736,56 @@ import '../styles/global.css';
 			groupId: currentChatId,
 			content: ciphertext,
 			timestamp: Date.now(),
-			type: 'system',
+			type: "system",
 			systemAction: action,
-			status: 'sent',
-			iv
+			status: "sent",
+			iv,
 		};
-		
+
 		const participants = customParticipants || currentGroupParticipants;
-		const others = participants.filter(p => p !== myIdentity.publicKey);
-		
-		await Promise.all(others.map(async p => {
-			try { await p2p.sendP2PMessage(p, systemMsg); } catch(e) {}
-		}));
-		
-		await chatRepo.addMessage(currentChatId, { ...systemMsg, content: JSON.stringify(data) } as any);
+		const others = participants.filter((p) => p !== myIdentity.publicKey);
+
+		await Promise.all(
+			others.map(async (p) => {
+				try {
+					await p2p.sendP2PMessage(p, systemMsg);
+				} catch (e) {}
+			}),
+		);
+
+		await chatRepo.addMessage(currentChatId, {
+			...systemMsg,
+			content: JSON.stringify(data),
+		} as any);
 	}
 
-	btnCancelGroup?.addEventListener('click', () => {
-		groupModal?.classList.add('hidden');
+	btnCancelGroup?.addEventListener("click", () => {
+		groupModal?.classList.add("hidden");
 	});
 
-	btnCreateGroup?.addEventListener('click', async () => {
+	btnCreateGroup?.addEventListener("click", async () => {
 		const name = groupNameInput.value.trim();
 		if (!name) return alert("Ponle un nombre al grupo");
-		
-		const selected = Array.from(document.querySelectorAll('.group-p-checkbox:checked')) as HTMLInputElement[];
-		if (selected.length === 0) return alert("Selecciona al menos un participante");
-		
-		const participants = selected.map(s => s.value);
+
+		const selected = Array.from(
+			document.querySelectorAll(".group-p-checkbox:checked"),
+		) as HTMLInputElement[];
+		if (selected.length === 0)
+			return alert("Selecciona al menos un participante");
+
+		const participants = selected.map((s) => s.value);
 		participants.push(myIdentity.publicKey);
-		
-		const groupId = 'group-' + Math.random().toString(36).substring(2, 11);
-		
-		const { ciphertext, iv } = await encryptText(JSON.stringify({
-			name,
-			participants,
-			owner: myIdentity.publicKey
-		}), groupId);
+
+		const groupId = "group-" + Math.random().toString(36).substring(2, 11);
+
+		const { ciphertext, iv } = await encryptText(
+			JSON.stringify({
+				name,
+				participants,
+				owner: myIdentity.publicKey,
+			}),
+			groupId,
+		);
 
 		const systemMsg: any = {
 			id: Math.random().toString(36).substring(7),
@@ -607,12 +794,12 @@ import '../styles/global.css';
 			groupId,
 			content: ciphertext,
 			timestamp: Date.now(),
-			type: 'system',
-			systemAction: 'group_created',
-			status: 'sent',
-			iv
+			type: "system",
+			systemAction: "group_created",
+			status: "sent",
+			iv,
 		};
-		
+
 		const newGroup: any = {
 			id: groupId,
 			participants,
@@ -620,23 +807,26 @@ import '../styles/global.css';
 			type: "group",
 			name,
 			owner: myIdentity.publicKey,
-			lastUpdate: Date.now()
+			lastUpdate: Date.now(),
 		};
-		
+
 		await chatRepo.saveChat(newGroup);
-		groupModal?.classList.add('hidden');
-		
+		groupModal?.classList.add("hidden");
+
 		// Broadcast invitación/creación
-		const others = participants.filter(p => p !== myIdentity.publicKey);
-		others.forEach(pubKey => {
-			p2p.sendP2PMessage(pubKey, { ...systemMsg, content: ciphertext }).catch(() => {});
+		const others = participants.filter((p) => p !== myIdentity.publicKey);
+		others.forEach((pubKey) => {
+			p2p.sendP2PMessage(pubKey, {
+				...systemMsg,
+				content: ciphertext,
+			}).catch(() => {});
 		});
 
 		await loadContacts();
-		await selectChat(groupId, name, 'group');
+		await selectChat(groupId, name, "group");
 	});
 
-	importFile?.addEventListener('change', (e: any) => {
+	importFile?.addEventListener("change", (e: any) => {
 		const file = e.target.files[0];
 		if (!file) return;
 		const reader = new FileReader();
@@ -653,26 +843,34 @@ import '../styles/global.css';
 	});
 
 	// 1. GESTIÓN DE CONTACTOS Y BLOQUEO
-	btnToggleContact?.addEventListener('click', async () => {
+	btnToggleContact?.addEventListener("click", async () => {
 		await toggleContact();
 	});
 
-	btnSaveContact?.addEventListener('click', async () => {
+	btnSaveContact?.addEventListener("click", async () => {
 		await toggleContact();
 	});
 
 	async function toggleContact() {
 		if (!currentChatPubKey || !currentChatId) return;
-		let name = document.getElementById('active-chat-name')!.textContent || '';
+		let name =
+			document.getElementById("active-chat-name")!.textContent || "";
 
 		// Si el nombre es "Desconocido", intentar encontrar uno mejor en el historial de mensajes
-		if (name.includes('Desconocido')) {
+		if (name.includes("Desconocido")) {
 			const chat = await chatRepo.getChat(currentChatId);
 			if (chat) {
-				const lastMsgWithName = [...chat.messages].reverse().find(m => (m as any).senderUsername && m.senderPubKey !== myIdentity.publicKey);
+				const lastMsgWithName = [...chat.messages]
+					.reverse()
+					.find(
+						(m) =>
+							(m as any).senderUsername &&
+							m.senderPubKey !== myIdentity.publicKey,
+					);
 				if (lastMsgWithName) {
 					name = (lastMsgWithName as any).senderUsername;
-					document.getElementById('active-chat-name')!.textContent = name;
+					document.getElementById("active-chat-name")!.textContent =
+						name;
 				}
 			}
 		}
@@ -681,29 +879,33 @@ import '../styles/global.css';
 
 		if (existing) {
 			await chatRepo.deleteContact(currentChatPubKey);
-			btnToggleContact?.classList.remove('active');
+			btnToggleContact?.classList.remove("active");
 		} else {
 			await chatRepo.saveContact({
 				publicKey: currentChatPubKey,
 				username: name,
-				isFavorite: true
+				isFavorite: true,
 			});
-			btnToggleContact?.classList.add('active');
+			btnToggleContact?.classList.add("active");
 		}
 		await updateContactUI(currentChatPubKey);
 		loadContacts();
 	}
-	btnBlockUser?.addEventListener('click', async () => {
+	btnBlockUser?.addEventListener("click", async () => {
 		if (!currentChatPubKey) return;
-		if (confirm("¿Estás seguro de que quieres bloquear a este usuario? No volverás a ver sus mensajes.")) {
+		if (
+			confirm(
+				"¿Estás seguro de que quieres bloquear a este usuario? No volverás a ver sus mensajes.",
+			)
+		) {
 			await chatRepo.saveContact({
 				publicKey: currentChatPubKey,
 				username: "Usuario Bloqueado",
 				isFavorite: false,
-				isBlocked: true
+				isBlocked: true,
 			} as any);
-			viewActiveChat?.classList.add('hidden');
-			viewNoChat?.classList.remove('hidden');
+			viewActiveChat?.classList.add("hidden");
+			viewNoChat?.classList.remove("hidden");
 			loadContacts();
 		}
 	});
@@ -711,50 +913,54 @@ import '../styles/global.css';
 	async function updateContactUI(pubKey: string) {
 		const contact = await chatRepo.getContact(pubKey);
 		if (contact) {
-			btnToggleContact?.classList.add('active');
-			unknownActions?.classList.add('hidden');
+			btnToggleContact?.classList.add("active");
+			unknownActions?.classList.add("hidden");
 		} else {
-			btnToggleContact?.classList.remove('active');
-			unknownActions?.classList.remove('hidden');
+			btnToggleContact?.classList.remove("active");
+			unknownActions?.classList.remove("hidden");
 		}
 	}
 
 	// 2. NAVEGACIÓN Y BÚSQUEDA
-	document.querySelectorAll('.sidebar-icon[data-view]').forEach(icon => {
-		icon.addEventListener('click', (e) => {
-			document.querySelectorAll('.sidebar-icon').forEach(i => i.classList.remove('active'));
+	document.querySelectorAll(".sidebar-icon[data-view]").forEach((icon) => {
+		icon.addEventListener("click", (e) => {
+			document
+				.querySelectorAll(".sidebar-icon")
+				.forEach((i) => i.classList.remove("active"));
 			const target = e.currentTarget as HTMLElement;
-			target.classList.add('active');
-			const view = target.getAttribute('data-view');
-			const panelTitle = document.getElementById('panel-title');
-			if (panelTitle) panelTitle.textContent = view!.charAt(0).toUpperCase() + view!.slice(1);
-			
-			// Ocultar todas las vistas principales
-			listPanel?.classList.add('hidden');
-			chatArea?.classList.add('hidden');
-			viewCalls?.classList.add('hidden');
-			viewCalendar?.classList.add('hidden');
+			target.classList.add("active");
+			const view = target.getAttribute("data-view");
+			const panelTitle = document.getElementById("panel-title");
+			if (panelTitle)
+				panelTitle.textContent =
+					view!.charAt(0).toUpperCase() + view!.slice(1);
 
-			if (view === 'chat') {
-				listPanel?.classList.remove('hidden');
-				chatArea?.classList.remove('hidden');
+			// Ocultar todas las vistas principales
+			listPanel?.classList.add("hidden");
+			chatArea?.classList.add("hidden");
+			viewCalls?.classList.add("hidden");
+			viewCalendar?.classList.add("hidden");
+
+			if (view === "chat") {
+				listPanel?.classList.remove("hidden");
+				chatArea?.classList.remove("hidden");
 				loadContacts();
-				searchResults?.classList.add('hidden');
-				chatsList?.classList.remove('hidden');
-			} else if (view === 'calls') {
-				viewCalls?.classList.remove('hidden');
-				viewCalendar?.classList.remove('hidden');
-				
+				searchResults?.classList.add("hidden");
+				chatsList?.classList.remove("hidden");
+			} else if (view === "calls") {
+				viewCalls?.classList.remove("hidden");
+				viewCalendar?.classList.remove("hidden");
+
 				if (!betaNoticeShown) {
-					betaModal?.classList.remove('hidden');
+					betaModal?.classList.remove("hidden");
 				}
-				
+
 				loadCallsView();
 				renderCalendar();
-			} else if (view === 'teams') {
-				listPanel?.classList.remove('hidden');
-				chatArea?.classList.remove('hidden');
-				loadColleagues(); 
+			} else if (view === "teams") {
+				listPanel?.classList.remove("hidden");
+				chatArea?.classList.remove("hidden");
+				loadColleagues();
 			}
 		});
 	});
@@ -762,15 +968,18 @@ import '../styles/global.css';
 	async function loadCallsView() {
 		const invitations = await calendarRepo.listInvitations();
 		const history = await callsRepo.listCallHistory();
-		
-		const invList = document.getElementById('calendar-invitations-list');
-		const callList = document.getElementById('calls-history-list');
+
+		const invList = document.getElementById("calendar-invitations-list");
+		const callList = document.getElementById("calls-history-list");
 
 		if (invList) {
 			if (invitations.length === 0) {
-				invList.innerHTML = '<div class="empty-results">No tienes invitaciones pendientes</div>';
+				invList.innerHTML =
+					'<div class="empty-results">No tienes invitaciones pendientes</div>';
 			} else {
-				invList.innerHTML = invitations.map(inv => `
+				invList.innerHTML = invitations
+					.map(
+						(inv) => `
 					<div class="item-card invitation-card ${inv.status}">
 						<div class="item-info">
 							<strong>${inv.title}</strong>
@@ -778,25 +987,35 @@ import '../styles/global.css';
 							<small>${new Date(inv.startTime).toLocaleString()} - ${new Date(inv.endTime).toLocaleTimeString()}</small>
 						</div>
 						<div class="item-actions">
-							${inv.status === 'pending' ? `
+							${
+								inv.status === "pending"
+									? `
 								<button class="btn-accept-inv" data-id="${inv.id}">Aceptar</button>
 								<button class="btn-reject-inv" data-id="${inv.id}">Rechazar</button>
-							` : `<span class="status-badge">${inv.status === 'accepted' ? 'Aceptada' : 'Rechazada'}</span>`}
+							`
+									: `<span class="status-badge">${inv.status === "accepted" ? "Aceptada" : "Rechazada"}</span>`
+							}
 						</div>
 					</div>
-				`).join('');
+				`,
+					)
+					.join("");
 
-				invList.querySelectorAll('.btn-accept-inv').forEach(btn => {
-					btn.addEventListener('click', async (e) => {
-						const id = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
-						await respondToInvitation(id, 'accepted');
+				invList.querySelectorAll(".btn-accept-inv").forEach((btn) => {
+					btn.addEventListener("click", async (e) => {
+						const id = (
+							e.currentTarget as HTMLElement
+						).getAttribute("data-id")!;
+						await respondToInvitation(id, "accepted");
 					});
 				});
 
-				invList.querySelectorAll('.btn-reject-inv').forEach(btn => {
-					btn.addEventListener('click', async (e) => {
-						const id = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
-						await respondToInvitation(id, 'rejected');
+				invList.querySelectorAll(".btn-reject-inv").forEach((btn) => {
+					btn.addEventListener("click", async (e) => {
+						const id = (
+							e.currentTarget as HTMLElement
+						).getAttribute("data-id")!;
+						await respondToInvitation(id, "rejected");
 					});
 				});
 			}
@@ -804,55 +1023,65 @@ import '../styles/global.css';
 
 		if (callList) {
 			if (history.length === 0) {
-				callList.innerHTML = '<div class="empty-results">Historial de llamadas vacío</div>';
+				callList.innerHTML =
+					'<div class="empty-results">Historial de llamadas vacío</div>';
 			} else {
-				callList.innerHTML = history.map(call => `
+				callList.innerHTML = history
+					.map(
+						(call) => `
 					<div class="item-card call-card">
 						<div class="item-icon ${call.type}">
-							${call.type === 'missed' ? '✕' : (call.type === 'incoming' ? '↙' : '↗')}
+							${call.type === "missed" ? "✕" : call.type === "incoming" ? "↙" : "↗"}
 						</div>
 						<div class="item-info">
 							<strong>@${call.remoteUsername}</strong>
-							<span>${call.isVideo ? 'Videollamada' : 'Llamada de voz'} ${call.type === 'missed' ? 'perdida' : ''}</span>
-							<small>${new Date(call.startTime).toLocaleString()} ${call.duration ? `· ${Math.floor(call.duration/60)}m ${call.duration%60}s` : ''}</small>
+							<span>${call.isVideo ? "Videollamada" : "Llamada de voz"} ${call.type === "missed" ? "perdida" : ""}</span>
+							<small>${new Date(call.startTime).toLocaleString()} ${call.duration ? `· ${Math.floor(call.duration / 60)}m ${call.duration % 60}s` : ""}</small>
 						</div>
 						<div class="item-actions">
 							<button class="btn-call-back" data-pubkey="${call.remotePubKey}">Llamar</button>
 						</div>
 					</div>
-				`).join('');
+				`,
+					)
+					.join("");
 
-				callList.querySelectorAll('.btn-call-back').forEach(btn => {
-					btn.addEventListener('click', (e) => {
-						const pubKey = (e.currentTarget as HTMLElement).getAttribute('data-pubkey')!;
+				callList.querySelectorAll(".btn-call-back").forEach((btn) => {
+					btn.addEventListener("click", (e) => {
+						const pubKey = (
+							e.currentTarget as HTMLElement
+						).getAttribute("data-pubkey")!;
 						// Lógica para devolver llamada
 						currentChatPubKey = pubKey;
-						document.getElementById('btn-call-video')?.click();
+						document.getElementById("btn-call-video")?.click();
 					});
 				});
 			}
 		}
 	}
 
-	async function respondToInvitation(id: string, status: 'accepted' | 'rejected') {
+	async function respondToInvitation(
+		id: string,
+		status: "accepted" | "rejected",
+	) {
 		const inv = await calendarRepo.getInvitation(id);
 		if (!inv) return;
 
 		await calendarRepo.updateInvitationStatus(id, status);
-		
+
 		// Notificar al organizador
 		try {
 			await p2p.sendP2PMessage(inv.organizerPubKey, {
-				type: 'calendar-response',
+				type: "calendar-response",
 				eventId: inv.eventId,
 				invitationId: id,
 				status: status,
 				responderPubKey: myIdentity.publicKey,
-				responderUsername: myIdentity.username
+				responderUsername: myIdentity.username,
 			});
 		} catch (e) {}
 
-		if (status === 'accepted') {
+		if (status === "accepted") {
 			// Añadir al calendario personal
 			await calendarRepo.saveEvent({
 				id: inv.eventId,
@@ -860,36 +1089,40 @@ import '../styles/global.css';
 				description: inv.description,
 				startTime: inv.startTime,
 				endTime: inv.endTime,
-				type: 'meeting',
+				type: "meeting",
 				meetingLink: inv.meetingLink,
 				isNative: inv.isNative,
 				organizerPubKey: inv.organizerPubKey,
 				participants: [], // Solo yo en mi copia local
-				status: 'confirmed'
+				status: "confirmed",
 			});
 		}
-		
+
 		loadCallsView();
 	}
-	globalSearch?.addEventListener('input', (e) => {
+	globalSearch?.addEventListener("input", (e) => {
 		const q = (e.target as HTMLInputElement).value.trim();
 		clearTimeout(searchTimeout);
 		if (q.length < 2) {
-			searchResults?.classList.add('hidden');
-			chatsList?.classList.remove('hidden');
+			searchResults?.classList.add("hidden");
+			chatsList?.classList.remove("hidden");
 			return;
 		}
 
 		searchTimeout = setTimeout(async () => {
-			searchResults?.classList.remove('hidden');
-			chatsList?.classList.add('hidden');
-			searchResults!.innerHTML = '<div class="loading-state">Buscando...</div>';
-			
+			searchResults?.classList.remove("hidden");
+			chatsList?.classList.add("hidden");
+			searchResults!.innerHTML =
+				'<div class="loading-state">Buscando...</div>';
+
 			const users = await bitid.searchUsers(q);
 			if (users.length === 0) {
-				searchResults!.innerHTML = '<div class="empty-results">Sin resultados</div>';
+				searchResults!.innerHTML =
+					'<div class="empty-results">Sin resultados</div>';
 			} else {
-				searchResults!.innerHTML = users.map((u: any) => `
+				searchResults!.innerHTML = users
+					.map(
+						(u: any) => `
 					<div class="chat-item search-item" data-pubkey="${u.public_key}" data-username="${u.username}">
 						<div class="chat-avatar">${u.username.charAt(0).toUpperCase()}</div>
 						<div class="chat-info">
@@ -897,18 +1130,26 @@ import '../styles/global.css';
 							<div class="preview">Conectar</div>
 						</div>
 					</div>
-				`).join('');
+				`,
+					)
+					.join("");
 
-				searchResults!.querySelectorAll('.search-item').forEach(item => {
-					item.addEventListener('click', async (ev) => {
-						const pubKey = (ev.currentTarget as HTMLElement).getAttribute('data-pubkey');
-						const username = (ev.currentTarget as HTMLElement).getAttribute('data-username');
-						globalSearch.value = '';
-						searchResults?.classList.add('hidden');
-						chatsList?.classList.remove('hidden');
-						await selectChat(pubKey!, username!);
+				searchResults!
+					.querySelectorAll(".search-item")
+					.forEach((item) => {
+						item.addEventListener("click", async (ev) => {
+							const pubKey = (
+								ev.currentTarget as HTMLElement
+							).getAttribute("data-pubkey");
+							const username = (
+								ev.currentTarget as HTMLElement
+							).getAttribute("data-username");
+							globalSearch.value = "";
+							searchResults?.classList.add("hidden");
+							chatsList?.classList.remove("hidden");
+							await selectChat(pubKey!, username!);
+						});
 					});
-				});
 			}
 		}, 300);
 	});
@@ -917,98 +1158,130 @@ import '../styles/global.css';
 	async function retryPendingMessages(targetPubKey?: string) {
 		const chats = await chatRepo.listAllChats();
 		for (const chat of chats) {
-			const pendingMsgs = chat.messages.filter(m => m.status === 'pending');
+			const pendingMsgs = chat.messages.filter(
+				(m) => m.status === "pending",
+			);
 			if (pendingMsgs.length === 0) continue;
 
-			if (chat.type === 'direct') {
-				const otherPubKey = chat.participants.find(p => p !== myIdentity.publicKey);
+			if (chat.type === "direct") {
+				const otherPubKey = chat.participants.find(
+					(p) => p !== myIdentity.publicKey,
+				);
 				if (!otherPubKey) continue;
 
 				if (targetPubKey && targetPubKey !== otherPubKey) continue;
 
 				const isConnected = await p2p.isConnected(otherPubKey);
-				const isOnline = isConnected || (await p2p.getPresence(otherPubKey)) === 'online';
-				
+				const isOnline =
+					isConnected ||
+					(await p2p.getPresence(otherPubKey)) === "online";
+
 				// Si no está conectado pero sabemos que está online, intentamos forzar conexión
 				if (!isConnected && isOnline) {
-					console.log(`Peer ${otherPubKey} online pero no conectado. Intentando conectar...`);
+					console.log(
+						`Peer ${otherPubKey} online pero no conectado. Intentando conectar...`,
+					);
 					await p2p.connectToPeer(otherPubKey);
 				}
 
 				if (!isConnected && !isOnline && !targetPubKey) continue;
 
-				console.log(`Re-enviando ${pendingMsgs.length} mensajes a ${otherPubKey}...`);
+				console.log(
+					`Re-enviando ${pendingMsgs.length} mensajes a ${otherPubKey}...`,
+				);
 				for (const msg of pendingMsgs) {
 					try {
 						let p2pPayload: any;
-						
-						if (msg.type === 'calendar-invite') {
+
+						if (msg.type === "calendar-invite") {
 							// Las invitaciones de calendario las enviamos con su propio tipo para que el receptor las procese
 							const data = JSON.parse(msg.content);
-							p2pPayload = { 
-								type: 'calendar-invite', 
+							p2pPayload = {
+								type: "calendar-invite",
 								...data,
 								senderPubKey: myIdentity.publicKey,
-								senderUsername: myIdentity.username
+								senderUsername: myIdentity.username,
 							};
 						} else {
-							const { ciphertext, iv } = await encryptText(msg.content, chat.id);
-							p2pPayload = { 
-								type: msg.type === 'system' ? 'system' : 'chat', 
-								id: msg.id, 
-								senderPubKey: myIdentity.publicKey, 
+							const { ciphertext, iv } = await encryptText(
+								msg.content,
+								chat.id,
+							);
+							p2pPayload = {
+								type: msg.type === "system" ? "system" : "chat",
+								id: msg.id,
+								senderPubKey: myIdentity.publicKey,
 								senderUsername: myIdentity.username,
-								content: ciphertext, 
-								timestamp: msg.timestamp, 
+								content: ciphertext,
+								timestamp: msg.timestamp,
 								iv,
-								groupId: undefined
+								groupId: undefined,
 							};
 						}
-						
+
 						await p2p.sendP2PMessage(otherPubKey, p2pPayload);
-						await chatRepo.updateMessageStatus(chat.id, msg.id, 'sent');
-						if (currentChatId === chat.id) updateMessageUIStatus(msg.id, 'sent');
-						console.log(`Mensaje ${msg.id} de tipo ${msg.type} re-enviado con éxito.`);
+						await chatRepo.updateMessageStatus(
+							chat.id,
+							msg.id,
+							"sent",
+						);
+						if (currentChatId === chat.id)
+							updateMessageUIStatus(msg.id, "sent");
+						console.log(
+							`Mensaje ${msg.id} de tipo ${msg.type} re-enviado con éxito.`,
+						);
 					} catch (e) {
-						console.warn(`Error al re-enviar mensaje ${msg.id} a ${otherPubKey}:`, e);
+						console.warn(
+							`Error al re-enviar mensaje ${msg.id} a ${otherPubKey}:`,
+							e,
+						);
 					}
 				}
 			} else {
 				// Para grupos, intentamos re-enviar si algún participante está conectado
-				const others = chat.participants.filter(p => p !== myIdentity.publicKey);
+				const others = chat.participants.filter(
+					(p) => p !== myIdentity.publicKey,
+				);
 				for (const msg of pendingMsgs) {
 					let sentAtLeastToOne = false;
 					let p2pPayload: any;
 
-					if (msg.type === 'calendar-invite') {
+					if (msg.type === "calendar-invite") {
 						const data = JSON.parse(msg.content);
-						p2pPayload = { 
-							type: 'calendar-invite', 
+						p2pPayload = {
+							type: "calendar-invite",
 							...data,
 							senderPubKey: myIdentity.publicKey,
-							senderUsername: myIdentity.username
+							senderUsername: myIdentity.username,
 						};
 					} else {
-						const { ciphertext, iv } = await encryptText(msg.content, chat.id);
-						p2pPayload = { 
-							type: msg.type === 'system' ? 'system' : 'chat', 
-							id: msg.id, 
-							senderPubKey: myIdentity.publicKey, 
+						const { ciphertext, iv } = await encryptText(
+							msg.content,
+							chat.id,
+						);
+						p2pPayload = {
+							type: msg.type === "system" ? "system" : "chat",
+							id: msg.id,
+							senderPubKey: myIdentity.publicKey,
 							senderUsername: myIdentity.username,
-							content: ciphertext, 
-							timestamp: msg.timestamp, 
+							content: ciphertext,
+							timestamp: msg.timestamp,
 							iv,
-							groupId: chat.id
+							groupId: chat.id,
 						};
 					}
 
 					for (const pubKey of others) {
 						try {
-							if (targetPubKey && targetPubKey !== pubKey) continue;
+							if (targetPubKey && targetPubKey !== pubKey)
+								continue;
 
 							// Intentar conectar si está online
 							const isConnected = await p2p.isConnected(pubKey);
-							if (!isConnected && (await p2p.getPresence(pubKey)) === 'online') {
+							if (
+								!isConnected &&
+								(await p2p.getPresence(pubKey)) === "online"
+							) {
 								await p2p.connectToPeer(pubKey);
 							}
 
@@ -1020,8 +1293,13 @@ import '../styles/global.css';
 					}
 
 					if (sentAtLeastToOne) {
-						await chatRepo.updateMessageStatus(chat.id, msg.id, 'sent');
-						if (currentChatId === chat.id) updateMessageUIStatus(msg.id, 'sent');
+						await chatRepo.updateMessageStatus(
+							chat.id,
+							msg.id,
+							"sent",
+						);
+						if (currentChatId === chat.id)
+							updateMessageUIStatus(msg.id, "sent");
 					}
 				}
 			}
@@ -1031,18 +1309,25 @@ import '../styles/global.css';
 	async function syncChat(chatId: string, otherPubKey: string) {
 		const chat = await chatRepo.getChat(chatId);
 		if (!chat) return;
-		
-		const receivedMsgs = chat.messages.filter(m => m.senderPubKey === otherPubKey);
-		const lastReceivedTs = receivedMsgs.length > 0 ? Math.max(...receivedMsgs.map(m => m.timestamp)) : 0;
-		
-		console.log(`Enviando sync-ping a ${otherPubKey} para chat ${chatId}. Último recibido: ${new Date(lastReceivedTs).toLocaleTimeString()}`);
-		
+
+		const receivedMsgs = chat.messages.filter(
+			(m) => m.senderPubKey === otherPubKey,
+		);
+		const lastReceivedTs =
+			receivedMsgs.length > 0
+				? Math.max(...receivedMsgs.map((m) => m.timestamp))
+				: 0;
+
+		console.log(
+			`Enviando sync-ping a ${otherPubKey} para chat ${chatId}. Último recibido: ${new Date(lastReceivedTs).toLocaleTimeString()}`,
+		);
+
 		try {
 			await p2p.sendP2PMessage(otherPubKey, {
-				type: 'sync-ping',
+				type: "sync-ping",
 				chatId: chatId,
 				lastReceivedTimestamp: lastReceivedTs,
-				senderPubKey: myIdentity.publicKey
+				senderPubKey: myIdentity.publicKey,
 			});
 		} catch (e) {
 			console.warn("Error enviando sync-ping", e);
@@ -1052,50 +1337,68 @@ import '../styles/global.css';
 	// 3. P2P Y NOTIFICACIONES DE LLAMADA
 	async function startP2P() {
 		await p2p.initialize(myIdentity.publicKey);
-		document.querySelector('.status-circle')?.classList.replace('offline', 'online');
+		document
+			.querySelector(".status-circle")
+			?.classList.replace("offline", "online");
 		await loadContacts();
 
 		// RE-ACTIVAR SEEDING DE ÚLTIMAS 24H
 		try {
-			const recentFiles = await chatRepo.listRecentFiles(24 * 60 * 60 * 1000);
+			const recentFiles = await chatRepo.listRecentFiles(
+				24 * 60 * 60 * 1000,
+			);
 			if (recentFiles.length > 0) {
-				console.log(`[BitMeet] Re-seedizando ${recentFiles.length} archivos...`);
+				console.log(
+					`[BitMeet] Re-seedizando ${recentFiles.length} archivos...`,
+				);
 				if (!torrentClient) torrentClient = await getWebTorrentClient();
 				for (const f of recentFiles) {
 					let magnetURI = f.magnetURI;
-					
+
 					// Fallback: si no tiene magnetURI guardado directamente, lo buscamos en los chats (compatibilidad con archivos guardados antes del cambio)
 					if (!magnetURI) {
 						const chats = await chatRepo.listAllChats();
-						for(const c of chats) {
-							const msg = c.messages.find(m => m.id === f.msgId);
-							if (msg && msg.type === 'file') {
+						for (const c of chats) {
+							const msg = c.messages.find(
+								(m) => m.id === f.msgId,
+							);
+							if (msg && msg.type === "file") {
 								try {
-									magnetURI = JSON.parse(msg.content).magnetURI;
-								} catch(e) {}
+									magnetURI = JSON.parse(
+										msg.content,
+									).magnetURI;
+								} catch (e) {}
 								break;
 							}
 						}
 					}
-					
+
 					if (magnetURI && !torrentClient.get(magnetURI)) {
-						const blob = new Blob([f.data], { type: 'application/octet-stream' });
-						torrentClient.seed(blob, { announce: TRACKERS }, (t: any) => {
-							console.log(`[BitMeet] Re-seeding: ${t.infoHash}`);
+						const blob = new Blob([f.data], {
+							type: "application/octet-stream",
 						});
+						torrentClient.seed(
+							blob,
+							{ announce: TRACKERS },
+							(t: any) => {
+								console.log(
+									`[BitMeet] Re-seeding: ${t.infoHash}`,
+								);
+							},
+						);
 					}
 				}
 			}
 		} catch (e) {
 			console.error("[BitMeet] Error in auto-seeding", e);
 		}
-		
+
 		p2p.onPeerConnected(async (pubKey: string) => {
 			console.log(`Peer conectado: ${pubKey}, sincronizando...`);
-			
+
 			// 1. Reintentar mensajes que nosotros tenemos como pendientes
 			retryPendingMessages(pubKey);
-			
+
 			// 2. Pedir mensajes que el otro pueda tener y nosotros no
 			const chatId = await getChatId(myIdentity.publicKey, pubKey);
 			syncChat(chatId, pubKey);
@@ -1104,36 +1407,44 @@ import '../styles/global.css';
 		retryPendingMessages(); // Reintentar al conectar inicial
 
 		p2p.onMessageReceived(async (msg: any) => {
-			if (msg.type === 'sync-ping') {
-				console.log(`Recibido sync-ping de ${msg.senderPubKey} para chat ${msg.chatId}. Pide msgs > ${msg.lastReceivedTimestamp}`);
+			if (msg.type === "sync-ping") {
+				console.log(
+					`Recibido sync-ping de ${msg.senderPubKey} para chat ${msg.chatId}. Pide msgs > ${msg.lastReceivedTimestamp}`,
+				);
 				const chat = await chatRepo.getChat(msg.chatId);
 				if (!chat) return;
-				
-				const missingMsgs = chat.messages.filter(m => 
-					m.senderPubKey === myIdentity.publicKey && 
-					m.timestamp > msg.lastReceivedTimestamp
+
+				const missingMsgs = chat.messages.filter(
+					(m) =>
+						m.senderPubKey === myIdentity.publicKey &&
+						m.timestamp > msg.lastReceivedTimestamp,
 				);
-				
+
 				if (missingMsgs.length > 0) {
-					console.log(`Enviando ${missingMsgs.length} mensajes perdidos a ${msg.senderPubKey}...`);
+					console.log(
+						`Enviando ${missingMsgs.length} mensajes perdidos a ${msg.senderPubKey}...`,
+					);
 					for (const m of missingMsgs) {
-						const { ciphertext, iv } = await encryptText(m.content, chat.id);
-						await p2p.sendP2PMessage(msg.senderPubKey, { 
-							type: 'chat', 
-							id: m.id, 
-							senderPubKey: myIdentity.publicKey, 
+						const { ciphertext, iv } = await encryptText(
+							m.content,
+							chat.id,
+						);
+						await p2p.sendP2PMessage(msg.senderPubKey, {
+							type: "chat",
+							id: m.id,
+							senderPubKey: myIdentity.publicKey,
 							senderUsername: myIdentity.username,
-							content: ciphertext, 
-							timestamp: m.timestamp, 
+							content: ciphertext,
+							timestamp: m.timestamp,
 							iv,
-							groupId: m.groupId
+							groupId: m.groupId,
 						});
 					}
 				}
 				return;
 			}
 
-			if (msg.type === 'calendar-invite') {
+			if (msg.type === "calendar-invite") {
 				await calendarRepo.saveInvitation({
 					id: msg.id,
 					eventId: msg.eventId,
@@ -1145,12 +1456,15 @@ import '../styles/global.css';
 					endTime: msg.endTime,
 					meetingLink: msg.meetingLink,
 					isNative: msg.isNative,
-					status: 'pending',
-					receivedAt: Date.now()
+					status: "pending",
+					receivedAt: Date.now(),
 				});
 
 				// También lo guardamos en el chat para que el usuario vea la "tarjeta"
-				const chatId = await getChatId(msg.organizerPubKey, myIdentity.publicKey);
+				const chatId = await getChatId(
+					msg.organizerPubKey,
+					myIdentity.publicKey,
+				);
 				await chatRepo.addMessage(chatId, {
 					id: msg.id,
 					senderPubKey: msg.organizerPubKey,
@@ -1158,44 +1472,52 @@ import '../styles/global.css';
 					receiverPubKey: myIdentity.publicKey,
 					content: JSON.stringify(msg),
 					timestamp: msg.timestamp || Date.now(),
-					type: 'calendar-invite',
-					status: 'received',
-					iv: ''
+					type: "calendar-invite",
+					status: "received",
+					iv: "",
 				});
 
 				if (notificationsEnabled) {
-					new Notification("Nueva invitación a reunión", { body: `${msg.organizerUsername} te ha invitado a "${msg.title}"`, icon: "/favicon.svg" });
+					new Notification("Nueva invitación a reunión", {
+						body: `${msg.organizerUsername} te ha invitado a "${msg.title}"`,
+						icon: "/favicon.svg",
+					});
 				}
-				if (!viewCalls?.classList.contains('hidden')) loadCallsView();
+				if (!viewCalls?.classList.contains("hidden")) loadCallsView();
 				loadContacts(); // Refrescar sidebar para ver el mensaje
 				return;
 			}
 
-			if (msg.type === 'calendar-response') {
+			if (msg.type === "calendar-response") {
 				const event = await calendarRepo.getEvent(msg.eventId);
 				if (event) {
-					// En una implementación real, podríamos guardar quién aceptó. 
+					// En una implementación real, podríamos guardar quién aceptó.
 					// Por ahora, notificamos al organizador.
 					if (notificationsEnabled) {
-						new Notification("Respuesta a reunión", { body: `${msg.responderUsername} ha ${msg.status === 'accepted' ? 'aceptado' : 'rechazado'} la reunión "${event.title}"`, icon: "/favicon.svg" });
+						new Notification("Respuesta a reunión", {
+							body: `${msg.responderUsername} ha ${msg.status === "accepted" ? "aceptado" : "rechazado"} la reunión "${event.title}"`,
+							icon: "/favicon.svg",
+						});
 					}
 				}
 				return;
 			}
 
-			if (msg.type === 'calendar-cancel') {
+			if (msg.type === "calendar-cancel") {
 				await calendarRepo.deleteEvent(msg.eventId);
 				// Si la vista de calendario está activa, refrescarla
-				if (!viewCalendar?.classList.contains('hidden')) {
+				if (!viewCalendar?.classList.contains("hidden")) {
 					renderCalendar();
 				}
 				return;
 			}
 
-			if (msg.type === 'chat' || msg.type === 'system') {
+			if (msg.type === "chat" || msg.type === "system") {
 				const isGroup = !!msg.groupId;
-				const chatId = isGroup ? msg.groupId : await getChatId(msg.senderPubKey, myIdentity.publicKey);
-				
+				const chatId = isGroup
+					? msg.groupId
+					: await getChatId(msg.senderPubKey, myIdentity.publicKey);
+
 				// Verificar bloqueo
 				const contact = await chatRepo.getContact(msg.senderPubKey);
 				if (contact?.isBlocked) return;
@@ -1203,32 +1525,43 @@ import '../styles/global.css';
 				let text = msg.content;
 				let decryptedData = null;
 
-				try { 
-					text = await decryptText(msg.content, msg.iv, chatId); 
-					if (msg.type === 'system') {
+				try {
+					text = await decryptText(msg.content, msg.iv, chatId);
+					if (msg.type === "system") {
 						decryptedData = JSON.parse(text);
 					}
-				} catch (e) { 
-					text = "🔒 Error de cifrado"; 
+				} catch (e) {
+					text = "🔒 Error de cifrado";
 				}
 
 				const message = {
-					id: msg.id, 
-					senderPubKey: msg.senderPubKey, 
+					id: msg.id,
+					senderPubKey: msg.senderPubKey,
 					senderUsername: msg.senderUsername,
 					receiverPubKey: isGroup ? undefined : myIdentity.publicKey,
 					groupId: isGroup ? msg.groupId : undefined,
-					content: text, 
-					timestamp: msg.timestamp, 
-					type: msg.msgType || (msg.type === 'system' ? 'system' : 'text'),
+					content: text,
+					timestamp: msg.timestamp,
+					type:
+						msg.msgType ||
+						(msg.type === "system" ? "system" : "text"),
 					systemAction: msg.systemAction,
-					status: 'received', 
-					iv: msg.iv
+					status: "received",
+					iv: msg.iv,
 				};
 
 				// Si me han expulsado o me he ido, y recibo un mensaje de ese grupo, lo ignoro si ya no estoy
-				if (isGroup && (msg.systemAction === 'member_removed' || msg.systemAction === 'member_left')) {
-					if (decryptedData && !decryptedData.participants.includes(myIdentity.publicKey)) {
+				if (
+					isGroup &&
+					(msg.systemAction === "member_removed" ||
+						msg.systemAction === "member_left")
+				) {
+					if (
+						decryptedData &&
+						!decryptedData.participants.includes(
+							myIdentity.publicKey,
+						)
+					) {
 						// He sido expulsado o ya me fui (mensaje duplicado o tardío). Podríamos borrar el chat.
 						const db = (chatRepo as any).db;
 						if (db) {
@@ -1236,8 +1569,8 @@ import '../styles/global.css';
 							tx.objectStore("chats").delete(chatId);
 						}
 						if (currentChatId === chatId) {
-							viewActiveChat?.classList.add('hidden');
-							viewNoChat?.classList.remove('hidden');
+							viewActiveChat?.classList.add("hidden");
+							viewNoChat?.classList.remove("hidden");
 						}
 						loadContacts();
 						return;
@@ -1245,73 +1578,129 @@ import '../styles/global.css';
 				}
 
 				await chatRepo.addMessage(chatId, message as any);
-				
+
 				// Notificar al overlay si está abierto
-				window.dispatchEvent(new CustomEvent('bitmeet:new-message', { detail: { chatId, message } }));
-				
-				if (currentChatId === chatId) { 
-					if (msg.type === 'system') {
+				window.dispatchEvent(
+					new CustomEvent("bitmeet:new-message", {
+						detail: { chatId, message },
+					}),
+				);
+
+				if (currentChatId === chatId) {
+					if (msg.type === "system") {
 						// Actualizar UI en tiempo real si el chat está abierto
-						if (msg.systemAction === 'group_renamed' && decryptedData?.newName) {
-							document.getElementById('active-chat-name')!.textContent = decryptedData.newName;
+						if (
+							msg.systemAction === "group_renamed" &&
+							decryptedData?.newName
+						) {
+							document.getElementById(
+								"active-chat-name",
+							)!.textContent = decryptedData.newName;
 						} else if (decryptedData?.participants) {
-							currentGroupParticipants = decryptedData.participants;
-							const statusEl = document.getElementById('active-chat-status')!;
+							currentGroupParticipants =
+								decryptedData.participants;
+							const statusEl =
+								document.getElementById("active-chat-status")!;
 							statusEl.textContent = `${currentGroupParticipants.length} participantes`;
 							// Si el modal está abierto, refrescar lista de miembros
-							if (!groupSettingsModal?.classList.contains('hidden')) {
-								const isOwner = currentGroupOwner === myIdentity.publicKey;
-								renderGroupParticipants(currentGroupParticipants, isOwner);
+							if (
+								!groupSettingsModal?.classList.contains(
+									"hidden",
+								)
+							) {
+								const isOwner =
+									currentGroupOwner === myIdentity.publicKey;
+								renderGroupParticipants(
+									currentGroupParticipants,
+									isOwner,
+								);
 							}
 						}
 					}
-					
-					const lastMsgEl = document.querySelector('#messages-list .message-bubble:last-child') as HTMLElement;
-					const lastTs = lastMsgEl ? parseInt(lastMsgEl.getAttribute('data-timestamp') || '0') : 0;
+
+					const lastMsgEl = document.querySelector(
+						"#messages-list .message-bubble:last-child",
+					) as HTMLElement;
+					const lastTs = lastMsgEl
+						? parseInt(
+								lastMsgEl.getAttribute("data-timestamp") || "0",
+							)
+						: 0;
 
 					if (message.timestamp < lastTs) {
 						await loadChatHistory(chatId);
 					} else {
-						renderMessage(message as any); 
-						scrollToBottom(); 
+						renderMessage(message as any);
+						scrollToBottom();
 					}
 
 					if (!isGroup && !isGroup) {
 						// Actualizar nombre si era desconocido
-						const nameEl = document.getElementById('active-chat-name');
-						if (nameEl && nameEl.textContent?.includes('Desconocido') && msg.senderUsername) {
+						const nameEl =
+							document.getElementById("active-chat-name");
+						if (
+							nameEl &&
+							nameEl.textContent?.includes("Desconocido") &&
+							msg.senderUsername
+						) {
 							nameEl.textContent = msg.senderUsername;
 							await chatRepo.saveContact({
 								publicKey: msg.senderPubKey,
 								username: msg.senderUsername,
-								isFavorite: false
+								isFavorite: false,
 							});
-							const sidebarItem = document.querySelector(`[data-pubkey="${msg.senderPubKey}"] strong`) || document.querySelector(`[data-id="${msg.senderPubKey}"] strong`);
-							if (sidebarItem) sidebarItem.textContent = msg.senderUsername;
+							const sidebarItem =
+								document.querySelector(
+									`[data-pubkey="${msg.senderPubKey}"] strong`,
+								) ||
+								document.querySelector(
+									`[data-id="${msg.senderPubKey}"] strong`,
+								);
+							if (sidebarItem)
+								sidebarItem.textContent = msg.senderUsername;
 						}
 					}
 					await chatRepo.markAsRead(chatId);
 				}
-				
+
 				await loadContacts();
 
 				// Notificaciones
-				if (notificationsEnabled && msg.type !== 'system') {
-					messageSound?.play().catch(e => console.warn("Error playing sound", e));
-					if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-						const title = isGroup ? `Mensaje en grupo` : `Mensaje de @${msg.senderUsername}`;
-						const notification = new Notification(title, { body: text, icon: "/favicon.svg" });
+				if (notificationsEnabled && msg.type !== "system") {
+					messageSound
+						?.play()
+						.catch((e) => console.warn("Error playing sound", e));
+					if (
+						document.hidden &&
+						"Notification" in window &&
+						Notification.permission === "granted"
+					) {
+						const title = isGroup
+							? `Mensaje en grupo`
+							: `Mensaje de @${msg.senderUsername}`;
+						const notification = new Notification(title, {
+							body: text,
+							icon: "/favicon.svg",
+						});
 						notification.onclick = () => {
 							window.focus();
-							chatRepo.getChat(chatId).then(chat => {
-								selectChat(chatId, chat?.name || (isGroup ? "Grupo" : msg.senderUsername), isGroup ? 'group' : 'direct');
+							chatRepo.getChat(chatId).then((chat) => {
+								selectChat(
+									chatId,
+									chat?.name ||
+										(isGroup
+											? "Grupo"
+											: msg.senderUsername),
+									isGroup ? "group" : "direct",
+								);
 							});
 						};
 					}
 				}
-			} else if (msg.type === 'call-invite') {
-				document.getElementById('incoming-caller-name')!.textContent = msg.callerName || "Llamada entrante";
-				incomingPopup?.classList.remove('hidden');
+			} else if (msg.type === "call-invite") {
+				document.getElementById("incoming-caller-name")!.textContent =
+					msg.callerName || "Llamada entrante";
+				incomingPopup?.classList.remove("hidden");
 				ringtone?.play();
 				pendingCallPubKey = msg.senderPubKey;
 
@@ -1320,18 +1709,29 @@ import '../styles/global.css';
 
 				// Importante: Guardamos el PeerID del emisor que viene en el mensaje P2P
 				if (msg.peerId) {
-					console.log("[BitMeet] Call invite received with PeerID:", msg.peerId);
+					console.log(
+						"[BitMeet] Call invite received with PeerID:",
+						msg.peerId,
+					);
 					(window as any).pendingCallerPeerId = msg.peerId;
 				}
 
 				if (Notification.permission === "granted") {
-					new Notification("BitSuite Teams", { body: `Llamada entrante de @${msg.callerName}`, icon: "/favicon.svg" });
+					new Notification("BitMeet", {
+						body: `Llamada entrante de @${msg.callerName}`,
+						icon: "/favicon.svg",
+					});
 				}
-			} else if (msg.type === 'call-accept') {
-				console.log("[BitMeet] El receptor ha aceptado la llamada con PeerID:", msg.peerId);
-				window.dispatchEvent(new CustomEvent('bitmeet:call-accepted', { detail: msg }));
-			} else if (msg.type === 'call-reject') {
-				import('../lib/callStore').then(store => {
+			} else if (msg.type === "call-accept") {
+				console.log(
+					"[BitMeet] El receptor ha aceptado la llamada con PeerID:",
+					msg.peerId,
+				);
+				window.dispatchEvent(
+					new CustomEvent("bitmeet:call-accepted", { detail: msg }),
+				);
+			} else if (msg.type === "call-reject") {
+				import("../lib/callStore").then((store) => {
 					store.endCall();
 				});
 				alert(`@${msg.senderUsername} ha rechazado la llamada.`);
@@ -1341,17 +1741,32 @@ import '../styles/global.css';
 		p2p.onIncomingCall(async (call: any) => {
 			console.log("[BitMeet] PeerJS Call incoming from:", call.peer);
 			pendingCall = call;
-			
+
 			// Si ya habíamos aceptado por el mensaje de chat P2P, contestamos YA
 			if (userAcceptedPending && pendingCallPubKey) {
-				console.log("[BitMeet] Auto-answering call because user already clicked accept");
-				incomingPopup?.classList.add('hidden');
+				console.log(
+					"[BitMeet] Auto-answering call because user already clicked accept",
+				);
+				incomingPopup?.classList.add("hidden");
 				ringtone?.pause();
 				ringtone!.currentTime = 0;
-				const roomId = await getChatId(myIdentity.publicKey, pendingCallPubKey);
-				const name = document.getElementById('incoming-caller-name')!.textContent || "Usuario";
+				const roomId = await getChatId(
+					myIdentity.publicKey,
+					pendingCallPubKey,
+				);
+				const name =
+					document.getElementById("incoming-caller-name")!
+						.textContent || "Usuario";
 				const invitedPeers = (window as any).pendingInvitedPeers || {};
-				receiveCall(roomId, pendingCall, p2p.getPeer(), undefined, pendingCallPubKey, name, invitedPeers);
+				receiveCall(
+					roomId,
+					pendingCall,
+					p2p.getPeer(),
+					undefined,
+					pendingCallPubKey,
+					name,
+					invitedPeers,
+				);
 				pendingCall = null;
 				pendingCallPubKey = null;
 				userAcceptedPending = false;
@@ -1359,312 +1774,465 @@ import '../styles/global.css';
 		});
 	}
 
-				// 4. ACCIONES DE LLAMADA
-				document.getElementById('btn-accept-call')?.addEventListener('click', async () => {
-				console.log("[BitMeet] Accept button clicked. pendingCall:", !!pendingCall, "pendingCallPubKey:", !!pendingCallPubKey);
+	// 4. ACCIONES DE LLAMADA
+	document
+		.getElementById("btn-accept-call")
+		?.addEventListener("click", async () => {
+			console.log(
+				"[BitMeet] Accept button clicked. pendingCall:",
+				!!pendingCall,
+				"pendingCallPubKey:",
+				!!pendingCallPubKey,
+			);
 
-				if (pendingCallPubKey) {
-					const roomId = await getChatId(myIdentity.publicKey, pendingCallPubKey);
+			if (pendingCallPubKey) {
+				const roomId = await getChatId(
+					myIdentity.publicKey,
+					pendingCallPubKey,
+				);
 
-					// ENVIAMOS ACEPTACIÓN INMEDIATA POR P2P CHAT AL QUE LLAMA
-					const acceptPayload = {
-						type: 'call-accept',
-						peerId: p2p.getPeer().id,
-						senderPubKey: myIdentity.publicKey,
-						senderUsername: myIdentity.username
+				// ENVIAMOS ACEPTACIÓN INMEDIATA POR P2P CHAT AL QUE LLAMA
+				const acceptPayload = {
+					type: "call-accept",
+					peerId: p2p.getPeer().id,
+					senderPubKey: myIdentity.publicKey,
+					senderUsername: myIdentity.username,
+				};
+
+				p2p.sendP2PMessage(pendingCallPubKey, acceptPayload);
+
+				// FULL MESH: También enviamos aceptación a los demás invitados para que nos vean
+				const invitedPeersMap = (window as any).pendingInvitedPeers;
+				if (invitedPeersMap) {
+					Object.values(invitedPeersMap).forEach((peerInfo: any) => {
+						if (
+							peerInfo.pubKey &&
+							peerInfo.pubKey !== myIdentity.publicKey &&
+							peerInfo.pubKey !== pendingCallPubKey
+						) {
+							console.log(
+								"[BitMeet] Notificando a compañero de grupo que me uno:",
+								peerInfo.username,
+							);
+							p2p.sendP2PMessage(
+								peerInfo.pubKey,
+								acceptPayload,
+							).catch(() => {});
+						}
+					});
+				}
+
+				incomingPopup?.classList.add("hidden");
+				ringtone?.pause();
+				ringtone!.currentTime = 0;
+
+				const name =
+					document.getElementById("incoming-caller-name")!
+						.textContent || "Usuario";
+				const invitedPeers = (window as any).pendingInvitedPeers || {};
+				const callerPeerId = (window as any).pendingCallerPeerId;
+
+				// FULL MESH: El receptor debe incluir al Host en su lista de 'invitedPeers'
+				// para que la lógica de conexión automática en CallOverlay funcione para todos.
+				const fullInvitedPeers = { ...invitedPeers };
+				if (callerPeerId && pendingCallPubKey) {
+					fullInvitedPeers[callerPeerId] = {
+						username: name,
+						pubKey: pendingCallPubKey,
 					};
-					
-					p2p.sendP2PMessage(pendingCallPubKey, acceptPayload);
+				}
 
-					// FULL MESH: También enviamos aceptación a los demás invitados para que nos vean
-					const invitedPeersMap = (window as any).pendingInvitedPeers;
-					if (invitedPeersMap) {
-						Object.values(invitedPeersMap).forEach((peerInfo: any) => {
-							if (peerInfo.pubKey && peerInfo.pubKey !== myIdentity.publicKey && peerInfo.pubKey !== pendingCallPubKey) {
-								console.log("[BitMeet] Notificando a compañero de grupo que me uno:", peerInfo.username);
-								p2p.sendP2PMessage(peerInfo.pubKey, acceptPayload).catch(() => {});
-							}
-						});
+				if (pendingCall) {
+					console.log("[BitMeet] Answering existing PeerJS call...");
+					receiveCall(
+						roomId,
+						pendingCall,
+						p2p.getPeer(),
+						undefined,
+						pendingCallPubKey,
+						name,
+						fullInvitedPeers,
+					);
+				} else {
+					console.log(
+						"[BitMeet] Waiting for PeerJS call to arrive in overlay...",
+					);
+					// Entramos en el overlay aunque el objeto 'call' no haya llegado aún
+					// IMPORTANTE: Usamos receiveCall para que el estado sea 'isIncoming: true'
+					receiveCall(
+						roomId,
+						null,
+						p2p.getPeer(),
+						undefined,
+						pendingCallPubKey,
+						name,
+						fullInvitedPeers,
+					);
+				}
+
+				pendingCall = null;
+				pendingCallPubKey = null;
+				userAcceptedPending = false;
+			}
+		});
+
+	document
+		.getElementById("btn-clear-calls")
+		?.addEventListener("click", async () => {
+			if (
+				confirm(
+					"¿Estás seguro de que quieres limpiar el historial de llamadas?",
+				)
+			) {
+				await callsRepo.clearHistory();
+				loadCallsView();
+			}
+		});
+	document
+		.getElementById("btn-reject-call")
+		?.addEventListener("click", async () => {
+			const name =
+				document.getElementById("incoming-caller-name")!.textContent ||
+				"Usuario";
+
+			if (pendingCallPubKey) {
+				p2p.sendP2PMessage(pendingCallPubKey, {
+					type: "call-reject",
+					senderPubKey: myIdentity.publicKey,
+					senderUsername: myIdentity.username,
+				});
+				// Registrar como llamada perdida/rechazada
+				await recordMissedCall(pendingCallPubKey, name);
+				loadCallsView();
+			}
+
+			if (pendingCall) {
+				pendingCall.close();
+			}
+			incomingPopup?.classList.add("hidden");
+			ringtone?.pause();
+			ringtone!.currentTime = 0;
+			pendingCall = null;
+			pendingCallPubKey = null;
+			userAcceptedPending = false;
+		});
+
+	document
+		.getElementById("btn-call-video")
+		?.addEventListener("click", async () => {
+			const isGroup = currentChatType === "group";
+			if (!isGroup && !currentChatPubKey) return;
+
+			const roomId = isGroup
+				? currentChatId!
+				: await getChatId(myIdentity.publicKey, currentChatPubKey!);
+			const targetPubKey = isGroup ? null : currentChatPubKey;
+			const name =
+				document.getElementById("active-chat-name")!.textContent ||
+				"Sala";
+
+			// Preparar lista de todos los invitados (INCLUYÉNDOME) para Full Mesh inmediato
+			const allParticipantsMap: Record<
+				string,
+				{ username: string; pubKey: string }
+			> = {};
+			if (isGroup) {
+				const chat = await chatRepo.getChat(currentChatId!);
+				if (chat) {
+					for (const p of chat.participants) {
+						const contact = await chatRepo.getContact(p);
+						const username =
+							p === myIdentity.publicKey
+								? myIdentity.username
+								: contact?.username || "Usuario";
+						allParticipantsMap[await p2p.hashPubKey(p)] = {
+							username,
+							pubKey: p,
+						};
 					}
+				}
+			}
 
-					incomingPopup?.classList.add('hidden');
-					ringtone?.pause();
-					ringtone!.currentTime = 0;
+			// Y AHORA, pasamos el mapa completo a nuestro propio CallOverlay
+			startCall(
+				roomId,
+				p2p.getPeer(),
+				async () => {
+					const myPeerId = await p2p.hashPubKey(myIdentity.publicKey);
 
-					const name = document.getElementById('incoming-caller-name')!.textContent || "Usuario";
-					const invitedPeers = (window as any).pendingInvitedPeers || {};
-					const callerPeerId = (window as any).pendingCallerPeerId;
-					
-					// FULL MESH: El receptor debe incluir al Host en su lista de 'invitedPeers' 
-					// para que la lógica de conexión automática en CallOverlay funcione para todos.
-					const fullInvitedPeers = { ...invitedPeers };
-					if (callerPeerId && pendingCallPubKey) {
-						fullInvitedPeers[callerPeerId] = { username: name, pubKey: pendingCallPubKey };
-					}
+					// Quitamos nuestro propio ID del payload que se envía a los demás
+					const othersParticipantsMap = { ...allParticipantsMap };
+					delete othersParticipantsMap[myPeerId];
 
-					if (pendingCall) {
-						console.log("[BitMeet] Answering existing PeerJS call...");
-						receiveCall(roomId, pendingCall, p2p.getPeer(), undefined, pendingCallPubKey, name, fullInvitedPeers);
+					const payload = {
+						type: "call-invite",
+						roomId,
+						callerName: myIdentity.username,
+						senderPubKey: myIdentity.publicKey,
+						peerId: myPeerId,
+						groupId: isGroup ? currentChatId : undefined,
+						invitedPeers: othersParticipantsMap,
+					};
+
+					console.log(
+						"[BitMeet] Enviando invitaciones a:",
+						othersParticipantsMap,
+					);
+
+					if (isGroup) {
+						const others = currentGroupParticipants.filter(
+							(p) => p !== myIdentity.publicKey,
+						);
+						others.forEach((pub) =>
+							p2p.sendP2PMessage(pub, payload).catch(() => {}),
+						);
 					} else {
-						console.log("[BitMeet] Waiting for PeerJS call to arrive in overlay...");
-						// Entramos en el overlay aunque el objeto 'call' no haya llegado aún
-						// IMPORTANTE: Usamos receiveCall para que el estado sea 'isIncoming: true'
-						receiveCall(roomId, null, p2p.getPeer(), undefined, pendingCallPubKey, name, fullInvitedPeers);
+						await p2p.sendP2PMessage(targetPubKey!, payload);
 					}
+				},
+				targetPubKey,
+				name,
+				allParticipantsMap,
+			);
+		});
 
-					pendingCall = null;
-					pendingCallPubKey = null;
-					userAcceptedPending = false;
+	document
+		.getElementById("btn-call-voice")
+		?.addEventListener("click", async () => {
+			const isGroup = currentChatType === "group";
+			if (!isGroup && !currentChatPubKey) return;
+
+			const roomId = isGroup
+				? currentChatId!
+				: await getChatId(myIdentity.publicKey, currentChatPubKey!);
+			const targetPubKey = isGroup ? null : currentChatPubKey;
+			const name =
+				document.getElementById("active-chat-name")!.textContent ||
+				"Sala";
+
+			// Preparar lista de todos los invitados para Full Mesh inmediato
+			const allParticipantsMap: Record<
+				string,
+				{ username: string; pubKey: string }
+			> = {};
+			if (isGroup) {
+				const chat = await chatRepo.getChat(currentChatId!);
+				if (chat) {
+					for (const p of chat.participants) {
+						const contact = await chatRepo.getContact(p);
+						const username =
+							p === myIdentity.publicKey
+								? myIdentity.username
+								: contact?.username || "Usuario";
+						allParticipantsMap[await p2p.hashPubKey(p)] = {
+							username,
+							pubKey: p,
+						};
 					}
-					});
-
-					document.getElementById('btn-clear-calls')?.addEventListener('click', async () => {
-					if (confirm("¿Estás seguro de que quieres limpiar el historial de llamadas?")) {
-					await callsRepo.clearHistory();
-					loadCallsView();
-					}
-					});
-	document.getElementById('btn-reject-call')?.addEventListener('click', async () => {
-		const name = document.getElementById('incoming-caller-name')!.textContent || "Usuario";
-		
-		if (pendingCallPubKey) {
-			p2p.sendP2PMessage(pendingCallPubKey, { 
-				type: 'call-reject', 
-				senderPubKey: myIdentity.publicKey,
-				senderUsername: myIdentity.username
-			});
-			// Registrar como llamada perdida/rechazada
-			await recordMissedCall(pendingCallPubKey, name);
-			loadCallsView();
-		}
-		
-		if (pendingCall) {
-			pendingCall.close();
-		}
-		incomingPopup?.classList.add('hidden');
-		ringtone?.pause();
-		ringtone!.currentTime = 0;
-		pendingCall = null;
-		pendingCallPubKey = null;
-		userAcceptedPending = false;
-	});
-
-	document.getElementById('btn-call-video')?.addEventListener('click', async () => {
-		const isGroup = currentChatType === 'group';
-		if (!isGroup && !currentChatPubKey) return;
-
-		const roomId = isGroup ? currentChatId! : await getChatId(myIdentity.publicKey, currentChatPubKey!);
-		const targetPubKey = isGroup ? null : currentChatPubKey;
-		const name = document.getElementById('active-chat-name')!.textContent || "Sala";
-		
-		// Preparar lista de todos los invitados (INCLUYÉNDOME) para Full Mesh inmediato
-		const allParticipantsMap: Record<string, { username: string, pubKey: string }> = {};
-		if (isGroup) {
-			const chat = await chatRepo.getChat(currentChatId!);
-			if (chat) {
-				for (const p of chat.participants) {
-					const contact = await chatRepo.getContact(p);
-					const username = p === myIdentity.publicKey ? myIdentity.username : (contact?.username || "Usuario");
-					allParticipantsMap[await p2p.hashPubKey(p)] = { username, pubKey: p };
 				}
 			}
-		}
 
-		// Y AHORA, pasamos el mapa completo a nuestro propio CallOverlay
-		startCall(roomId, p2p.getPeer(), async () => {
-			const myPeerId = await p2p.hashPubKey(myIdentity.publicKey);
-			
-			// Quitamos nuestro propio ID del payload que se envía a los demás
-			const othersParticipantsMap = { ...allParticipantsMap };
-			delete othersParticipantsMap[myPeerId];
-
-			const payload = {
-				type: 'call-invite',
+			startCall(
 				roomId,
-				callerName: myIdentity.username,
-				senderPubKey: myIdentity.publicKey,
-				peerId: myPeerId,
-				groupId: isGroup ? currentChatId : undefined,
-				invitedPeers: othersParticipantsMap
-			};
+				p2p.getPeer(),
+				async () => {
+					const myPeerId = await p2p.hashPubKey(myIdentity.publicKey);
+					console.log(
+						"[BitMeet] Sender ready, sending voice invite to:",
+						isGroup ? "Group" : targetPubKey,
+						"with PeerID:",
+						myPeerId,
+					);
 
-			console.log("[BitMeet] Enviando invitaciones a:", othersParticipantsMap);
+					// Quitamos nuestro propio ID del payload que se envía a los demás
+					const othersParticipantsMap = { ...allParticipantsMap };
+					delete othersParticipantsMap[myPeerId];
 
-			if (isGroup) {
-				const others = currentGroupParticipants.filter(p => p !== myIdentity.publicKey);
-				others.forEach(pub => p2p.sendP2PMessage(pub, payload).catch(() => {}));
-			} else {
-				await p2p.sendP2PMessage(targetPubKey!, payload);
-			}
-		}, targetPubKey, name, allParticipantsMap);
-	});
+					const payload = {
+						type: "call-invite",
+						roomId,
+						callerName: myIdentity.username,
+						senderPubKey: myIdentity.publicKey,
+						peerId: myPeerId,
+						groupId: isGroup ? currentChatId : undefined,
+						invitedPeers: othersParticipantsMap,
+					};
 
-	document.getElementById('btn-call-voice')?.addEventListener('click', async () => {
-		const isGroup = currentChatType === 'group';
-		if (!isGroup && !currentChatPubKey) return;
-
-		const roomId = isGroup ? currentChatId! : await getChatId(myIdentity.publicKey, currentChatPubKey!);
-		const targetPubKey = isGroup ? null : currentChatPubKey;
-		const name = document.getElementById('active-chat-name')!.textContent || "Sala";
-
-		// Preparar lista de todos los invitados para Full Mesh inmediato
-		const allParticipantsMap: Record<string, { username: string, pubKey: string }> = {};
-		if (isGroup) {
-			const chat = await chatRepo.getChat(currentChatId!);
-			if (chat) {
-				for (const p of chat.participants) {
-					const contact = await chatRepo.getContact(p);
-					const username = p === myIdentity.publicKey ? myIdentity.username : (contact?.username || "Usuario");
-					allParticipantsMap[await p2p.hashPubKey(p)] = { username, pubKey: p };
-				}
-			}
-		}
-
-		startCall(roomId, p2p.getPeer(), async () => {
-			const myPeerId = await p2p.hashPubKey(myIdentity.publicKey);
-			console.log("[BitMeet] Sender ready, sending voice invite to:", isGroup ? "Group" : targetPubKey, "with PeerID:", myPeerId);
-			
-			// Quitamos nuestro propio ID del payload que se envía a los demás
-			const othersParticipantsMap = { ...allParticipantsMap };
-			delete othersParticipantsMap[myPeerId];
-
-			const payload = {
-				type: 'call-invite',
-				roomId,
-				callerName: myIdentity.username,
-				senderPubKey: myIdentity.publicKey,
-				peerId: myPeerId,
-				groupId: isGroup ? currentChatId : undefined,
-				invitedPeers: othersParticipantsMap
-			};
-
-			if (isGroup) {
-				const others = currentGroupParticipants.filter(p => p !== myIdentity.publicKey);
-				others.forEach(pub => p2p.sendP2PMessage(pub, payload).catch(() => {}));
-			} else {
-				await p2p.sendP2PMessage(targetPubKey!, payload);
-			}
-		}, targetPubKey, name, allParticipantsMap);
-	});
+					if (isGroup) {
+						const others = currentGroupParticipants.filter(
+							(p) => p !== myIdentity.publicKey,
+						);
+						others.forEach((pub) =>
+							p2p.sendP2PMessage(pub, payload).catch(() => {}),
+						);
+					} else {
+						await p2p.sendP2PMessage(targetPubKey!, payload);
+					}
+				},
+				targetPubKey,
+				name,
+				allParticipantsMap,
+			);
+		});
 	const TRACKERS = [
-		'wss://tracker.btorrent.xyz',
-		'wss://tracker.openwebtorrent.com',
-		'wss://tracker.files.fm:7073/announce',
-		'wss://tracker.gbitt.info:443/announce'
+		"wss://tracker.btorrent.xyz",
+		"wss://tracker.openwebtorrent.com",
+		"wss://tracker.files.fm:7073/announce",
+		"wss://tracker.gbitt.info:443/announce",
 	];
 
 	async function downloadFile(msgId: string) {
-		const msgEl = document.querySelector(`.message-bubble[data-id="${msgId}"]`);
+		const msgEl = document.querySelector(
+			`.message-bubble[data-id="${msgId}"]`,
+		);
 		if (!msgEl) return;
-		
-		const btn = msgEl.querySelector('.file-download-btn') as HTMLButtonElement;
+
+		const btn = msgEl.querySelector(
+			".file-download-btn",
+		) as HTMLButtonElement;
 		if (btn) btn.disabled = true;
-		
-		const progressEl = msgEl.querySelector('.file-progress') as HTMLElement;
+
+		const progressEl = msgEl.querySelector(".file-progress") as HTMLElement;
 		if (progressEl) {
-			progressEl.classList.remove('hidden');
-			progressEl.textContent = 'Iniciando...';
+			progressEl.classList.remove("hidden");
+			progressEl.textContent = "Iniciando...";
 		}
 
 		try {
 			const chat = await chatRepo.getChat(currentChatId!);
-			const msg = chat?.messages.find(m => m.id === msgId);
-			if (!msg || msg.type !== 'file') return;
+			const msg = chat?.messages.find((m) => m.id === msgId);
+			if (!msg || msg.type !== "file") return;
 
 			const fileMeta = JSON.parse(msg.content);
 			if (!torrentClient) torrentClient = await getWebTorrentClient();
 
 			const onDone = async (t: any) => {
-				if (progressEl) progressEl.textContent = 'Descifrando...';
+				if (progressEl) progressEl.textContent = "Descifrando...";
 				try {
 					const file = t.files[0];
 					const encryptedBuf = await file.arrayBuffer();
-					
+
 					// GUARDAR PARA RE-SEEDING FUTURO
-					try { await chatRepo.saveFileData(msgId, encryptedBuf, fileMeta.magnetURI); } catch(e) {}
+					try {
+						await chatRepo.saveFileData(
+							msgId,
+							encryptedBuf,
+							fileMeta.magnetURI,
+						);
+					} catch (e) {}
 
 					const key = await importFileKey(fileMeta.key);
-					const iv = new Uint8Array(atob(fileMeta.iv).split('').map(c => c.charCodeAt(0)));
-					
-					const decryptedBuf = await decryptFile(encryptedBuf, key, iv);
-					const blob = new Blob([decryptedBuf], { type: fileMeta.type });
+					const iv = new Uint8Array(
+						atob(fileMeta.iv)
+							.split("")
+							.map((c) => c.charCodeAt(0)),
+					);
+
+					const decryptedBuf = await decryptFile(
+						encryptedBuf,
+						key,
+						iv,
+					);
+					const blob = new Blob([decryptedBuf], {
+						type: fileMeta.type,
+					});
 					const url = URL.createObjectURL(blob);
-					const a = document.createElement('a');
+					const a = document.createElement("a");
 					a.href = url;
 					a.download = fileMeta.name;
 					a.click();
 					URL.revokeObjectURL(url);
 
 					if (progressEl) {
-						progressEl.textContent = 'Descargado';
-						setTimeout(() => progressEl.classList.add('hidden'), 3000);
+						progressEl.textContent = "Descargado";
+						setTimeout(
+							() => progressEl.classList.add("hidden"),
+							3000,
+						);
 					}
 				} catch (err) {
 					console.error("Decryption error:", err);
-					if (progressEl) progressEl.textContent = 'Error al descifrar';
+					if (progressEl)
+						progressEl.textContent = "Error al descifrar";
 				} finally {
 					if (btn) btn.disabled = false;
 				}
 			};
 
 			// Búsqueda manual robusta de torrent existente
-			let torrent = torrentClient.torrents.find((t: any) => 
-				t.magnetURI === fileMeta.magnetURI || t.infoHash === fileMeta.magnetURI || t.infoHash === fileMeta.magnetURI.split('btih:')[1]?.split('&')[0]
+			let torrent = torrentClient.torrents.find(
+				(t: any) =>
+					t.magnetURI === fileMeta.magnetURI ||
+					t.infoHash === fileMeta.magnetURI ||
+					t.infoHash ===
+						fileMeta.magnetURI.split("btih:")[1]?.split("&")[0],
 			);
-			
-			if (torrent && typeof torrent.on === 'function') {
+
+			if (torrent && typeof torrent.on === "function") {
 				if (torrent.done) onDone(torrent);
-				else torrent.on('done', () => onDone(torrent));
+				else torrent.on("done", () => onDone(torrent));
 			} else {
 				try {
-					torrent = torrentClient.add(fileMeta.magnetURI, { announce: TRACKERS }, (t: any) => {
-						if (t && typeof t.on === 'function') {
-							t.on('download', () => {
-								if (progressEl) {
-									const percent = Math.round(t.progress * 100);
-									progressEl.textContent = `Descargando... ${percent}%`;
-								}
-							});
-							t.on('done', () => onDone(t));
-						}
-					});
+					torrent = torrentClient.add(
+						fileMeta.magnetURI,
+						{ announce: TRACKERS },
+						(t: any) => {
+							if (t && typeof t.on === "function") {
+								t.on("download", () => {
+									if (progressEl) {
+										const percent = Math.round(
+											t.progress * 100,
+										);
+										progressEl.textContent = `Descargando... ${percent}%`;
+									}
+								});
+								t.on("done", () => onDone(t));
+							}
+						},
+					);
 				} catch (e) {
 					// Fallback: intentar obtenerlo de nuevo tras el error de duplicado
 					const retry = torrentClient.get(fileMeta.magnetURI);
-					if (retry && typeof retry.on === 'function') onDone(retry);
+					if (retry && typeof retry.on === "function") onDone(retry);
 					else throw e;
 				}
 			}
 		} catch (err) {
 			console.error("Download failed:", err);
 			if (btn) btn.disabled = false;
-			if (progressEl) progressEl.textContent = 'Error';
+			if (progressEl) progressEl.textContent = "Error";
 		}
 	}
 	(window as any).downloadFile = downloadFile;
 
-	window.addEventListener('bitmeet:invite-to-call', async (e: any) => {
+	window.addEventListener("bitmeet:invite-to-call", async (e: any) => {
 		const { publicKey, roomId, isVideo, invitedPeers } = e.detail;
-		console.log("[BitMeet] Enviando invitación externa a:", publicKey, "para sala:", roomId);
-		
+		console.log(
+			"[BitMeet] Enviando invitación externa a:",
+			publicKey,
+			"para sala:",
+			roomId,
+		);
+
 		try {
 			await p2p.sendP2PMessage(publicKey, {
-				type: 'call-invite',
+				type: "call-invite",
 				roomId,
 				callerName: myIdentity.username,
 				senderPubKey: myIdentity.publicKey,
 				peerId: p2p.getPeer().id,
-				invitedPeers: invitedPeers || (window as any).pendingInvitedPeers // Reusar invitados actuales si es posible
+				invitedPeers:
+					invitedPeers || (window as any).pendingInvitedPeers, // Reusar invitados actuales si es posible
 			});
 		} catch (err) {
 			console.error("[BitMeet] Error al enviar invitación externa:", err);
 		}
 	});
 
-	window.addEventListener('bitmeet:send-message', async (e: any) => {
+	window.addEventListener("bitmeet:send-message", async (e: any) => {
 		const { chatId, content } = e.detail;
 		console.log("[BitMeet] Enviando mensaje desde overlay a:", chatId);
-		
+
 		const chat = await (window as any).chatRepo.getChat(chatId);
 		if (!chat) return;
 
@@ -1674,32 +2242,38 @@ import '../styles/global.css';
 			senderName: (window as any).myIdentity.username,
 			content,
 			timestamp: Date.now(),
-			type: 'text'
+			type: "text",
 		};
 
 		await (window as any).chatRepo.addMessage(chatId, message as any);
-		
+
 		// Notificar al overlay (auto-feedback)
-		window.dispatchEvent(new CustomEvent('bitmeet:new-message', { detail: { chatId, message } }));
+		window.dispatchEvent(
+			new CustomEvent("bitmeet:new-message", {
+				detail: { chatId, message },
+			}),
+		);
 
 		// Enviar a los demás
-		if (chat.type === 'group') {
-			chat.participants.forEach(p => {
+		if (chat.type === "group") {
+			chat.participants.forEach((p) => {
 				if (p !== (window as any).myIdentity.publicKey) {
 					p2p.sendP2PMessage(p, {
-						type: 'text',
+						type: "text",
 						content,
-						chatId
+						chatId,
 					}).catch(() => {});
 				}
 			});
 		} else {
-			const other = chat.participants.find(p => p !== (window as any).myIdentity.publicKey);
+			const other = chat.participants.find(
+				(p) => p !== (window as any).myIdentity.publicKey,
+			);
 			if (other) {
 				p2p.sendP2PMessage(other, {
-					type: 'text',
+					type: "text",
 					content,
-					chatId
+					chatId,
 				});
 			}
 		}
@@ -1709,17 +2283,23 @@ import '../styles/global.css';
 		const savedContacts = await chatRepo.listContacts();
 		const activeChats = await chatRepo.listAllChats();
 		const colleagues = await bitid.getColleagues();
-		
+
 		// Filtrar bloqueados
-		const filteredSaved = savedContacts.filter(c => !c.isBlocked);
+		const filteredSaved = savedContacts.filter((c) => !c.isBlocked);
 
 		// Fusionar listas de contactos directos
 		const directContacts: any[] = [...filteredSaved];
-		
-		colleagues.forEach(c => {
-			const existing = directContacts.find(a => a.publicKey === c.public_key);
+
+		colleagues.forEach((c) => {
+			const existing = directContacts.find(
+				(a) => a.publicKey === c.public_key,
+			);
 			if (!existing) {
-				directContacts.push({ publicKey: c.public_key, username: c.username, online_status: c.online_status });
+				directContacts.push({
+					publicKey: c.public_key,
+					username: c.username,
+					online_status: c.online_status,
+				});
 			} else {
 				existing.online_status = c.online_status;
 			}
@@ -1730,27 +2310,34 @@ import '../styles/global.css';
 		const otherDirects: any[] = [];
 
 		for (const chat of activeChats) {
-			const lastMsg = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1] : null;
+			const lastMsg =
+				chat.messages.length > 0
+					? chat.messages[chat.messages.length - 1]
+					: null;
 			let lastMsgText = "";
 			let isUnread = false;
 
 			if (lastMsg) {
 				const isMe = lastMsg.senderPubKey === myIdentity.publicKey;
-				const sender = isMe ? "Tú" : (lastMsg.senderUsername || "Él/Ella");
+				const sender = isMe
+					? "Tú"
+					: lastMsg.senderUsername || "Él/Ella";
 				let content = lastMsg.content;
-				if (lastMsg.type === 'file') content = "📎 Archivo";
-				if (lastMsg.type === 'system') content = "Mensaje de sistema";
+				if (lastMsg.type === "file") content = "📎 Archivo";
+				if (lastMsg.type === "system") content = "Mensaje de sistema";
 				lastMsgText = `${sender}: ${content}`;
-				
+
 				// Definir si es un mensaje no leído
 				// Si nunca se ha leído el chat (lastReadTimestamp undefined) y hay mensajes de otros, es unread
 				// Si se ha leído, comparamos timestamps. Solo marcamos unread si el último mensaje NO es mío.
 				if (!isMe) {
-					isUnread = chat.lastReadTimestamp ? lastMsg.timestamp > chat.lastReadTimestamp : true;
+					isUnread = chat.lastReadTimestamp
+						? lastMsg.timestamp > chat.lastReadTimestamp
+						: true;
 				}
 			}
 
-			if (chat.type === 'group') {
+			if (chat.type === "group") {
 				groups.push({
 					id: chat.id,
 					username: chat.name || "Grupo sin nombre",
@@ -1758,34 +2345,56 @@ import '../styles/global.css';
 					participants: chat.participants,
 					lastUpdate: chat.lastUpdate,
 					lastMessage: lastMsgText,
-					isUnread
+					isUnread,
 				});
 				continue;
 			}
 
-			const otherPubKey = chat.participants.find(p => p !== myIdentity.publicKey);
+			const otherPubKey = chat.participants.find(
+				(p) => p !== myIdentity.publicKey,
+			);
 			if (!otherPubKey) continue;
 
-			const existing = directContacts.find(a => a.publicKey === otherPubKey);
+			const existing = directContacts.find(
+				(a) => a.publicKey === otherPubKey,
+			);
 			const contact = await chatRepo.getContact(otherPubKey);
 			if (contact?.isBlocked) continue;
 
 			if (!existing) {
-				const otherMsgWithName = [...chat.messages].reverse().find(m => m.senderPubKey === otherPubKey && (m as any).senderUsername);
-				const displayName = contact?.username || (otherMsgWithName as any)?.senderUsername || `Desconocido (${otherPubKey.substring(0, 6)})`;
+				const otherMsgWithName = [...chat.messages]
+					.reverse()
+					.find(
+						(m) =>
+							m.senderPubKey === otherPubKey &&
+							(m as any).senderUsername,
+					);
+				const displayName =
+					contact?.username ||
+					(otherMsgWithName as any)?.senderUsername ||
+					`Desconocido (${otherPubKey.substring(0, 6)})`;
 
-				otherDirects.push({ 
-					publicKey: otherPubKey, 
+				otherDirects.push({
+					publicKey: otherPubKey,
 					username: displayName,
 					isNew: true,
 					lastUpdate: chat.lastUpdate,
 					lastMessage: lastMsgText,
-					isUnread
+					isUnread,
 				});
 			} else {
-				if (existing.username.includes('Desconocido')) {
-					const otherMsgWithName = [...chat.messages].reverse().find(m => m.senderPubKey === otherPubKey && (m as any).senderUsername);
-					if (otherMsgWithName) existing.username = (otherMsgWithName as any).senderUsername;
+				if (existing.username.includes("Desconocido")) {
+					const otherMsgWithName = [...chat.messages]
+						.reverse()
+						.find(
+							(m) =>
+								m.senderPubKey === otherPubKey &&
+								(m as any).senderUsername,
+						);
+					if (otherMsgWithName)
+						existing.username = (
+							otherMsgWithName as any
+						).senderUsername;
 				}
 				existing.lastUpdate = chat.lastUpdate;
 				existing.lastMessage = lastMsgText;
@@ -1794,38 +2403,44 @@ import '../styles/global.css';
 		}
 
 		// Ordenar todo por última actividad
-		const all = [...groups, ...directContacts, ...otherDirects].sort((a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0));
+		const all = [...groups, ...directContacts, ...otherDirects].sort(
+			(a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0),
+		);
 
-	// Actualizar estados de conexión en tiempo real y disparar auto-discovery
-		await Promise.all(all.filter(c => !c.isGroup).map(async c => {
-			const isConnected = await p2p.isConnected(c.publicKey);
-			if (isConnected) {
-				c.online_status = 'online';
-			} else {
-				// Consultar presencia local P2P
-				const status = await p2p.getPresence(c.publicKey);
-				c.online_status = status;
-				
-				// Si no está conectado, intentamos el auto-descubrimiento P2P
-				if (status === 'offline') {
-					p2p.discover(c.publicKey);
-				}
-			}
-		}));
+		// Actualizar estados de conexión en tiempo real y disparar auto-discovery
+		await Promise.all(
+			all
+				.filter((c) => !c.isGroup)
+				.map(async (c) => {
+					const isConnected = await p2p.isConnected(c.publicKey);
+					if (isConnected) {
+						c.online_status = "online";
+					} else {
+						// Consultar presencia local P2P
+						const status = await p2p.getPresence(c.publicKey);
+						c.online_status = status;
+
+						// Si no está conectado, intentamos el auto-descubrimiento P2P
+						if (status === "offline") {
+							p2p.discover(c.publicKey);
+						}
+					}
+				}),
+		);
 
 		renderContactList(all);
 		updateActiveChatPresence();
 	}
 
 	async function updateActiveChatPresence() {
-		if (currentChatType !== 'direct' || !currentChatPubKey) return;
-		
-		const statusEl = document.getElementById('active-chat-status')!;
-		const statusDot = document.getElementById('active-chat-status-dot')!;
-		
+		if (currentChatType !== "direct" || !currentChatPubKey) return;
+
+		const statusEl = document.getElementById("active-chat-status")!;
+		const statusDot = document.getElementById("active-chat-status-dot")!;
+
 		const connected = await p2p.isConnected(currentChatPubKey);
-		statusEl.textContent = connected ? 'Conexión Segura' : 'Offline';
-		statusDot.className = `status-dot ${connected ? 'online' : 'offline'}`;
+		statusEl.textContent = connected ? "Conexión Segura" : "Offline";
+		statusDot.className = `status-dot ${connected ? "online" : "offline"}`;
 	}
 
 	// Refresco periódico de estados cada 5 segundos (Sincronizado con heartbeat P2P)
@@ -1836,116 +2451,149 @@ import '../styles/global.css';
 
 	async function loadColleagues() {
 		const colleagues = await bitid.getColleagues();
-		renderContactList(colleagues.map(c => ({ publicKey: c.public_key, username: c.username, online_status: c.online_status })));
+		renderContactList(
+			colleagues.map((c) => ({
+				publicKey: c.public_key,
+				username: c.username,
+				online_status: c.online_status,
+			})),
+		);
 	}
 
 	function renderContactList(list: any[]) {
 		if (chatsList) {
 			if (list.length === 0) {
-				chatsList.innerHTML = '<div class="empty-results">No hay contactos</div>';
+				chatsList.innerHTML =
+					'<div class="empty-results">No hay contactos</div>';
 				return;
 			}
-			chatsList.innerHTML = list.map(c => {
-				const id = c.isGroup ? c.id : c.publicKey;
-				const isActive = (c.isGroup && id === currentChatId) || (!c.isGroup && id === currentChatPubKey);
-				const previewText = c.lastMessage || (c.isGroup ? `${c.participants.length} participantes` : (c.online_status === 'online' ? 'Disponible' : 'Desconectado'));
-				
-				return `
-					<div class="chat-item ${c.isUnread ? 'unread' : ''} ${c.isGroup ? 'group-item' : ''} ${isActive ? 'active' : ''}" 
+			chatsList.innerHTML = list
+				.map((c) => {
+					const id = c.isGroup ? c.id : c.publicKey;
+					const isActive =
+						(c.isGroup && id === currentChatId) ||
+						(!c.isGroup && id === currentChatPubKey);
+					const previewText =
+						c.lastMessage ||
+						(c.isGroup
+							? `${c.participants.length} participantes`
+							: c.online_status === "online"
+								? "Disponible"
+								: "Desconectado");
+
+					return `
+					<div class="chat-item ${c.isUnread ? "unread" : ""} ${c.isGroup ? "group-item" : ""} ${isActive ? "active" : ""}" 
 						 data-id="${id}" 
-						 data-type="${c.isGroup ? 'group' : 'direct'}">
-						<div class="chat-avatar ${c.isGroup ? 'group-avatar' : ''}">${c.username.charAt(0).toUpperCase()}</div>
+						 data-type="${c.isGroup ? "group" : "direct"}">
+						<div class="chat-avatar ${c.isGroup ? "group-avatar" : ""}">${c.username.charAt(0).toUpperCase()}</div>
 						<div class="chat-info">
 							<div class="chat-row">
-								<strong>${c.isGroup ? '👥 ' : ''}${c.username}</strong> 
-								${c.online_status ? `<span class="status-dot ${c.online_status === 'online' ? 'online' : 'offline'}"></span>` : ''}
+								<strong>${c.isGroup ? "👥 " : ""}${c.username}</strong> 
+								${c.online_status ? `<span class="status-dot ${c.online_status === "online" ? "online" : "offline"}"></span>` : ""}
 							</div>
-							<div class="preview ${c.isUnread ? 'unread' : ''}">${previewText}</div>
+							<div class="preview ${c.isUnread ? "unread" : ""}">${previewText}</div>
 						</div>
 					</div>
 				`;
-			}).join('');
+				})
+				.join("");
 
-			chatsList.querySelectorAll('.chat-item').forEach(item => {
-				item.addEventListener('click', async (e) => {
+			chatsList.querySelectorAll(".chat-item").forEach((item) => {
+				item.addEventListener("click", async (e) => {
 					const target = e.currentTarget as HTMLElement;
-					const id = target.getAttribute('data-id');
-					const type = target.getAttribute('data-type') as 'direct' | 'group';
-					const name = target.querySelector('strong')?.textContent?.replace('👥 ', '');
+					const id = target.getAttribute("data-id");
+					const type = target.getAttribute("data-type") as
+						| "direct"
+						| "group";
+					const name = target
+						.querySelector("strong")
+						?.textContent?.replace("👥 ", "");
 					await selectChat(id!, name!, type);
 				});
 			});
 		}
 	}
 
-	async function selectChat(id: string, name: string, type: 'direct' | 'group' = 'direct') {
-		viewNoChat?.classList.add('hidden');
-		viewActiveChat?.classList.remove('hidden');
-		document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
-		
-		const selector = type === 'group' ? `[data-id="${id}"]` : `[data-id="${id}"]`;
+	async function selectChat(
+		id: string,
+		name: string,
+		type: "direct" | "group" = "direct",
+	) {
+		viewNoChat?.classList.add("hidden");
+		viewActiveChat?.classList.remove("hidden");
+		document
+			.querySelectorAll(".chat-item")
+			.forEach((i) => i.classList.remove("active"));
+
+		const selector =
+			type === "group" ? `[data-id="${id}"]` : `[data-id="${id}"]`;
 		const item = document.querySelector(selector);
-		item?.classList.remove('unread');
-		item?.classList.add('active');
-		
-		document.getElementById('active-chat-name')!.textContent = name;
+		item?.classList.remove("unread");
+		item?.classList.add("active");
+
+		document.getElementById("active-chat-name")!.textContent = name;
 		currentChatType = type;
-		
+
 		// Marcar como leído
 		await chatRepo.markAsRead(id);
 		loadContacts();
 
-		const statusEl = document.getElementById('active-chat-status')!;
-		const statusDot = document.getElementById('active-chat-status-dot')!;
-		const btnVoice = document.getElementById('btn-call-voice');
-		const btnVideo = document.getElementById('btn-call-video');
-		const btnGSettings = document.getElementById('btn-group-settings');
-		
-		if (type === 'group') {
+		const statusEl = document.getElementById("active-chat-status")!;
+		const statusDot = document.getElementById("active-chat-status-dot")!;
+		const btnVoice = document.getElementById("btn-call-voice");
+		const btnVideo = document.getElementById("btn-call-video");
+		const btnGSettings = document.getElementById("btn-group-settings");
+
+		if (type === "group") {
 			currentChatId = id;
 			currentChatPubKey = null;
 			const chat = await chatRepo.getChat(id);
 			currentGroupParticipants = chat?.participants || [];
 			currentGroupOwner = chat?.owner || null;
-			
+
 			console.log("[BitMeet] Seleccionado grupo:", name, "ID:", id);
 			console.log("[BitMeet] Owner del grupo:", currentGroupOwner);
 			console.log("[BitMeet] Mi clave pública:", myIdentity?.publicKey);
-			console.log("[BitMeet] ¿Es admin?:", currentGroupOwner === myIdentity?.publicKey);
+			console.log(
+				"[BitMeet] ¿Es admin?:",
+				currentGroupOwner === myIdentity?.publicKey,
+			);
 
 			statusEl.textContent = `${currentGroupParticipants.length} participantes`;
-			statusDot.className = 'status-dot online';
+			statusDot.className = "status-dot online";
 
-			if (btnGSettings) {				btnGSettings.classList.remove('hidden');
+			if (btnGSettings) {
+				btnGSettings.classList.remove("hidden");
 				console.log("[BitMeet] Mostrando botón de ajustes de grupo");
 			}
 			// HABILITAR BOTONES DE LLAMADA EN GRUPOS
-			if (btnVoice) btnVoice.classList.remove('hidden');
-			if (btnVideo) btnVideo.classList.remove('hidden');
+			if (btnVoice) btnVoice.classList.remove("hidden");
+			if (btnVideo) btnVideo.classList.remove("hidden");
 		} else {
 			currentChatId = await getChatId(myIdentity.publicKey, id);
 			currentChatPubKey = id;
 			currentGroupParticipants = [];
 			currentGroupOwner = null;
 
-			if (btnVoice) btnVoice.classList.remove('hidden');
-			if (btnVideo) btnVideo.classList.remove('hidden');
-			if (btnGSettings) btnGSettings.classList.add('hidden');
+			if (btnVoice) btnVoice.classList.remove("hidden");
+			if (btnVideo) btnVideo.classList.remove("hidden");
+			if (btnGSettings) btnGSettings.classList.add("hidden");
 
 			await updateActiveChatPresence();
 			await updateContactUI(id);
 		}
-		
-		const input = document.getElementById('chat-input') as HTMLInputElement;
-		input.value = ''; input.focus();
+
+		const input = document.getElementById("chat-input") as HTMLInputElement;
+		input.value = "";
+		input.focus();
 
 		// Refrescar lista de contactos para actualizar el estado online en el sidebar
 		loadContacts();
 
 		await loadChatHistory(currentChatId);
-		
+
 		// Proactivamente intentar re-enviar mensajes pendientes al abrir este chat
-		if (type === 'direct') {
+		if (type === "direct") {
 			retryPendingMessages(await p2p.hashPubKey(id));
 		} else {
 			retryPendingMessages();
@@ -1955,36 +2603,44 @@ import '../styles/global.css';
 	// Resto de utilidades
 	// --- LÓGICA DE CALENDARIO ---
 	let currentCalendarDate = new Date();
-	let selectedParticipants: {pubKey: string, username: string}[] = [];
+	let selectedParticipants: { pubKey: string; username: string }[] = [];
 
-	document.getElementById('cal-btn-close')?.addEventListener('click', () => calendarModal?.classList.add('hidden'));
-	document.getElementById('cal-btn-prev')?.addEventListener('click', () => {
+	document
+		.getElementById("cal-btn-close")
+		?.addEventListener("click", () =>
+			calendarModal?.classList.add("hidden"),
+		);
+	document.getElementById("cal-btn-prev")?.addEventListener("click", () => {
 		currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
 		renderCalendar();
 	});
-	document.getElementById('cal-btn-next')?.addEventListener('click', () => {
+	document.getElementById("cal-btn-next")?.addEventListener("click", () => {
 		currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
 		renderCalendar();
 	});
 
-	document.getElementById('cal-view-selector')?.addEventListener('change', () => {
-		renderCalendar();
-	});
+	document
+		.getElementById("cal-view-selector")
+		?.addEventListener("change", () => {
+			renderCalendar();
+		});
 
 	async function renderCalendar() {
-		const view = (document.getElementById('cal-view-selector') as HTMLSelectElement)?.value || 'month';
-		const grid = document.getElementById('calendar-grid');
+		const view =
+			(document.getElementById("cal-view-selector") as HTMLSelectElement)
+				?.value || "month";
+		const grid = document.getElementById("calendar-grid");
 		if (!grid) return;
 
 		grid.className = `calendar-grid ${view}-view`;
-		grid.innerHTML = '';
+		grid.innerHTML = "";
 
-		if (view === 'month') {
+		if (view === "month") {
 			await renderMonthView(grid);
 		} else {
-			if (view === 'week') await renderWeekView(grid);
-			else if (view === 'day') await renderDayView(grid);
-			
+			if (view === "week") await renderWeekView(grid);
+			else if (view === "day") await renderDayView(grid);
+
 			// Autoscroll a una hora razonable (8:00 AM) para que no se vea vacío arriba
 			setTimeout(() => {
 				const viewport = grid.parentElement;
@@ -1994,48 +2650,78 @@ import '../styles/global.css';
 	}
 
 	async function renderMonthView(grid: HTMLElement) {
-		const periodEl = document.getElementById('cal-current-period');
+		const periodEl = document.getElementById("cal-current-period");
 		if (periodEl) {
-			periodEl.textContent = currentCalendarDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+			periodEl.textContent = currentCalendarDate.toLocaleString("es-ES", {
+				month: "long",
+				year: "numeric",
+			});
 		}
 
 		// Cabecera días
-		const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-		days.forEach(d => {
-			const cell = document.createElement('div');
-			cell.className = 'calendar-day-header';
+		const days = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+		days.forEach((d) => {
+			const cell = document.createElement("div");
+			cell.className = "calendar-day-header";
 			cell.textContent = d;
 			grid.appendChild(cell);
 		});
 
-		const firstDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
-		const lastDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
-		
+		const firstDay = new Date(
+			currentCalendarDate.getFullYear(),
+			currentCalendarDate.getMonth(),
+			1,
+		);
+		const lastDay = new Date(
+			currentCalendarDate.getFullYear(),
+			currentCalendarDate.getMonth() + 1,
+			0,
+		);
+
 		let startOffset = firstDay.getDay() - 1;
 		if (startOffset === -1) startOffset = 6;
 
 		for (let i = 0; i < startOffset; i++) {
-			grid.appendChild(document.createElement('div'));
+			grid.appendChild(document.createElement("div"));
 		}
 
-		const events = await calendarRepo.listEvents(firstDay.getTime(), lastDay.getTime());
+		const events = await calendarRepo.listEvents(
+			firstDay.getTime(),
+			lastDay.getTime(),
+		);
 
 		for (let d = 1; d <= lastDay.getDate(); d++) {
-			const cell = document.createElement('div');
-			cell.className = 'calendar-day-cell';
+			const cell = document.createElement("div");
+			cell.className = "calendar-day-cell";
 			cell.innerHTML = `<span class="day-number">${d}</span>`;
-			
-			const dayStart = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), d, 0, 0, 0).getTime();
-			const dayEnd = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), d, 23, 59, 59).getTime();
-			
-			const dayEvents = events.filter(e => e.startTime >= dayStart && e.startTime <= dayEnd);
-			dayEvents.forEach(e => {
-				const evEl = document.createElement('div');
+
+			const dayStart = new Date(
+				currentCalendarDate.getFullYear(),
+				currentCalendarDate.getMonth(),
+				d,
+				0,
+				0,
+				0,
+			).getTime();
+			const dayEnd = new Date(
+				currentCalendarDate.getFullYear(),
+				currentCalendarDate.getMonth(),
+				d,
+				23,
+				59,
+				59,
+			).getTime();
+
+			const dayEvents = events.filter(
+				(e) => e.startTime >= dayStart && e.startTime <= dayEnd,
+			);
+			dayEvents.forEach((e) => {
+				const evEl = document.createElement("div");
 				evEl.className = `calendar-event-item ${e.type}`;
 				evEl.textContent = e.title;
 				evEl.title = `${e.title}\n${new Date(e.startTime).toLocaleTimeString()} - ${new Date(e.endTime).toLocaleTimeString()}`;
-				evEl.setAttribute('data-event-id', e.id);
-				evEl.addEventListener('click', (ev) => {
+				evEl.setAttribute("data-event-id", e.id);
+				evEl.addEventListener("click", (ev) => {
 					ev.stopPropagation();
 					showEventDetails(e.id);
 				});
@@ -2046,60 +2732,65 @@ import '../styles/global.css';
 	}
 
 	async function renderWeekView(grid: HTMLElement) {
-		const periodEl = document.getElementById('cal-current-period');
-		
+		const periodEl = document.getElementById("cal-current-period");
+
 		// Calcular inicio de semana (Lunes)
 		const startOfWeek = new Date(currentCalendarDate);
 		const day = startOfWeek.getDay();
 		const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
 		startOfWeek.setDate(diff);
-		startOfWeek.setHours(0,0,0,0);
+		startOfWeek.setHours(0, 0, 0, 0);
 
 		const endOfWeek = new Date(startOfWeek);
 		endOfWeek.setDate(endOfWeek.getDate() + 6);
-		endOfWeek.setHours(23,59,59,999);
+		endOfWeek.setHours(23, 59, 59, 999);
 
 		if (periodEl) {
-			periodEl.textContent = `${startOfWeek.getDate()} - ${endOfWeek.getDate()} ${endOfWeek.toLocaleString('es-ES', { month: 'short' })}`;
+			periodEl.textContent = `${startOfWeek.getDate()} - ${endOfWeek.getDate()} ${endOfWeek.toLocaleString("es-ES", { month: "short" })}`;
 		}
 
 		grid.innerHTML = `
 			<div class="time-axis"></div>
 			<div class="view-content"></div>
 		`;
-		
-		const timeAxis = grid.querySelector('.time-axis')!;
-		const content = grid.querySelector('.view-content')!;
+
+		const timeAxis = grid.querySelector(".time-axis")!;
+		const content = grid.querySelector(".view-content")!;
 
 		// Eje de tiempo
 		for (let h = 0; h < 24; h++) {
-			const label = document.createElement('div');
-			label.className = 'time-label';
+			const label = document.createElement("div");
+			label.className = "time-label";
 			label.textContent = `${h}:00`;
 			timeAxis.appendChild(label);
 		}
 
-		const events = await calendarRepo.listEvents(startOfWeek.getTime(), endOfWeek.getTime());
+		const events = await calendarRepo.listEvents(
+			startOfWeek.getTime(),
+			endOfWeek.getTime(),
+		);
 
 		// Columnas de días
 		for (let i = 0; i < 7; i++) {
 			const currentDay = new Date(startOfWeek);
 			currentDay.setDate(startOfWeek.getDate() + i);
-			
-			const column = document.createElement('div');
-			column.className = 'day-column';
+
+			const column = document.createElement("div");
+			column.className = "day-column";
 			column.innerHTML = `
 				<div class="column-header">
-					${currentDay.toLocaleString('es-ES', { weekday: 'short' })} ${currentDay.getDate()}
+					${currentDay.toLocaleString("es-ES", { weekday: "short" })} ${currentDay.getDate()}
 				</div>
 			`;
 
-			const dayStart = new Date(currentDay).setHours(0,0,0,0);
-			const dayEnd = new Date(currentDay).setHours(23,59,59,999);
+			const dayStart = new Date(currentDay).setHours(0, 0, 0, 0);
+			const dayEnd = new Date(currentDay).setHours(23, 59, 59, 999);
 
-			const dayEvents = events.filter(e => e.startTime >= dayStart && e.startTime <= dayEnd);
-			
-			dayEvents.forEach(e => {
+			const dayEvents = events.filter(
+				(e) => e.startTime >= dayStart && e.startTime <= dayEnd,
+			);
+
+			dayEvents.forEach((e) => {
 				const evEl = createRealSpaceEvent(e);
 				column.appendChild(evEl);
 			});
@@ -2109,34 +2800,37 @@ import '../styles/global.css';
 	}
 
 	async function renderDayView(grid: HTMLElement) {
-		const periodEl = document.getElementById('cal-current-period');
+		const periodEl = document.getElementById("cal-current-period");
 		if (periodEl) {
-			periodEl.textContent = currentCalendarDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+			periodEl.textContent = currentCalendarDate.toLocaleDateString(
+				"es-ES",
+				{ weekday: "long", day: "numeric", month: "long" },
+			);
 		}
 
 		grid.innerHTML = `
 			<div class="time-axis"></div>
 			<div class="view-content"></div>
 		`;
-		
-		const timeAxis = grid.querySelector('.time-axis')!;
-		const content = grid.querySelector('.view-content')!;
+
+		const timeAxis = grid.querySelector(".time-axis")!;
+		const content = grid.querySelector(".view-content")!;
 
 		for (let h = 0; h < 24; h++) {
-			const label = document.createElement('div');
-			label.className = 'time-label';
+			const label = document.createElement("div");
+			label.className = "time-label";
 			label.textContent = `${h}:00`;
 			timeAxis.appendChild(label);
 		}
 
-		const dayStart = new Date(currentCalendarDate).setHours(0,0,0,0);
-		const dayEnd = new Date(currentCalendarDate).setHours(23,59,59,999);
+		const dayStart = new Date(currentCalendarDate).setHours(0, 0, 0, 0);
+		const dayEnd = new Date(currentCalendarDate).setHours(23, 59, 59, 999);
 		const events = await calendarRepo.listEvents(dayStart, dayEnd);
 
-		const column = document.createElement('div');
-		column.className = 'day-column';
-		
-		events.forEach(e => {
+		const column = document.createElement("div");
+		column.className = "day-column";
+
+		events.forEach((e) => {
 			const evEl = createRealSpaceEvent(e);
 			column.appendChild(evEl);
 		});
@@ -2148,21 +2842,21 @@ import '../styles/global.css';
 		const date = new Date(e.startTime);
 		const startMins = date.getHours() * 60 + date.getMinutes();
 		const durationMins = Math.max(30, (e.endTime - e.startTime) / 60000);
-		
+
 		const top = (startMins / 60) * 80 + 40; // 80px por hora, +40px de header
 		const height = (durationMins / 60) * 80;
 
-		const evEl = document.createElement('div');
+		const evEl = document.createElement("div");
 		evEl.className = `calendar-event-item ${e.type} real-space`;
 		evEl.style.top = `${top}px`;
 		evEl.style.height = `${height}px`;
-		
+
 		evEl.innerHTML = `
 			<strong>${e.title}</strong>
-			<span class="event-time">${new Date(e.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+			<span class="event-time">${new Date(e.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
 		`;
-		
-		evEl.addEventListener('click', (ev) => {
+
+		evEl.addEventListener("click", (ev) => {
 			ev.stopPropagation();
 			showEventDetails(e.id);
 		});
@@ -2174,290 +2868,401 @@ import '../styles/global.css';
 		const event = await calendarRepo.getEvent(eventId);
 		if (!event) return;
 
-		const contentEl = document.getElementById('event-detail-content');
-		const titleEl = document.getElementById('detail-event-title');
+		const contentEl = document.getElementById("event-detail-content");
+		const titleEl = document.getElementById("detail-event-title");
 		if (!contentEl || !titleEl) return;
 
 		titleEl.textContent = event.title;
 
-		const format = (d: number) => new Date(d).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' });
+		const format = (d: number) =>
+			new Date(d).toLocaleString("es-ES", {
+				dateStyle: "full",
+				timeStyle: "short",
+			});
 
 		contentEl.innerHTML = `
 			<div class="detail-row">
 				<strong>Cuando</strong>
 				<p>${format(event.startTime)} - ${format(event.endTime)}</p>
 			</div>
-			${event.description ? `
+			${
+				event.description
+					? `
 			<div class="detail-row">
 				<strong>Descripción</strong>
 				<p>${event.description}</p>
-			</div>` : ''}
-			${event.type === 'meeting' ? `
+			</div>`
+					: ""
+			}
+			${
+				event.type === "meeting"
+					? `
 			<div class="detail-row">
 				<strong>Enlace</strong>
 				<p><a href="${event.meetingLink}" target="_blank">${event.meetingLink}</a></p>
 			</div>
 			<div class="detail-row">
 				<strong>Organizador</strong>
-				<p>${event.organizerPubKey === myIdentity.publicKey ? 'Tú' : 'Otro usuario'}</p>
+				<p>${event.organizerPubKey === myIdentity.publicKey ? "Tú" : "Otro usuario"}</p>
 			</div>
-			` : ''}
+			`
+					: ""
+			}
 		`;
 
-		const deleteBtn = document.getElementById('detail-event-btn-delete');
+		const deleteBtn = document.getElementById("detail-event-btn-delete");
 		if (deleteBtn) {
 			// Solo el organizador puede eliminar
 			if (event.organizerPubKey === myIdentity.publicKey) {
-				deleteBtn.classList.remove('hidden');
+				deleteBtn.classList.remove("hidden");
 			} else {
-				deleteBtn.classList.add('hidden');
+				deleteBtn.classList.add("hidden");
 			}
 		}
 
-		eventDetailModal?.classList.remove('hidden');
+		eventDetailModal?.classList.remove("hidden");
 	}
 	(window as any).showEventDetails = showEventDetails;
 
 	let currentlyOpenEventId: string | null = null;
 
-	document.getElementById('cal-btn-add')?.addEventListener('click', () => {
-		eventModal?.classList.remove('hidden');
-		(document.getElementById('event-form') as HTMLFormElement).reset();
+	document.getElementById("cal-btn-add")?.addEventListener("click", () => {
+		eventModal?.classList.remove("hidden");
+		(document.getElementById("event-form") as HTMLFormElement).reset();
 		selectedParticipants = [];
 		updateParticipantChips();
 	});
 
-	document.getElementById('event-btn-close')?.addEventListener('click', () => eventModal?.classList.add('hidden'));
-	document.getElementById('event-btn-cancel')?.addEventListener('click', () => eventModal?.classList.add('hidden'));
-	
-	document.getElementById('detail-event-btn-close')?.addEventListener('click', () => eventDetailModal?.classList.add('hidden'));
+	document
+		.getElementById("event-btn-close")
+		?.addEventListener("click", () => eventModal?.classList.add("hidden"));
+	document
+		.getElementById("event-btn-cancel")
+		?.addEventListener("click", () => eventModal?.classList.add("hidden"));
 
-	document.getElementById('detail-event-btn-delete')?.addEventListener('click', async () => {
-		if (!currentlyOpenEventId) return;
+	document
+		.getElementById("detail-event-btn-close")
+		?.addEventListener("click", () =>
+			eventDetailModal?.classList.add("hidden"),
+		);
 
-		if (confirm("¿Estás seguro de que quieres eliminar este evento? Esta acción no se puede deshacer.")) {
-			const event = await calendarRepo.getEvent(currentlyOpenEventId);
-			if (event) {
-				// Notificar a los participantes
-				if (event.participants && event.participants.length > 0) {
-					event.participants.forEach(async (pubKey) => {
-						try {
-							await p2p.sendP2PMessage(pubKey, {
-								type: 'calendar-cancel',
-								eventId: event.id,
-							});
-						} catch (e) {}
-					});
+	document
+		.getElementById("detail-event-btn-delete")
+		?.addEventListener("click", async () => {
+			if (!currentlyOpenEventId) return;
+
+			if (
+				confirm(
+					"¿Estás seguro de que quieres eliminar este evento? Esta acción no se puede deshacer.",
+				)
+			) {
+				const event = await calendarRepo.getEvent(currentlyOpenEventId);
+				if (event) {
+					// Notificar a los participantes
+					if (event.participants && event.participants.length > 0) {
+						event.participants.forEach(async (pubKey) => {
+							try {
+								await p2p.sendP2PMessage(pubKey, {
+									type: "calendar-cancel",
+									eventId: event.id,
+								});
+							} catch (e) {}
+						});
+					}
 				}
+
+				await calendarRepo.deleteEvent(currentlyOpenEventId);
+				eventDetailModal?.classList.add("hidden");
+				renderCalendar();
 			}
+		});
 
-			await calendarRepo.deleteEvent(currentlyOpenEventId);
-			eventDetailModal?.classList.add('hidden');
-			renderCalendar();
-		}
-	});
+	const participantSearch = document.getElementById(
+		"participant-search",
+	) as HTMLInputElement;
+	const participantResults = document.getElementById("participant-results");
 
-
-	const participantSearch = document.getElementById('participant-search') as HTMLInputElement;
-	const participantResults = document.getElementById('participant-results');
-
-	participantSearch?.addEventListener('input', async () => {
+	participantSearch?.addEventListener("input", async () => {
 		const q = participantSearch.value.trim().toLowerCase();
 		if (q.length < 2) {
-			participantResults?.classList.add('hidden');
+			participantResults?.classList.add("hidden");
 			return;
 		}
 
 		const contacts = await chatRepo.listContacts();
 		const colleagues = await bitid.getColleagues();
-		const all = [...contacts, ...colleagues.map(c => ({ publicKey: c.public_key, username: c.username }))];
-		
-		const filtered = all.filter(c => c.username.toLowerCase().includes(q) && !selectedParticipants.find(p => p.pubKey === c.publicKey));
+		const all = [
+			...contacts,
+			...colleagues.map((c) => ({
+				publicKey: c.public_key,
+				username: c.username,
+			})),
+		];
+
+		const filtered = all.filter(
+			(c) =>
+				c.username.toLowerCase().includes(q) &&
+				!selectedParticipants.find((p) => p.pubKey === c.publicKey),
+		);
 
 		if (participantResults) {
-			participantResults.innerHTML = filtered.map(c => `
+			participantResults.innerHTML = filtered
+				.map(
+					(c) => `
 				<div class="mini-result-item" data-pubkey="${c.publicKey}" data-username="${c.username}">
 					@${c.username}
 				</div>
-			`).join('');
-			participantResults.classList.remove('hidden');
+			`,
+				)
+				.join("");
+			participantResults.classList.remove("hidden");
 
-			participantResults.querySelectorAll('.mini-result-item').forEach(item => {
-				item.addEventListener('click', (e) => {
-					const pubKey = (e.currentTarget as HTMLElement).getAttribute('data-pubkey')!;
-					const username = (e.currentTarget as HTMLElement).getAttribute('data-username')!;
-					selectedParticipants.push({ pubKey, username });
-					updateParticipantChips();
-					participantSearch.value = '';
-					participantResults.classList.add('hidden');
+			participantResults
+				.querySelectorAll(".mini-result-item")
+				.forEach((item) => {
+					item.addEventListener("click", (e) => {
+						const pubKey = (
+							e.currentTarget as HTMLElement
+						).getAttribute("data-pubkey")!;
+						const username = (
+							e.currentTarget as HTMLElement
+						).getAttribute("data-username")!;
+						selectedParticipants.push({ pubKey, username });
+						updateParticipantChips();
+						participantSearch.value = "";
+						participantResults.classList.add("hidden");
+					});
 				});
-			});
 		}
 	});
 
 	function updateParticipantChips() {
-		const container = document.getElementById('selected-participants');
+		const container = document.getElementById("selected-participants");
 		if (container) {
-			container.innerHTML = selectedParticipants.map(p => `
+			container.innerHTML = selectedParticipants
+				.map(
+					(p) => `
 				<div class="participant-chip">
 					${p.username}
 					<button type="button" data-pubkey="${p.pubKey}">✕</button>
 				</div>
-			`).join('');
+			`,
+				)
+				.join("");
 
-			container.querySelectorAll('button').forEach(btn => {
-				btn.addEventListener('click', () => {
-					const pubKey = btn.getAttribute('data-pubkey');
-					selectedParticipants = selectedParticipants.filter(p => p.pubKey !== pubKey);
+			container.querySelectorAll("button").forEach((btn) => {
+				btn.addEventListener("click", () => {
+					const pubKey = btn.getAttribute("data-pubkey");
+					selectedParticipants = selectedParticipants.filter(
+						(p) => p.pubKey !== pubKey,
+					);
 					updateParticipantChips();
 				});
 			});
 		}
 	}
 
-	document.getElementById('event-form')?.addEventListener('submit', async (e) => {
-		e.preventDefault();
-		const title = (document.getElementById('event-title') as HTMLInputElement).value;
-		const start = new Date((document.getElementById('event-start') as HTMLInputElement).value).getTime();
-		const end = new Date((document.getElementById('event-end') as HTMLInputElement).value).getTime();
-		const type = (document.querySelector('input[name="event-type"]:checked') as HTMLInputElement).value as 'meeting' | 'busy';
-		const isNative = (document.getElementById('event-is-native') as HTMLInputElement).checked;
-		const link = (document.getElementById('event-link') as HTMLInputElement).value;
-		const desc = (document.getElementById('event-desc') as HTMLTextAreaElement).value;
+	document
+		.getElementById("event-form")
+		?.addEventListener("submit", async (e) => {
+			e.preventDefault();
+			const title = (
+				document.getElementById("event-title") as HTMLInputElement
+			).value;
+			const start = new Date(
+				(document.getElementById("event-start") as HTMLInputElement)
+					.value,
+			).getTime();
+			const end = new Date(
+				(document.getElementById("event-end") as HTMLInputElement)
+					.value,
+			).getTime();
+			const type = (
+				document.querySelector(
+					'input[name="event-type"]:checked',
+				) as HTMLInputElement
+			).value as "meeting" | "busy";
+			const isNative = (
+				document.getElementById("event-is-native") as HTMLInputElement
+			).checked;
+			const link = (
+				document.getElementById("event-link") as HTMLInputElement
+			).value;
+			const desc = (
+				document.getElementById("event-desc") as HTMLTextAreaElement
+			).value;
 
-		const eventId = Math.random().toString(36).substring(7);
-		const nativeLink = isNative ? `${window.location.origin}/room/${eventId}` : link;
+			const eventId = Math.random().toString(36).substring(7);
+			const nativeLink = isNative
+				? `${window.location.origin}/room/${eventId}`
+				: link;
 
-		const event: any = {
-			id: eventId,
-			title,
-			description: desc,
-			startTime: start,
-			endTime: end,
-			type,
-			meetingLink: nativeLink,
-			isNative,
-			organizerPubKey: myIdentity.publicKey,
-			participants: selectedParticipants.map(p => p.pubKey),
-			status: 'confirmed'
-		};
+			const event: any = {
+				id: eventId,
+				title,
+				description: desc,
+				startTime: start,
+				endTime: end,
+				type,
+				meetingLink: nativeLink,
+				isNative,
+				organizerPubKey: myIdentity.publicKey,
+				participants: selectedParticipants.map((p) => p.pubKey),
+				status: "confirmed",
+			};
 
-		await calendarRepo.saveEvent(event);
-		
-		// Enviar invitaciones P2P con reintento automático
-		if (type === 'meeting') {
-			selectedParticipants.forEach(async (p) => {
-				const inviteId = Math.random().toString(36).substring(7);
-				const invitePayload = {
-					id: inviteId,
-					eventId: eventId,
-					organizerPubKey: myIdentity.publicKey,
-					organizerUsername: myIdentity.username,
-					title,
-					description: desc,
-					startTime: start,
-					endTime: end,
-					meetingLink: nativeLink,
-					isNative,
-					timestamp: Date.now()
-				};
+			await calendarRepo.saveEvent(event);
 
-				// 1. Guardar en el chat local como 'pending' para reintento automático
-				const chatId = await getChatId(myIdentity.publicKey, p.pubKey);
-				await chatRepo.addMessage(chatId, {
-					id: inviteId,
-					senderPubKey: myIdentity.publicKey,
-					senderUsername: myIdentity.username,
-					receiverPubKey: p.pubKey,
-					content: JSON.stringify(invitePayload),
-					timestamp: Date.now(),
-					type: 'calendar-invite',
-					status: 'pending',
-					iv: ''
-				});
+			// Enviar invitaciones P2P con reintento automático
+			if (type === "meeting") {
+				selectedParticipants.forEach(async (p) => {
+					const inviteId = Math.random().toString(36).substring(7);
+					const invitePayload = {
+						id: inviteId,
+						eventId: eventId,
+						organizerPubKey: myIdentity.publicKey,
+						organizerUsername: myIdentity.username,
+						title,
+						description: desc,
+						startTime: start,
+						endTime: end,
+						meetingLink: nativeLink,
+						isNative,
+						timestamp: Date.now(),
+					};
 
-				// 2. Intentar envío inmediato
-				try {
-					await p2p.sendP2PMessage(p.pubKey, {
-						type: 'calendar-invite',
-						...invitePayload
+					// 1. Guardar en el chat local como 'pending' para reintento automático
+					const chatId = await getChatId(
+						myIdentity.publicKey,
+						p.pubKey,
+					);
+					await chatRepo.addMessage(chatId, {
+						id: inviteId,
+						senderPubKey: myIdentity.publicKey,
+						senderUsername: myIdentity.username,
+						receiverPubKey: p.pubKey,
+						content: JSON.stringify(invitePayload),
+						timestamp: Date.now(),
+						type: "calendar-invite",
+						status: "pending",
+						iv: "",
 					});
-					await chatRepo.updateMessageStatus(chatId, inviteId, 'sent');
-					console.log(`Invitación enviada a @${p.username}`);
-				} catch (err) {
-					console.warn(`No se pudo enviar invitación inmediata a @${p.username}. Se reintentará cuando esté online.`);
-				}
-			});
-		}
 
-		eventModal?.classList.add('hidden');
-		renderCalendar();
-		alert("Evento guardado");
-	});
+					// 2. Intentar envío inmediato
+					try {
+						await p2p.sendP2PMessage(p.pubKey, {
+							type: "calendar-invite",
+							...invitePayload,
+						});
+						await chatRepo.updateMessageStatus(
+							chatId,
+							inviteId,
+							"sent",
+						);
+						console.log(`Invitación enviada a @${p.username}`);
+					} catch (err) {
+						console.warn(
+							`No se pudo enviar invitación inmediata a @${p.username}. Se reintentará cuando esté online.`,
+						);
+					}
+				});
+			}
+
+			eventModal?.classList.add("hidden");
+			renderCalendar();
+			alert("Evento guardado");
+		});
 
 	// --- FIN LÓGICA DE CALENDARIO ---
 	async function loadChatHistory(chatId: string) {
-		const container = document.getElementById('messages-list')!;
+		const container = document.getElementById("messages-list")!;
 		container.innerHTML = '<div class="loading-state">Cargando...</div>';
 		const chat = await chatRepo.getChat(chatId);
-		container.innerHTML = '';
+		container.innerHTML = "";
 		if (chat) {
-			chat.messages.forEach(m => renderMessage(m));
+			chat.messages.forEach((m) => renderMessage(m));
 			scrollToBottom();
 		}
 	}
 
 	async function loadFilePreview(msgId: string) {
-		const msgEl = document.querySelector(`.message-bubble[data-id="${msgId}"]`);
-		const previewContainer = msgEl?.querySelector('.file-preview');
+		const msgEl = document.querySelector(
+			`.message-bubble[data-id="${msgId}"]`,
+		);
+		const previewContainer = msgEl?.querySelector(".file-preview");
 		if (!previewContainer) return;
 
 		try {
 			const chat = await chatRepo.getChat(currentChatId!);
-			const msg = chat?.messages.find(m => m.id === msgId);
-			if (!msg || msg.type !== 'file') return;
+			const msg = chat?.messages.find((m) => m.id === msgId);
+			if (!msg || msg.type !== "file") return;
 
 			const fileMeta = JSON.parse(msg.content);
-			if (!fileMeta.type.startsWith('image/')) return;
+			if (!fileMeta.type.startsWith("image/")) return;
 
 			if (!torrentClient) torrentClient = await getWebTorrentClient();
-			
+
 			const onDone = async (t: any) => {
 				try {
 					const file = t.files[0];
 					const encryptedBuf = await file.arrayBuffer();
-					
+
 					// GUARDAR PARA RE-SEEDING FUTURO
-					try { await chatRepo.saveFileData(msgId, encryptedBuf, fileMeta.magnetURI); } catch(e) {}
+					try {
+						await chatRepo.saveFileData(
+							msgId,
+							encryptedBuf,
+							fileMeta.magnetURI,
+						);
+					} catch (e) {}
 
 					const key = await importFileKey(fileMeta.key);
-					const iv = new Uint8Array(atob(fileMeta.iv).split('').map(c => c.charCodeAt(0)));
-					
-					const decryptedBuf = await decryptFile(encryptedBuf, key, iv);
-					const blob = new Blob([decryptedBuf], { type: fileMeta.type });
+					const iv = new Uint8Array(
+						atob(fileMeta.iv)
+							.split("")
+							.map((c) => c.charCodeAt(0)),
+					);
+
+					const decryptedBuf = await decryptFile(
+						encryptedBuf,
+						key,
+						iv,
+					);
+					const blob = new Blob([decryptedBuf], {
+						type: fileMeta.type,
+					});
 					const url = URL.createObjectURL(blob);
 					previewContainer.innerHTML = `<img src="${url}" alt="Preview" class="preview-img" onclick="window.open('${url}', '_blank')" />`;
-					previewContainer.classList.remove('loading');
+					previewContainer.classList.remove("loading");
 				} catch (e) {
 					console.error("Preview decryption error:", e);
 				}
 			};
 
-			let torrent = torrentClient.torrents.find((t: any) => 
-				t.magnetURI === fileMeta.magnetURI || t.infoHash === fileMeta.magnetURI || t.infoHash === fileMeta.magnetURI.split('btih:')[1]?.split('&')[0]
+			let torrent = torrentClient.torrents.find(
+				(t: any) =>
+					t.magnetURI === fileMeta.magnetURI ||
+					t.infoHash === fileMeta.magnetURI ||
+					t.infoHash ===
+						fileMeta.magnetURI.split("btih:")[1]?.split("&")[0],
 			);
 
-			if (torrent && typeof torrent.on === 'function') {
+			if (torrent && typeof torrent.on === "function") {
 				if (torrent.done) onDone(torrent);
-				else torrent.on('done', () => onDone(torrent));
+				else torrent.on("done", () => onDone(torrent));
 			} else {
 				try {
-					torrentClient.add(fileMeta.magnetURI, { announce: TRACKERS }, (t: any) => {
-						if (t && typeof t.on === 'function') t.on('done', () => onDone(t));
-					});
+					torrentClient.add(
+						fileMeta.magnetURI,
+						{ announce: TRACKERS },
+						(t: any) => {
+							if (t && typeof t.on === "function")
+								t.on("done", () => onDone(t));
+						},
+					);
 				} catch (e) {
 					const retry = torrentClient.get(fileMeta.magnetURI);
-					if (retry && typeof retry.on === 'function') onDone(retry);
+					if (retry && typeof retry.on === "function") onDone(retry);
 				}
 			}
 		} catch (e) {
@@ -2468,18 +3273,20 @@ import '../styles/global.css';
 	function formatMessageText(text: string) {
 		if (!text) return "";
 		// Escapar HTML para evitar XSS
-		const escaped = text.replace(/&/g, "&amp;")
-							.replace(/</g, "&lt;")
-							.replace(/>/g, "&gt;");
+		const escaped = text
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;");
 
 		// Regex para URLs: http/https o cualquier cosa con patrón letra.letra (dominios)
 		// Detectamos dominios como google.com o incluso a.b
-		const urlRegex = /(https?:\/\/[^\s]+)|(\b[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b)/g;
+		const urlRegex =
+			/(https?:\/\/[^\s]+)|(\b[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b)/g;
 
 		return escaped.replace(urlRegex, (match) => {
 			let url = match;
-			if (!url.startsWith('http')) {
-				url = 'https://' + url;
+			if (!url.startsWith("http")) {
+				url = "https://" + url;
 			}
 			return `<a href="${url}" class="msg-link" onclick="handleLinkClick(event)" ondblclick="handleLinkDblClick(event)">${match}</a>`;
 		});
@@ -2489,19 +3296,19 @@ import '../styles/global.css';
 		e.preventDefault();
 		// Mostrar un pequeño aviso o usar alert como pidió Jaime
 		const Toast = (text: string) => {
-			const t = document.createElement('div');
+			const t = document.createElement("div");
 			t.textContent = text;
-			t.style.position = 'fixed';
-			t.style.bottom = '100px';
-			t.style.left = '50%';
-			t.style.transform = 'translateX(-50%)';
-			t.style.background = 'rgba(0,0,0,0.8)';
-			t.style.color = 'white';
-			t.style.padding = '8px 16px';
-			t.style.borderRadius = '20px';
-			t.style.fontSize = '12px';
-			t.style.zIndex = '9999';
-			t.style.pointerEvents = 'none';
+			t.style.position = "fixed";
+			t.style.bottom = "100px";
+			t.style.left = "50%";
+			t.style.transform = "translateX(-50%)";
+			t.style.background = "rgba(0,0,0,0.8)";
+			t.style.color = "white";
+			t.style.padding = "8px 16px";
+			t.style.borderRadius = "20px";
+			t.style.fontSize = "12px";
+			t.style.zIndex = "9999";
+			t.style.pointerEvents = "none";
 			document.body.appendChild(t);
 			setTimeout(() => t.remove(), 2000);
 		};
@@ -2510,50 +3317,66 @@ import '../styles/global.css';
 
 	(window as any).handleLinkDblClick = (e: MouseEvent) => {
 		const target = e.currentTarget as HTMLAnchorElement;
-		window.open(target.href, '_blank', 'noopener,noreferrer');
+		window.open(target.href, "_blank", "noopener,noreferrer");
 	};
 
 	function renderMessage(msg: any) {
-		const container = document.getElementById('messages-list')!;
-		const loading = container.querySelector('.loading-state');
+		const container = document.getElementById("messages-list")!;
+		const loading = container.querySelector(".loading-state");
 		if (loading) loading.remove();
 
 		const isMine = msg.senderPubKey === myIdentity.publicKey;
-		const isGroup = currentChatType === 'group';
-		const isSystem = msg.type === 'system';
-		const isFile = msg.type === 'file';
+		const isGroup = currentChatType === "group";
+		const isSystem = msg.type === "system";
+		const isFile = msg.type === "file";
 
-		const div = document.createElement('div');
-		div.setAttribute('data-id', msg.id);
-		div.setAttribute('data-timestamp', msg.timestamp.toString());
+		const div = document.createElement("div");
+		div.setAttribute("data-id", msg.id);
+		div.setAttribute("data-timestamp", msg.timestamp.toString());
 
 		if (isSystem) {
-			div.className = 'system-message';
+			div.className = "system-message";
 			let systemText = msg.content;
 			try {
 				const data = JSON.parse(msg.content);
-				const sender = msg.senderPubKey === myIdentity.publicKey ? 'Tú' : `@${msg.senderUsername}`;
+				const sender =
+					msg.senderPubKey === myIdentity.publicKey
+						? "Tú"
+						: `@${msg.senderUsername}`;
 
-				if (msg.systemAction === 'group_created') systemText = `🏗️ ${sender} creó el grupo "${data.name}"`;
-				else if (msg.systemAction === 'group_renamed') systemText = `✏️ ${sender} renombró el grupo a "${data.newName}"`;
-				else if (msg.systemAction === 'member_added') systemText = `➕ ${sender} añadió nuevos participantes`;
-				else if (msg.systemAction === 'member_removed') systemText = `🚫 ${sender} expulsó a un participante`;
-				else if (msg.systemAction === 'member_left') systemText = `🚪 ${sender} abandonó el grupo`;
+				if (msg.systemAction === "group_created")
+					systemText = `🏗️ ${sender} creó el grupo "${data.name}"`;
+				else if (msg.systemAction === "group_renamed")
+					systemText = `✏️ ${sender} renombró el grupo a "${data.newName}"`;
+				else if (msg.systemAction === "member_added")
+					systemText = `➕ ${sender} añadió nuevos participantes`;
+				else if (msg.systemAction === "member_removed")
+					systemText = `🚫 ${sender} expulsó a un participante`;
+				else if (msg.systemAction === "member_left")
+					systemText = `🚪 ${sender} abandonó el grupo`;
 			} catch (e) {}
 
 			div.innerHTML = `<span>${systemText}</span>`;
 		} else if (isFile) {
-			div.className = `message-bubble ${isMine ? 'mine' : 'theirs'} file-message`;
-			let fileMeta = { name: 'Archivo', size: 0, type: '' };
-			try { fileMeta = JSON.parse(msg.content); } catch(e) {}
-			
-			const isImage = fileMeta.type && fileMeta.type.startsWith('image/');
-			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
+			div.className = `message-bubble ${isMine ? "mine" : "theirs"} file-message`;
+			let fileMeta = { name: "Archivo", size: 0, type: "" };
+			try {
+				fileMeta = JSON.parse(msg.content);
+			} catch (e) {}
+
+			const isImage = fileMeta.type && fileMeta.type.startsWith("image/");
+			const statusIcon = isMine
+				? msg.status === "sent"
+					? "✓"
+					: msg.status === "received"
+						? "✓✓"
+						: "..."
+				: "";
 
 			div.innerHTML = `
-				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || 'Alguien'}</div>` : ''}
+				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || "Alguien"}</div>` : ""}
 				<div class="file-content">
-					${isImage ? `<div class="file-preview loading" data-id="${msg.id}"><div class="spinner"></div></div>` : ''}
+					${isImage ? `<div class="file-preview loading" data-id="${msg.id}"><div class="spinner"></div></div>` : ""}
 					<div class="file-info">
 						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="file-icon"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
 						<div class="file-details">
@@ -2567,7 +3390,7 @@ import '../styles/global.css';
 					<div class="file-progress hidden"></div>
 				</div>
 				<div class="msg-meta">
-					${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+					${new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
 					<span class="msg-status">${statusIcon}</span>
 				</div>
 			`;
@@ -2575,37 +3398,57 @@ import '../styles/global.css';
 			if (isImage) {
 				setTimeout(() => loadFilePreview(msg.id), 100);
 			}
-		} else if (msg.type === 'calendar-invite') {
-			div.className = `message-bubble ${isMine ? 'mine' : 'theirs'} calendar-invite-card`;
+		} else if (msg.type === "calendar-invite") {
+			div.className = `message-bubble ${isMine ? "mine" : "theirs"} calendar-invite-card`;
 			let data: any = {};
-			try { data = JSON.parse(msg.content); } catch(e) {}
-			
-			const startTime = new Date(data.startTime).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
+			try {
+				data = JSON.parse(msg.content);
+			} catch (e) {}
+
+			const startTime = new Date(data.startTime).toLocaleString("es-ES", {
+				weekday: "short",
+				day: "numeric",
+				month: "short",
+				hour: "2-digit",
+				minute: "2-digit",
+			});
+			const statusIcon = isMine
+				? msg.status === "sent"
+					? "✓"
+					: msg.status === "received"
+						? "✓✓"
+						: "..."
+				: "";
 
 			div.innerHTML = `
-				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || 'Alguien'}</div>` : ''}
+				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || "Alguien"}</div>` : ""}
 				<div class="invite-card-content">
 					<div class="invite-icon">📅</div>
 					<div class="invite-info">
-						<strong>${data.title || 'Invitación a reunión'}</strong>
+						<strong>${data.title || "Invitación a reunión"}</strong>
 						<span>${startTime}</span>
 					</div>
 					<button class="view-invite-btn" onclick="showEventDetails('${data.eventId}')">Ver detalles</button>
 				</div>
 				<div class="msg-meta">
-					${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+					${new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
 					<span class="msg-status">${statusIcon}</span>
 				</div>
 			`;
 		} else {
-			div.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
-			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
+			div.className = `message-bubble ${isMine ? "mine" : "theirs"}`;
+			const statusIcon = isMine
+				? msg.status === "sent"
+					? "✓"
+					: msg.status === "received"
+						? "✓✓"
+						: "..."
+				: "";
 			div.innerHTML = `
-				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || 'Alguien'}</div>` : ''}
+				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || "Alguien"}</div>` : ""}
 				<div class="msg-content">${formatMessageText(msg.content)}</div>
 				<div class="msg-meta">
-					${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+					${new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
 					<span class="msg-status">${statusIcon}</span>
 				</div>
 			`;
@@ -2613,26 +3456,33 @@ import '../styles/global.css';
 		container.appendChild(div);
 	}
 	function updateMessageUIStatus(msgId: string, status: string) {
-		const msgEl = document.querySelector(`.message-bubble[data-id="${msgId}"]`);
+		const msgEl = document.querySelector(
+			`.message-bubble[data-id="${msgId}"]`,
+		);
 		if (msgEl) {
-			const statusSpan = msgEl.querySelector('.msg-status');
+			const statusSpan = msgEl.querySelector(".msg-status");
 			if (statusSpan) {
-				statusSpan.textContent = status === 'sent' ? '✓' : (status === 'received' ? '✓✓' : '...');
+				statusSpan.textContent =
+					status === "sent"
+						? "✓"
+						: status === "received"
+							? "✓✓"
+							: "...";
 			}
 		}
 	}
 
 	function scrollToBottom() {
-		const container = document.getElementById('messages-list')!;
+		const container = document.getElementById("messages-list")!;
 		container.scrollTop = container.scrollHeight;
 	}
 
-	btnAttach?.addEventListener('click', () => fileInput?.click());
-	fileInput?.addEventListener('change', async (e: any) => {
+	btnAttach?.addEventListener("click", () => fileInput?.click());
+	fileInput?.addEventListener("change", async (e: any) => {
 		const file = e.target.files[0];
 		if (!file || !currentChatId) return;
-		
-		const isGroup = currentChatType === 'group';
+
+		const isGroup = currentChatType === "group";
 		if (!isGroup && !currentChatPubKey) return;
 
 		// 1. Cifrar archivo
@@ -2643,38 +3493,133 @@ import '../styles/global.css';
 
 		// 2. Iniciar WebTorrent
 		if (!torrentClient) torrentClient = await getWebTorrentClient();
-		const encryptedBlob = new Blob([data], { type: 'application/octet-stream' });
-		
-		torrentClient.seed(encryptedBlob, { 
-			name: file.name + '.encrypted',
-			announce: TRACKERS 
-		}, async (torrent: any) => {
+		const encryptedBlob = new Blob([data], {
+			type: "application/octet-stream",
+		});
+
+		torrentClient.seed(
+			encryptedBlob,
+			{
+				name: file.name + ".encrypted",
+				announce: TRACKERS,
+			},
+			async (torrent: any) => {
+				const timestamp = Date.now();
+				const msgId = Math.random().toString(36).substring(7);
+
+				// GUARDAR EN INDEXEDDB PARA AUTO-RESEEDING
+				try {
+					await chatRepo.saveFileData(msgId, data, torrent.magnetURI);
+				} catch (e) {}
+
+				const fileMetadata = {
+					name: file.name,
+					size: file.size,
+					type: file.type,
+					magnetURI: torrent.magnetURI,
+					iv: ivStr,
+					key: keyStr,
+				};
+
+				const { ciphertext, iv: msgIv } = await encryptText(
+					JSON.stringify(fileMetadata),
+					currentChatId!,
+				);
+
+				const rawMessage: any = {
+					id: msgId,
+					senderPubKey: myIdentity.publicKey,
+					senderUsername: myIdentity.username,
+					content: JSON.stringify(fileMetadata),
+					timestamp,
+					type: "file",
+					status: "pending",
+					iv: msgIv,
+				};
+
+				if (isGroup) {
+					rawMessage.groupId = currentChatId;
+				} else {
+					rawMessage.receiverPubKey = currentChatPubKey;
+				}
+
+				renderMessage(rawMessage);
+				scrollToBottom();
+
+				const p2pPayload = {
+					type: "chat",
+					msgType: "file",
+					id: msgId,
+					senderPubKey: myIdentity.publicKey,
+					senderUsername: myIdentity.username,
+					content: ciphertext,
+					timestamp,
+					iv: msgIv,
+					groupId: isGroup ? currentChatId : undefined,
+				};
+
+				if (isGroup) {
+					const others = currentGroupParticipants.filter(
+						(p) => p !== myIdentity.publicKey,
+					);
+					let sentCount = 0;
+					await Promise.all(
+						others.map(async (pubKey) => {
+							try {
+								await p2p.sendP2PMessage(pubKey, p2pPayload);
+								sentCount++;
+							} catch (err) {}
+						}),
+					);
+					if (sentCount > 0) {
+						rawMessage.status = "sent";
+						updateMessageUIStatus(msgId, "sent");
+					}
+				} else {
+					try {
+						await p2p.sendP2PMessage(
+							currentChatPubKey!,
+							p2pPayload,
+						);
+						rawMessage.status = "sent";
+						updateMessageUIStatus(msgId, "sent");
+					} catch (err) {}
+				}
+
+				await chatRepo.addMessage(currentChatId!, rawMessage);
+				loadContacts();
+			},
+		);
+
+		fileInput.value = "";
+	});
+
+	document
+		.getElementById("chat-form")
+		?.addEventListener("submit", async (e) => {
+			e.preventDefault();
+			const input = document.getElementById(
+				"chat-input",
+			) as HTMLInputElement;
+			const text = input.value.trim();
+			if (!text || !currentChatId) return;
+
+			const isGroup = currentChatType === "group";
+			if (!isGroup && !currentChatPubKey) return;
+
+			input.value = "";
 			const timestamp = Date.now();
 			const msgId = Math.random().toString(36).substring(7);
-			
-			// GUARDAR EN INDEXEDDB PARA AUTO-RESEEDING
-			try { await chatRepo.saveFileData(msgId, data, torrent.magnetURI); } catch(e) {}
+			const { ciphertext, iv } = await encryptText(text, currentChatId);
 
-			const fileMetadata = {
-				name: file.name,
-				size: file.size,
-				type: file.type,
-				magnetURI: torrent.magnetURI,
-				iv: ivStr,
-				key: keyStr
-			};
-
-			const { ciphertext, iv: msgIv } = await encryptText(JSON.stringify(fileMetadata), currentChatId!);
-
-			const rawMessage: any = { 
-				id: msgId, 
-				senderPubKey: myIdentity.publicKey, 
+			const rawMessage: any = {
+				id: msgId,
+				senderPubKey: myIdentity.publicKey,
 				senderUsername: myIdentity.username,
-				content: JSON.stringify(fileMetadata), 
-				timestamp, 
-				type: 'file',
-				status: 'pending', 
-				iv: msgIv 
+				content: text,
+				timestamp,
+				status: "pending",
+				iv,
 			};
 
 			if (isGroup) {
@@ -2686,137 +3631,73 @@ import '../styles/global.css';
 			renderMessage(rawMessage);
 			scrollToBottom();
 
-			const p2pPayload = { 
-				type: 'chat', 
-				msgType: 'file',
-				id: msgId, 
-				senderPubKey: myIdentity.publicKey, 
+			const p2pPayload = {
+				type: "chat",
+				msgType: "text",
+				id: msgId,
+				senderPubKey: myIdentity.publicKey,
 				senderUsername: myIdentity.username,
-				content: ciphertext, 
-				timestamp, 
-				iv: msgIv,
-				groupId: isGroup ? currentChatId : undefined
+				content: ciphertext,
+				timestamp,
+				iv,
+				groupId: isGroup ? currentChatId : undefined,
 			};
 
 			if (isGroup) {
-				const others = currentGroupParticipants.filter(p => p !== myIdentity.publicKey);
+				// Broadcast a todos los participantes excepto yo
+				const others = currentGroupParticipants.filter(
+					(p) => p !== myIdentity.publicKey,
+				);
 				let sentCount = 0;
-				await Promise.all(others.map(async (pubKey) => {
-					try {
-						await p2p.sendP2PMessage(pubKey, p2pPayload);
-						sentCount++;
-					} catch (err) {}
-				}));
+				await Promise.all(
+					others.map(async (pubKey) => {
+						try {
+							await p2p.sendP2PMessage(pubKey, p2pPayload);
+							sentCount++;
+						} catch (err) {
+							console.warn(`Could not send message to ${pubKey}`);
+						}
+					}),
+				);
 				if (sentCount > 0) {
-					rawMessage.status = 'sent';
-					updateMessageUIStatus(msgId, 'sent');
+					rawMessage.status = "sent";
+					updateMessageUIStatus(msgId, "sent");
 				}
 			} else {
-				try { 
-					await p2p.sendP2PMessage(currentChatPubKey!, p2pPayload); 
-					rawMessage.status = 'sent'; 
-					updateMessageUIStatus(msgId, 'sent');
-				} catch (err) {}
+				try {
+					await p2p.sendP2PMessage(currentChatPubKey!, p2pPayload);
+					rawMessage.status = "sent";
+					updateMessageUIStatus(msgId, "sent");
+				} catch (err) {
+					console.warn("Peer offline.");
+				}
 			}
-			
-			await chatRepo.addMessage(currentChatId!, rawMessage);
-			loadContacts();
+
+			await chatRepo.addMessage(currentChatId, rawMessage);
+			loadContacts(); // Refrescar para mover al principio
+		});
+	document
+		.getElementById("btn-hero-new-chat")
+		?.addEventListener("click", () => {
+			globalSearch?.focus();
 		});
 
-		fileInput.value = '';
+	// Logout
+	document.getElementById("btn-logout")?.addEventListener("click", () => {
+		bitid.lock();
+		window.location.reload();
 	});
 
-	document.getElementById('chat-form')?.addEventListener('submit', async (e) => {
-		e.preventDefault();
-		const input = document.getElementById('chat-input') as HTMLInputElement;
-		const text = input.value.trim();
-		if (!text || !currentChatId) return;
-		
-		const isGroup = currentChatType === 'group';
-		if (!isGroup && !currentChatPubKey) return;
+	async function getChatId(pub1: string, pub2: string) {
+		const combined = [pub1, pub2].sort().join("-");
+		const msgUint8 = new TextEncoder().encode(combined);
+		const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+		const hashArray = Array.from(new Uint8Array(hashBuffer));
+		return hashArray
+			.map((b) => b.toString(16).padStart(2, "0"))
+			.join("")
+			.substring(0, 16);
+	}
 
-		input.value = '';
-		const timestamp = Date.now();
-		const msgId = Math.random().toString(36).substring(7);
-		const { ciphertext, iv } = await encryptText(text, currentChatId);
-		
-		const rawMessage: any = { 
-			id: msgId, 
-			senderPubKey: myIdentity.publicKey, 
-			senderUsername: myIdentity.username,
-			content: text, 
-			timestamp, 
-			status: 'pending', 
-			iv 
-		};
-
-		if (isGroup) {
-			rawMessage.groupId = currentChatId;
-		} else {
-			rawMessage.receiverPubKey = currentChatPubKey;
-		}
-
-		renderMessage(rawMessage);
-		scrollToBottom();
-
-		const p2pPayload = { 
-			type: 'chat', 
-			msgType: 'text',
-			id: msgId, 
-			senderPubKey: myIdentity.publicKey, 
-			senderUsername: myIdentity.username,
-			content: ciphertext, 
-			timestamp, 
-			iv,
-			groupId: isGroup ? currentChatId : undefined
-		};
-
-		if (isGroup) {
-			// Broadcast a todos los participantes excepto yo
-			const others = currentGroupParticipants.filter(p => p !== myIdentity.publicKey);
-			let sentCount = 0;
-			await Promise.all(others.map(async (pubKey) => {
-				try {
-					await p2p.sendP2PMessage(pubKey, p2pPayload);
-					sentCount++;
-				} catch (err) {
-					console.warn(`Could not send message to ${pubKey}`);
-				}
-			}));
-			if (sentCount > 0) {
-				rawMessage.status = 'sent';
-				updateMessageUIStatus(msgId, 'sent');
-			}
-		} else {
-			try { 
-				await p2p.sendP2PMessage(currentChatPubKey!, p2pPayload); 
-				rawMessage.status = 'sent'; 
-				updateMessageUIStatus(msgId, 'sent');
-			} catch (err) { 
-				console.warn("Peer offline."); 
-			}
-		}
-		
-		await chatRepo.addMessage(currentChatId, rawMessage);
-		loadContacts(); // Refrescar para mover al principio
-	});
-document.getElementById('btn-hero-new-chat')?.addEventListener('click', () => {
-	globalSearch?.focus();
-});
-
-// Logout
-document.getElementById('btn-logout')?.addEventListener('click', () => {
-	bitid.lock();
-	window.location.reload();
-});
-
-async function getChatId(pub1: string, pub2: string) {
-	const combined = [pub1, pub2].sort().join('-');
-	const msgUint8 = new TextEncoder().encode(combined);
-	const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
-}
-
-initApp();
+	initApp();
 </script>
