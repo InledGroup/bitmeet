@@ -1,0 +1,10 @@
+# Cloudflare Pages - SPA Routing Rules
+# Sirve index.html para cualquier ruta que no encuentre un archivo estático.
+# Esto permite que Astro/React maneje el routing en el cliente.
+
+# Ruta de sala: /room/* → /room/[id].html
+# (Astro genera una página por cada ID en getStaticPaths, pero si no existe,
+# Cloudflare servirá el 404 de Astro. Los IDs se generan en runtime en el cliente.)
+
+# Fallback general para SPA
+/*    /index.html   200

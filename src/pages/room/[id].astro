@@ -1,39 +1,55 @@
-
 ---
 import '../../styles/global.css';
 import MeetingContainer from '../../components/Meeting/MeetingContainer';
 
-const { id } = Astro.params;
-
-if (!id) {
-  return Astro.redirect('/');
+// Con output: 'static', las rutas dinámicas necesitan getStaticPaths.
+// Dado que los room IDs son generados en runtime, no podemos prerenderizarlos.
+// En su lugar, esta página sirve como shell estática y el ID se lee del
+// URL en el cliente a través del componente MeetingContainer.
+export function getStaticPaths() {
+  // Retornamos vacío intencionalmente: Cloudflare Pages + _redirects
+  // redirigirá /room/* a /room/index → páginas generadas por build.
+  // El ID real se lee de window.location en el cliente.
+  return [];
 }
+
+const { id } = Astro.params;
 ---
 
-<html lang="en">
+<html lang="es">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" href="https://hosted.inled.es/bitmeet-blueshape-whitebg.png" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Meeting: {id} | BitMeet</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+		<title>Reunión | BitMeet</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 	</head>
 	<body>
-    <header style="padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-bg);">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">B</div>
-        <span style="font-weight: 800; font-size: 1.25rem;">BitMeet</span>
-      </div>
-      <div style="background: var(--bg-tertiary); padding: 4px 12px; border-radius: 6px; font-size: 0.875rem; color: var(--text-secondary);">
-        Room: <span style="color: var(--text-primary); font-weight: 600;">{id}</span>
-      </div>
-    </header>
+		<header style="padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-bg);">
+			<div style="display: flex; align-items: center; gap: 12px;">
+				<div style="width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">B</div>
+				<span style="font-weight: 800; font-size: 1.25rem;">BitMeet</span>
+			</div>
+			<div id="room-badge" style="background: var(--bg-tertiary); padding: 4px 12px; border-radius: 6px; font-size: 0.875rem; color: var(--text-secondary);">
+				Room: <span id="room-id-display" style="color: var(--text-primary); font-weight: 600;">...</span>
+			</div>
+		</header>
 
 		<main style="min-height: calc(100vh - 70px); display: flex; flex-direction: column;">
 			<MeetingContainer client:only="react" roomId={id} />
 		</main>
+
+		<script>
+			// Actualizar el badge de sala con el ID real del URL en el cliente
+			const segments = window.location.pathname.split('/').filter(Boolean);
+			const roomId = segments[segments.length - 1];
+			const display = document.getElementById('room-id-display');
+			if (display && roomId && roomId !== 'room') {
+				display.textContent = roomId;
+			}
+		</script>
 	</body>
 </html>
