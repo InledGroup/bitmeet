@@ -68,14 +68,14 @@ export class P2PTransport {
         }
       });
 
-      // Cleanup local presence: si no hemos visto a alguien en 45s, marcar offline
+      // Cleanup local presence: si no hemos visto a alguien en 15s (3 latidos perdidos), marcar offline
       const now = Date.now();
       this.presenceMap.forEach((data, pubKey) => {
-        if (now - data.lastSeen > 45000) {
+        if (now - data.lastSeen > 15000) {
           this.presenceMap.set(pubKey, { status: 'offline', lastSeen: data.lastSeen });
         }
       });
-    }, 15000);
+    }, 5000); // Latido cada 5 segundos
   }
 
   private setupConnection(conn: any) {
@@ -220,7 +220,7 @@ export class P2PTransport {
     
     // 2. Si lo hemos visto recientemente vía heartbeat u otros mensajes
     const cached = this.presenceMap.get(pubKey);
-    if (cached && cached.status === 'online' && (Date.now() - cached.lastSeen < 45000)) {
+    if (cached && cached.status === 'online' && (Date.now() - cached.lastSeen < 15000)) {
       return 'online';
     }
 

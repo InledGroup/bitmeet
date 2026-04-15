@@ -120,6 +120,56 @@ import '../styles/global.css';
 	.incoming-btn:hover { transform: scale(1.1); }
 	.incoming-btn.accept { background: #34C759; }
 	.incoming-btn.decline { background: #FF3B30; }
+
+	/* Calendar Invite Card */
+	.calendar-invite-card {
+		background: rgba(255, 255, 255, 0.95);
+		border: 1px solid var(--apple-border);
+		border-radius: 12px;
+		padding: 12px;
+		margin: 8px 0;
+		max-width: 280px;
+		box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+	}
+	.dark .calendar-invite-card {
+		background: rgba(44, 44, 46, 0.95);
+	}
+	.invite-card-content {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.invite-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.invite-info strong {
+		font-size: 15px;
+		color: var(--apple-accent);
+	}
+	.invite-info span {
+		font-size: 12px;
+		color: var(--apple-text-secondary);
+	}
+	.view-invite-btn {
+		background: var(--apple-accent);
+		color: white;
+		border: none;
+		border-radius: 8px;
+		padding: 6px 12px;
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: opacity 0.2s;
+	}
+	.view-invite-btn:hover {
+		opacity: 0.8;
+	}
+	.invite-icon {
+		font-size: 24px;
+		margin-bottom: 4px;
+	}
 </style>
 
 <script>
@@ -890,24 +940,37 @@ import '../styles/global.css';
 				console.log(`Re-enviando ${pendingMsgs.length} mensajes a ${otherPubKey}...`);
 				for (const msg of pendingMsgs) {
 					try {
-						const { ciphertext, iv } = await encryptText(msg.content, chat.id);
-						const p2pPayload = { 
-							type: 'chat', 
-							id: msg.id, 
-							senderPubKey: myIdentity.publicKey, 
-							senderUsername: myIdentity.username,
-							content: ciphertext, 
-							timestamp: msg.timestamp, 
-							iv,
-							groupId: undefined
-						};
+						let p2pPayload: any;
+						
+						if (msg.type === 'calendar-invite') {
+							// Las invitaciones de calendario las enviamos con su propio tipo para que el receptor las procese
+							const data = JSON.parse(msg.content);
+							p2pPayload = { 
+								type: 'calendar-invite', 
+								...data,
+								senderPubKey: myIdentity.publicKey,
+								senderUsername: myIdentity.username
+							};
+						} else {
+							const { ciphertext, iv } = await encryptText(msg.content, chat.id);
+							p2pPayload = { 
+								type: msg.type === 'system' ? 'system' : 'chat', 
+								id: msg.id, 
+								senderPubKey: myIdentity.publicKey, 
+								senderUsername: myIdentity.username,
+								content: ciphertext, 
+								timestamp: msg.timestamp, 
+								iv,
+								groupId: undefined
+							};
+						}
+						
 						await p2p.sendP2PMessage(otherPubKey, p2pPayload);
 						await chatRepo.updateMessageStatus(chat.id, msg.id, 'sent');
 						if (currentChatId === chat.id) updateMessageUIStatus(msg.id, 'sent');
-						console.log(`Mensaje ${msg.id} ("${msg.content.substring(0,10)}...") re-enviado con éxito.`);
+						console.log(`Mensaje ${msg.id} de tipo ${msg.type} re-enviado con éxito.`);
 					} catch (e) {
 						console.warn(`Error al re-enviar mensaje ${msg.id} a ${otherPubKey}:`, e);
-						// No hacemos break, intentamos el siguiente por si acaso
 					}
 				}
 			} else {
@@ -915,17 +978,29 @@ import '../styles/global.css';
 				const others = chat.participants.filter(p => p !== myIdentity.publicKey);
 				for (const msg of pendingMsgs) {
 					let sentAtLeastToOne = false;
-					const { ciphertext, iv } = await encryptText(msg.content, chat.id);
-					const p2pPayload = { 
-						type: 'chat', 
-						id: msg.id, 
-						senderPubKey: myIdentity.publicKey, 
-						senderUsername: myIdentity.username,
-						content: ciphertext, 
-						timestamp: msg.timestamp, 
-						iv,
-						groupId: chat.id
-					};
+					let p2pPayload: any;
+
+					if (msg.type === 'calendar-invite') {
+						const data = JSON.parse(msg.content);
+						p2pPayload = { 
+							type: 'calendar-invite', 
+							...data,
+							senderPubKey: myIdentity.publicKey,
+							senderUsername: myIdentity.username
+						};
+					} else {
+						const { ciphertext, iv } = await encryptText(msg.content, chat.id);
+						p2pPayload = { 
+							type: msg.type === 'system' ? 'system' : 'chat', 
+							id: msg.id, 
+							senderPubKey: myIdentity.publicKey, 
+							senderUsername: myIdentity.username,
+							content: ciphertext, 
+							timestamp: msg.timestamp, 
+							iv,
+							groupId: chat.id
+						};
+					}
 
 					for (const pubKey of others) {
 						try {
@@ -1073,10 +1148,26 @@ import '../styles/global.css';
 					status: 'pending',
 					receivedAt: Date.now()
 				});
+
+				// También lo guardamos en el chat para que el usuario vea la "tarjeta"
+				const chatId = await getChatId(msg.organizerPubKey, myIdentity.publicKey);
+				await chatRepo.addMessage(chatId, {
+					id: msg.id,
+					senderPubKey: msg.organizerPubKey,
+					senderUsername: msg.organizerUsername,
+					receiverPubKey: myIdentity.publicKey,
+					content: JSON.stringify(msg),
+					timestamp: msg.timestamp || Date.now(),
+					type: 'calendar-invite',
+					status: 'received',
+					iv: ''
+				});
+
 				if (notificationsEnabled) {
 					new Notification("Nueva invitación a reunión", { body: `${msg.organizerUsername} te ha invitado a "${msg.title}"`, icon: "/favicon.svg" });
 				}
 				if (!viewCalls?.classList.contains('hidden')) loadCallsView();
+				loadContacts(); // Refrescar sidebar para ver el mensaje
 				return;
 			}
 
@@ -1705,7 +1796,7 @@ import '../styles/global.css';
 		// Ordenar todo por última actividad
 		const all = [...groups, ...directContacts, ...otherDirects].sort((a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0));
 
-		// Actualizar estados de conexión en tiempo real y disparar auto-discovery
+	// Actualizar estados de conexión en tiempo real y disparar auto-discovery
 		await Promise.all(all.filter(c => !c.isGroup).map(async c => {
 			const isConnected = await p2p.isConnected(c.publicKey);
 			if (isConnected) {
@@ -1723,13 +1814,25 @@ import '../styles/global.css';
 		}));
 
 		renderContactList(all);
+		updateActiveChatPresence();
 	}
 
-	// Refresco periódico de estados cada 10 segundos
+	async function updateActiveChatPresence() {
+		if (currentChatType !== 'direct' || !currentChatPubKey) return;
+		
+		const statusEl = document.getElementById('active-chat-status')!;
+		const statusDot = document.getElementById('active-chat-status-dot')!;
+		
+		const connected = await p2p.isConnected(currentChatPubKey);
+		statusEl.textContent = connected ? 'Conexión Segura' : 'Offline';
+		statusDot.className = `status-dot ${connected ? 'online' : 'offline'}`;
+	}
+
+	// Refresco periódico de estados cada 5 segundos (Sincronizado con heartbeat P2P)
 	setInterval(() => {
 		loadContacts();
 		retryPendingMessages();
-	}, 10000);
+	}, 5000);
 
 	async function loadColleagues() {
 		const colleagues = await bitid.getColleagues();
@@ -1829,11 +1932,7 @@ import '../styles/global.css';
 			if (btnVideo) btnVideo.classList.remove('hidden');
 			if (btnGSettings) btnGSettings.classList.add('hidden');
 
-			statusEl.textContent = 'Conectando...';
-			const connected = await p2p.connectToPeer(id);
-			statusEl.textContent = connected ? 'Conexión Segura' : 'Offline';
-			statusDot.className = `status-dot ${connected ? 'online' : 'offline'}`;
-			
+			await updateActiveChatPresence();
 			await updateContactUI(id);
 		}
 		
@@ -1882,10 +1981,15 @@ import '../styles/global.css';
 
 		if (view === 'month') {
 			await renderMonthView(grid);
-		} else if (view === 'week') {
-			await renderWeekView(grid);
-		} else if (view === 'day') {
-			await renderDayView(grid);
+		} else {
+			if (view === 'week') await renderWeekView(grid);
+			else if (view === 'day') await renderDayView(grid);
+			
+			// Autoscroll a una hora razonable (8:00 AM) para que no se vea vacío arriba
+			setTimeout(() => {
+				const viewport = grid.parentElement;
+				if (viewport) viewport.scrollTop = 8 * 80;
+			}, 50);
 		}
 	}
 
@@ -2045,8 +2149,8 @@ import '../styles/global.css';
 		const startMins = date.getHours() * 60 + date.getMinutes();
 		const durationMins = Math.max(30, (e.endTime - e.startTime) / 60000);
 		
-		const top = (startMins / 60) * 60 + 40; // 60px por hora, +40px de header
-		const height = (durationMins / 60) * 60;
+		const top = (startMins / 60) * 80 + 40; // 80px por hora, +40px de header
+		const height = (durationMins / 60) * 80;
 
 		const evEl = document.createElement('div');
 		evEl.className = `calendar-event-item ${e.type} real-space`;
@@ -2112,6 +2216,7 @@ import '../styles/global.css';
 
 		eventDetailModal?.classList.remove('hidden');
 	}
+	(window as any).showEventDetails = showEventDetails;
 
 	let currentlyOpenEventId: string | null = null;
 
@@ -2239,25 +2344,48 @@ import '../styles/global.css';
 
 		await calendarRepo.saveEvent(event);
 		
-		// Enviar invitaciones P2P
+		// Enviar invitaciones P2P con reintento automático
 		if (type === 'meeting') {
 			selectedParticipants.forEach(async (p) => {
+				const inviteId = Math.random().toString(36).substring(7);
+				const invitePayload = {
+					id: inviteId,
+					eventId: eventId,
+					organizerPubKey: myIdentity.publicKey,
+					organizerUsername: myIdentity.username,
+					title,
+					description: desc,
+					startTime: start,
+					endTime: end,
+					meetingLink: nativeLink,
+					isNative,
+					timestamp: Date.now()
+				};
+
+				// 1. Guardar en el chat local como 'pending' para reintento automático
+				const chatId = await getChatId(myIdentity.publicKey, p.pubKey);
+				await chatRepo.addMessage(chatId, {
+					id: inviteId,
+					senderPubKey: myIdentity.publicKey,
+					senderUsername: myIdentity.username,
+					receiverPubKey: p.pubKey,
+					content: JSON.stringify(invitePayload),
+					timestamp: Date.now(),
+					type: 'calendar-invite',
+					status: 'pending',
+					iv: ''
+				});
+
+				// 2. Intentar envío inmediato
 				try {
 					await p2p.sendP2PMessage(p.pubKey, {
 						type: 'calendar-invite',
-						id: Math.random().toString(36).substring(7),
-						eventId: eventId,
-						organizerPubKey: myIdentity.publicKey,
-						organizerUsername: myIdentity.username,
-						title,
-						description: desc,
-						startTime: start,
-						endTime: end,
-						meetingLink: nativeLink,
-						isNative
+						...invitePayload
 					});
+					await chatRepo.updateMessageStatus(chatId, inviteId, 'sent');
+					console.log(`Invitación enviada a @${p.username}`);
 				} catch (err) {
-					console.warn(`No se pudo enviar invitación a @${p.username}. Se reintentará al conectar.`);
+					console.warn(`No se pudo enviar invitación inmediata a @${p.username}. Se reintentará cuando esté online.`);
 				}
 			});
 		}
@@ -2447,6 +2575,29 @@ import '../styles/global.css';
 			if (isImage) {
 				setTimeout(() => loadFilePreview(msg.id), 100);
 			}
+		} else if (msg.type === 'calendar-invite') {
+			div.className = `message-bubble ${isMine ? 'mine' : 'theirs'} calendar-invite-card`;
+			let data: any = {};
+			try { data = JSON.parse(msg.content); } catch(e) {}
+			
+			const startTime = new Date(data.startTime).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
+
+			div.innerHTML = `
+				${isGroup && !isMine ? `<div class="msg-sender">${msg.senderUsername || 'Alguien'}</div>` : ''}
+				<div class="invite-card-content">
+					<div class="invite-icon">📅</div>
+					<div class="invite-info">
+						<strong>${data.title || 'Invitación a reunión'}</strong>
+						<span>${startTime}</span>
+					</div>
+					<button class="view-invite-btn" onclick="showEventDetails('${data.eventId}')">Ver detalles</button>
+				</div>
+				<div class="msg-meta">
+					${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+					<span class="msg-status">${statusIcon}</span>
+				</div>
+			`;
 		} else {
 			div.className = `message-bubble ${isMine ? 'mine' : 'theirs'}`;
 			const statusIcon = isMine ? (msg.status === 'sent' ? '✓' : (msg.status === 'received' ? '✓✓' : '...')) : '';
