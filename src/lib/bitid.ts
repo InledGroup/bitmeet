@@ -12,12 +12,10 @@ export class BitIDService {
   private crypto = new WebCryptoProvider();
   private apiUrl = "https://bitid-api.inled.es";
 
-  // ─── Caché en memoria ──────────────────────────────────────────────────────
-  // Evita saturar la API con llamadas repetidas en cada tick del setInterval.
-  // TTL: 5 minutos para colleagues, 2 minutos para búsquedas.
-  private colleaguesCache: { data: any[]; ts: number } | null = null;
-  private readonly COLLEAGUES_TTL = 5 * 60 * 1000; // 5 min
-
+  // ─── Caché en Local Storage / Memoria ───────────────────────────────────────
+  // TTL de 24 horas para colegas (contactos), persistente en localStorage.
+  // TTL de 2 minutos para búsquedas (en memoria)
+  private readonly COLLEAGUES_TTL = 24 * 60 * 60 * 1000; // 24 horas
   private searchCache = new Map<string, { data: any[]; ts: number }>();
   private readonly SEARCH_TTL = 2 * 60 * 1000; // 2 min
   // ───────────────────────────────────────────────────────────────────────────
@@ -44,7 +42,7 @@ export class BitIDService {
 
     await this.storage.saveIdentity(identity, encryptedKey);
     // Invalidar caché al cambiar de identidad
-    this.colleaguesCache = null;
+    localStorage.removeItem("bitid_colleagues_cache");
     this.searchCache.clear();
   }
 
@@ -84,35 +82,33 @@ export class BitIDService {
 
   lock() {
     sessionStorage.removeItem("bitid-session");
-    this.colleaguesCache = null;
+    localStorage.removeItem("bitid_colleagues_cache");
     this.searchCache.clear();
   }
 
   /**
    * Devuelve la lista de compañeros de empresa.
-   *
-   * ┌─ Flujo de llamadas (sin caché) ──────────────────────────────────┐
-   * │ GET /companies/{publicKey}         → lista de empresas del usuario│
-   * │ GET /companies/{companyId}/members → miembros de cada empresa     │
-   * └───────────────────────────────────────────────────────────────────┘
-   *
-   * Con el caché TTL de 5 min, estas llamadas se hacen UNA vez cada
-   * 5 minutos en lugar de cada 10 segundos. Reducción del 97% de tráfico.
+   * Utiliza localStorage con un TTL de 24 horas para evitar peticiones redundantes.
    */
   async getColleagues(): Promise<any[]> {
-    // Devolver caché si está fresco
-    if (
-      this.colleaguesCache &&
-      Date.now() - this.colleaguesCache.ts < this.COLLEAGUES_TTL
-    ) {
-      return this.colleaguesCache.data;
+    // 1. Comprobar caché local (24 horas)
+    try {
+      const cached = localStorage.getItem("bitid_colleagues_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.ts < this.COLLEAGUES_TTL) {
+          return parsed.data;
+        }
+      }
+    } catch (e) {
+      // Ignorar errores de parseo
     }
 
     const id = await this.getIdentity();
     if (!id) return [];
 
     try {
-      // 1. Obtener mis empresas
+      // 2. Obtener mis empresas
       const resCompanies = await fetch(
         `${this.apiUrl}/companies/${encodeURIComponent(id.publicKey)}`,
         { signal: AbortSignal.timeout(8000) }
@@ -120,16 +116,17 @@ export class BitIDService {
 
       if (!resCompanies.ok) {
         console.warn(`[BitID] /companies returned ${resCompanies.status}`);
-        return this.colleaguesCache?.data ?? [];
+        return [];
       }
 
       const companies = await resCompanies.json();
       if (!Array.isArray(companies) || companies.length === 0) {
-        this.colleaguesCache = { data: [], ts: Date.now() };
-        return [];
+        const empty: any[] = [];
+        localStorage.setItem("bitid_colleagues_cache", JSON.stringify({ data: empty, ts: Date.now() }));
+        return empty;
       }
 
-      // 2. Obtener miembros de todas mis empresas en paralelo
+      // 3. Obtener miembros de todas mis empresas en paralelo
       const memberRequests = companies.map((comp: any) =>
         fetch(`${this.apiUrl}/companies/${comp.id}/members`, {
           signal: AbortSignal.timeout(8000),
@@ -150,12 +147,16 @@ export class BitIDService {
         new Map(allMembers.map((m) => [m.public_key, m])).values()
       );
 
-      this.colleaguesCache = { data: unique, ts: Date.now() };
+      localStorage.setItem("bitid_colleagues_cache", JSON.stringify({ data: unique, ts: Date.now() }));
       return unique;
     } catch (err) {
       console.warn("[BitID] getColleagues failed:", err);
-      // Si hay error de red, devolver lo último cacheado (o vacío)
-      return this.colleaguesCache?.data ?? [];
+      // Fallback a caché expirado si existe
+      try {
+        const cached = localStorage.getItem("bitid_colleagues_cache");
+        if (cached) return JSON.parse(cached).data;
+      } catch (e) {}
+      return [];
     }
   }
 
@@ -168,7 +169,6 @@ export class BitIDService {
 
     const key = query.trim().toLowerCase();
 
-    // Devolver caché si está fresco
     const cached = this.searchCache.get(key);
     if (cached && Date.now() - cached.ts < this.SEARCH_TTL) {
       return cached.data;
@@ -182,12 +182,6 @@ export class BitIDService {
 
       if (!res.ok) {
         console.warn(`[BitID] /users/search returned ${res.status}`);
-        return [];
-      }
-
-      const contentType = res.headers.get("content-type") || "";
-      if (!contentType.includes("application/json")) {
-        console.warn("[BitID] /users/search returned non-JSON response");
         return [];
       }
 
