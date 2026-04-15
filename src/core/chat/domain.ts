@@ -1,4 +1,4 @@
-export type MessageType = "text" | "file" | "system";
+export type MessageType = "text" | "file" | "system" | "calendar-invite";
 
 export interface Message {
   id: string;

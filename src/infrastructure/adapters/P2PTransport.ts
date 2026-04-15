@@ -8,10 +8,14 @@ export class P2PTransport {
   private onMessageCb?: (msg: any) => void;
   private onCallCb?: (call: any) => void;
   private onConnectionCb?: (peerPubKey: string) => void;
+  private myPubKey: string = '';
+  private presenceMap: Map<string, { status: 'online' | 'offline', lastSeen: number }> = new Map();
+  private discoverySet: Set<string> = new Set();
 
   async initialize(pubKey: string) {
     // Usamos el hash de la pubKey como ID de PeerJS para que sea encontrable
     const peerId = await this.hashPubKey(pubKey);
+    this.myPubKey = pubKey;
     this.peerIdToPubKey.set(peerId, pubKey);
     
     this.peer = new Peer(peerId, {
@@ -20,7 +24,7 @@ export class P2PTransport {
 
     this.peer.on('open', (id: string) => {
       console.log('Mi ID de PeerJS es:', id);
-      this.registerPresence(pubKey, id);
+      this.startHeartbeatLoop();
     });
 
     this.peer.on('connection', (conn: any) => {
@@ -56,12 +60,22 @@ export class P2PTransport {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
   }
 
-  private async registerPresence(pubKey: string, peerId: string) {
-    await fetch(`${this.apiUrl}/presence`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pubKey, peerId, status: 'online' })
-    });
+  private startHeartbeatLoop() {
+    setInterval(() => {
+      this.connections.forEach((conn, peerId) => {
+        if (conn.open) {
+          conn.send({ type: '__heartbeat__', senderPubKey: this.myPubKey, timestamp: Date.now() });
+        }
+      });
+
+      // Cleanup local presence: si no hemos visto a alguien en 45s, marcar offline
+      const now = Date.now();
+      this.presenceMap.forEach((data, pubKey) => {
+        if (now - data.lastSeen > 45000) {
+          this.presenceMap.set(pubKey, { status: 'offline', lastSeen: data.lastSeen });
+        }
+      });
+    }, 15000);
   }
 
   private setupConnection(conn: any) {
@@ -84,17 +98,35 @@ export class P2PTransport {
     conn.on('data', (data: any) => {
       if (data.senderPubKey) {
         this.peerIdToPubKey.set(conn.peer, data.senderPubKey);
+        // Actualizar presencia al recibir cualquier dato
+        this.presenceMap.set(data.senderPubKey, { status: 'online', lastSeen: Date.now() });
       }
+      
+      // Filtrar mensajes internos de control
+      if (data.type === '__heartbeat__') {
+        return; 
+      }
+
       console.log('Mensaje recibido P2P:', data);
       if (this.onMessageCb) this.onMessageCb(data);
     });
 
     conn.on('close', () => {
       this.connections.delete(conn.peer);
+      const pubKey = this.peerIdToPubKey.get(conn.peer);
+      if (pubKey) {
+        this.presenceMap.set(pubKey, { status: 'offline', lastSeen: Date.now() });
+        this.discoverySet.delete(pubKey);
+      }
     });
 
     conn.on('error', () => {
       this.connections.delete(conn.peer);
+      const pubKey = this.peerIdToPubKey.get(conn.peer);
+      if (pubKey) {
+        this.presenceMap.set(pubKey, { status: 'offline', lastSeen: Date.now() });
+        this.discoverySet.delete(pubKey);
+      }
     });
   }
 
@@ -155,16 +187,43 @@ export class P2PTransport {
   async isConnected(targetPubKey: string): Promise<boolean> {
     const targetPeerId = await this.hashPubKey(targetPubKey);
     const conn = this.connections.get(targetPeerId);
-    return conn && conn.open;
+    return !!(conn && conn.open);
+  }
+
+  /**
+   * Intenta descubrir a un peer si no estamos conectados.
+   * Útil para refrescar estados online sin intervención del usuario.
+   */
+  async discover(pubKey: string) {
+    if (this.discoverySet.has(pubKey)) return;
+    if (await this.isConnected(pubKey)) return;
+
+    this.discoverySet.add(pubKey);
+    console.log(`[P2P Discovery] Saludo inicial a: ${pubKey.substring(0,8)}...`);
+    
+    // Intentamos conectar. Si falla, el error lo maneja connectToPeer.
+    // No usamos 'await' aquí para no bloquear el hilo principal.
+    this.connectToPeer(pubKey).then(success => {
+      if (!success) {
+        // Si falla, permitimos reintentar en 60 segundos
+        setTimeout(() => this.discoverySet.delete(pubKey), 60000);
+      } else {
+        // Si conecta, se queda en el set hasta que se cierre la conexión
+        // (lo gestionamos en setupConnection)
+      }
+    });
   }
 
   async getPresence(pubKey: string): Promise<'online' | 'offline'> {
-    try {
-      const res = await fetch(`${this.apiUrl}/presence/${encodeURIComponent(pubKey)}`);
-      const data = await res.json();
-      return data.status || 'offline';
-    } catch (e) {
-      return 'offline';
+    // 1. Si está conectado activamente, está online
+    if (await this.isConnected(pubKey)) return 'online';
+    
+    // 2. Si lo hemos visto recientemente vía heartbeat u otros mensajes
+    const cached = this.presenceMap.get(pubKey);
+    if (cached && cached.status === 'online' && (Date.now() - cached.lastSeen < 45000)) {
+      return 'online';
     }
+
+    return 'offline';
   }
 }
