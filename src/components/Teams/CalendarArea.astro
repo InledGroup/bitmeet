@@ -5,6 +5,9 @@
     <div class="chat-header-main">
         <div class="recipient-info">
             <div class="name-row">
+                <button id="btn-back-to-calls" class="back-btn mobile-only" title="Volver">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
                 <h3 id="calendar-title">Calendario</h3>
             </div>
             <div class="status-wrapper">
@@ -169,6 +172,42 @@
     .nav-btn:hover { background: rgba(0,0,0,0.05); }
     #cal-current-period { font-size: 14px; min-width: 120px; text-align: center; color: var(--apple-text); }
     
+    .back-btn {
+        background: transparent;
+        border: none;
+        color: var(--apple-accent);
+        cursor: pointer;
+        padding: 4px;
+        margin-right: 8px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    @media (max-width: 768px) {
+        .back-btn.mobile-only {
+            display: flex;
+        }
+        .header-actions #cal-view-selector {
+            display: none;
+        }
+        .calendar-nav {
+            margin-left: 0;
+            padding: 2px 6px;
+        }
+        #cal-current-period {
+            min-width: 80px;
+            font-size: 12px;
+        }
+        .month-view {
+            grid-auto-rows: minmax(80px, 1fr);
+        }
+        :global(.calendar-day-header) {
+            padding: 5px;
+            font-size: 10px;
+        }
+    }
+
     /* Controles Header */
     .header-actions {
         margin-left: auto;

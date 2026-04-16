@@ -711,13 +711,28 @@ body {
     font-size: 2.5rem;
   }
   
+  .lobby-container {
+    padding: 1rem;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
   .lobby-card {
     padding: 1.5rem;
-    margin: 1rem;
+    margin: 0;
+    border-radius: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   
   .lobby-card h1 {
     font-size: 1.75rem;
+  }
+
+  .preview-area {
+    margin-bottom: 1.5rem;
   }
 
   .meeting-app {
@@ -737,27 +752,35 @@ body {
     bottom: 1rem;
     padding: 0.5rem 1rem;
     gap: 0.75rem;
-    width: 95%;
+    width: 90%;
     justify-content: center;
   }
 
   .btn-icon {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 
   .video-grid {
-    height: calc(100vh - 80px);
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    height: calc(100vh - 120px);
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     padding: 0.5rem;
+    gap: 0.5rem;
   }
   
   .video-grid.spotlight-mode .secondary-videos {
-    height: 150px;
+    height: 120px;
   }
   
   .secondary-videos .video-wrapper {
-    width: 200px;
+    width: 160px;
+  }
+
+  .participant-name {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    bottom: 8px;
+    left: 8px;
   }
 }
 
@@ -771,37 +794,44 @@ body {
   }
   
   .video-grid {
+    grid-template-columns: 1fr 1fr; /* 2 columns on very small screens if possible */
+  }
+
+  .video-grid:has(> :nth-child(3)) {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .video-grid > :only-child {
     grid-template-columns: 1fr;
   }
   
   .controls-bar {
     gap: 0.5rem;
     padding: 0.5rem;
+    width: 95%;
   }
   
   .btn-icon {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
   }
   
   .btn-icon svg {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .participant-name {
-    font-size: 0.75rem;
-    padding: 2px 8px;
+    width: 20px;
+    height: 20px;
   }
   
   .e2ee-badge {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+    top: 0.5rem;
+    left: 0.5rem;
   }
 
   .modal-content {
     padding: 1.5rem;
     margin: 1rem;
+    width: calc(100% - 2rem);
   }
 }
 

@@ -275,6 +275,63 @@ const { title } = Astro.props;
 		backdrop-filter: blur(10px);
 	}
 
+	/* --- Responsive Call Overlay --- */
+	@media (max-width: 768px) {
+		.call-canvas {
+			width: 100vw;
+			height: 100vh;
+			border-radius: 0;
+			border: none;
+		}
+		
+		.call-controls {
+			bottom: 24px;
+			gap: 12px;
+			padding: 10px 16px;
+			width: 90%;
+			justify-content: center;
+		}
+		
+		.control-btn {
+			width: 48px;
+			height: 48px;
+		}
+
+		.video-grid {
+			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+			padding: 12px;
+			gap: 8px;
+		}
+
+		.side-panel {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			width: 100% !important;
+			height: 100%;
+			margin: 0 !important;
+			border-radius: 0;
+			z-index: 500;
+		}
+
+		#call-overlay.panel-open .call-canvas {
+			display: block; /* No grid on mobile */
+		}
+		
+		#call-overlay.panel-open .video-grid {
+			display: none; /* Hide video when panel is open on mobile to save space */
+		}
+
+		.call-message-toast {
+			width: calc(100% - 32px);
+			left: 16px;
+			transform: none;
+			bottom: 100px;
+		}
+	}
+
 	/* --- Utilities --- */
 	.hidden { display: none !important; }
 </style>

@@ -5,6 +5,9 @@
     <div class="panel-header">
         <h2 id="panel-title">Llamadas</h2>
         <div class="header-actions">
+            <button id="btn-show-calendar-mobile" class="apple-button primary small mobile-only" style="display:none; margin-right: 8px;">
+                Calendario
+            </button>
             <button id="btn-clear-calls" class="icon-button" title="Limpiar historial">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
@@ -174,4 +177,17 @@
     :global(.call-icon.incoming) { background: rgba(52, 199, 89, 0.1); color: #34C759; }
     :global(.call-icon.outgoing) { background: rgba(0, 122, 255, 0.1); color: #007AFF; }
     :global(.call-icon.missed) { background: rgba(255, 59, 48, 0.1); color: #FF3B30; }
+
+    @media (max-width: 768px) {
+        .apple-list-panel {
+            width: 100vw;
+            border-right: none;
+        }
+        .mobile-only {
+            display: flex !important;
+        }
+        .calls-scrollable {
+            padding-bottom: 80px; /* Espacio para el bottom bar */
+        }
+    }
 </style>

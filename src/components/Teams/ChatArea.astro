@@ -22,6 +22,9 @@ import EmojiPickerWrapper from './EmojiPickerWrapper';
 		<div class="chat-header-main">
 			<div class="recipient-info">
 				<div class="name-row">
+					<button id="btn-back-to-list" class="back-btn mobile-only" title="Volver">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+					</button>
 					<h3 id="active-chat-name">Nombre</h3>
 					<button id="btn-toggle-contact" class="star-btn" title="Guardar contacto">
 						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
@@ -119,6 +122,19 @@ import EmojiPickerWrapper from './EmojiPickerWrapper';
 	}
 	.recipient-info h3 { font-size: 17px; font-weight: 600; margin-bottom: 2px; }
 	.name-row { display: flex; align-items: center; gap: 8px; }
+	
+	.back-btn {
+		background: transparent;
+		border: none;
+		color: var(--apple-accent);
+		cursor: pointer;
+		padding: 4px;
+		margin-right: 8px;
+		display: none;
+		align-items: center;
+		justify-content: center;
+	}
+
 	.star-btn {
 		background: transparent;
 		border: none;
@@ -137,6 +153,27 @@ import EmojiPickerWrapper from './EmojiPickerWrapper';
 		display: flex;
 		align-items: center;
 		gap: 8px;
+	}
+
+	@media (max-width: 768px) {
+		.chat-header-main {
+			padding: 12px 16px;
+		}
+		.back-btn.mobile-only {
+			display: flex;
+		}
+		.header-actions .call-btn:not(.primary) {
+			display: none;
+		}
+		.messages-container {
+			padding: 16px;
+		}
+		:global(.message-bubble) {
+			max-width: 85%;
+		}
+		.chat-input-area {
+			padding: 12px 16px 16px;
+		}
 	}
 
 	.unknown-actions {

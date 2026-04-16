@@ -88,6 +88,31 @@ import "../styles/global.css";
 		user-select: none;
 	}
 
+	@media (max-width: 768px) {
+		.apple-container {
+			flex-direction: column;
+		}
+		
+		/* En móvil ocultamos por defecto lo que no sea el área activa si estamos en modo chat */
+		.apple-container.chat-active :global(.apple-list-panel),
+		.apple-container.chat-active :global(.apple-sidebar) {
+			display: none !important;
+		}
+
+		.apple-container:not(.chat-active) :global(.apple-content) {
+			display: none !important;
+		}
+
+		/* El sidebar se vuelve bottom-bar, ocupando espacio abajo */
+		.apple-container {
+			padding-bottom: 60px; /* Espacio para el bottom bar */
+		}
+		
+		.apple-container.chat-active {
+			padding-bottom: 0; /* Ocultamos sidebar en chat activo móvil */
+		}
+	}
+
 	/* Incoming Call Popup */
 	.incoming-call-popup {
 		position: fixed;
@@ -106,6 +131,32 @@ import "../styles/global.css";
 		z-index: 4000;
 		animation: slideInRight 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 	}
+
+	@media (max-width: 480px) {
+		.incoming-call-popup {
+			top: 12px;
+			right: 12px;
+			left: 12px;
+			width: auto;
+			padding: 12px;
+		}
+		.incoming-avatar {
+			width: 36px;
+			height: 36px;
+			font-size: 16px;
+		}
+		.incoming-text strong {
+			font-size: 14px;
+		}
+		.incoming-text span {
+			font-size: 11px;
+		}
+		.incoming-btn {
+			width: 36px;
+			height: 36px;
+		}
+	}
+
 	@keyframes slideInRight {
 		from {
 			transform: translateX(100%);
@@ -436,6 +487,22 @@ import "../styles/global.css";
 			betaModal?.classList.add("hidden");
 			betaNoticeShown = true;
 			localStorage.setItem("bitmeet-beta-notice", "true");
+		});
+
+		document.getElementById("btn-back-to-list")?.addEventListener("click", () => {
+			teamsApp?.classList.remove("chat-active");
+			viewActiveChat?.classList.add("hidden");
+			viewNoChat?.classList.remove("hidden");
+			// También deseleccionamos visualmente cualquier chat activo en la lista
+			document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
+		});
+
+		document.getElementById("btn-show-calendar-mobile")?.addEventListener("click", () => {
+			teamsApp?.classList.add("chat-active");
+		});
+
+		document.getElementById("btn-back-to-calls")?.addEventListener("click", () => {
+			teamsApp?.classList.remove("chat-active");
 		});
 	}
 
@@ -927,6 +994,10 @@ import "../styles/global.css";
 			document
 				.querySelectorAll(".sidebar-icon")
 				.forEach((i) => i.classList.remove("active"));
+			
+			// En móvil, al cambiar de vista, siempre volvemos al panel de lista
+			teamsApp?.classList.remove("chat-active");
+
 			const target = e.currentTarget as HTMLElement;
 			target.classList.add("active");
 			const view = target.getAttribute("data-view");
@@ -2524,6 +2595,7 @@ import "../styles/global.css";
 	) {
 		viewNoChat?.classList.add("hidden");
 		viewActiveChat?.classList.remove("hidden");
+		teamsApp?.classList.add("chat-active");
 		document
 			.querySelectorAll(".chat-item")
 			.forEach((i) => i.classList.remove("active"));
