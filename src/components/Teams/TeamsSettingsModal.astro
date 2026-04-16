@@ -21,6 +21,27 @@
 					<span class="slider"></span>
 				</label>
 			</div>
+
+			<div class="setting-item">
+				<div class="setting-info">
+					<strong>Sincronizar Dispositivo</strong>
+					<span>Vincular por QR o código de 6 dígitos</span>
+				</div>
+				<div class="sync-actions">
+					<button id="btn-show-sync-qr" class="apple-button-secondary">Mostrar QR</button>
+					<button id="btn-gen-sync-code" class="apple-button-secondary">Generar Código</button>
+				</div>
+			</div>
+
+			<div id="sync-qr-container" class="sync-qr-container hidden">
+				<canvas id="sync-qr-canvas"></canvas>
+				<p>Escanea este código desde otro dispositivo.</p>
+			</div>
+
+			<div id="sync-code-display" class="sync-code-display hidden">
+				<div class="code-box" id="sync-code-value">000000</div>
+				<p>Introduce este código en tu otro dispositivo para sincronizar.</p>
+			</div>
 		</div>
 	</div>
 </div>
@@ -101,4 +122,50 @@
 	}
 	input:checked + .slider { background-color: #34C759; }
 	input:checked + .slider:before { transform: translateX(22px); }
+
+	.apple-button-secondary {
+		background: #f2f2f7;
+		border: none;
+		border-radius: 12px;
+		padding: 8px 16px;
+		font-size: 13px;
+		font-weight: 600;
+		color: #007aff;
+		cursor: pointer;
+	}
+
+	.sync-qr-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 20px 0;
+		text-align: center;
+		gap: 12px;
+	}
+	.sync-qr-container p { font-size: 12px; color: var(--apple-text-secondary); }
+	#sync-qr-canvas {
+		background: white;
+		padding: 10px;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+	}
+
+	.sync-actions { display: flex; gap: 8px; }
+	.sync-code-display {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 20px 0;
+		gap: 12px;
+	}
+	.code-box {
+		background: #f2f2f7;
+		padding: 12px 24px;
+		border-radius: 16px;
+		font-size: 32px;
+		font-weight: 800;
+		letter-spacing: 4px;
+		color: var(--apple-accent);
+	}
+	.sync-code-display p { font-size: 12px; color: var(--apple-text-secondary); text-align: center; }
 </style>

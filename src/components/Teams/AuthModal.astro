@@ -22,10 +22,101 @@
 		</div>
 		
 		<div id="auth-import-view" class="auth-view hidden">
-			<p class="auth-subtitle">Bienvenido! No hemos encontrado tu passkey en la memoria de tu dispositivo. Es tan simple como importarla</p>
-			<button id="btn-trigger-import" class="apple-button-primary">Importar BitID (.json)</button>
-			<input type="file" id="import-file" class="hidden" accept=".json" />
+			<p class="auth-subtitle">Bienvenido! No hemos encontrado tu passkey en la memoria de tu dispositivo. Impórtala o sincronízala con otro dispositivo.</p>
+			
+			<div class="auth-import-actions">
+				<button id="btn-trigger-import" class="apple-button-primary">Importar BitID (.json)</button>
+				<input type="file" id="import-file" class="hidden" accept=".json" />
+				
+				<div class="auth-divider">o mediante código</div>
+				
+				<div class="sync-input-group">
+					<input type="text" id="pairing-code-input" placeholder="Código de 6 dígitos" maxlength="6" />
+					<button id="btn-sync-by-code" class="apple-button-arrow">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+					</button>
+				</div>
+			</div>
+
 			<p style="margin-top: 32px; font-size: 12px; color: #86868b;">Si no tienes un ID, créalo en <a href="https://id.inled.es" target="_blank" style="color: #0066cc; text-decoration: none;">id.inled.es</a></p>
 		</div>
 	</div>
 </section>
+
+<style>
+	.auth-import-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		margin-top: 24px;
+	}
+
+	.auth-divider {
+		text-align: center;
+		position: relative;
+		font-size: 13px;
+		color: #86868b;
+		margin: 8px 0;
+	}
+
+	.auth-divider::before,
+	.auth-divider::after {
+		content: "";
+		position: absolute;
+		top: 50%;
+		width: 30%;
+		height: 1px;
+		background: #d2d2d7;
+	}
+
+	.auth-divider::before { left: 0; }
+	.auth-divider::after { right: 0; }
+
+	.sync-input-group {
+		position: relative;
+		width: 100%;
+	}
+
+	.sync-input-group input {
+		width: 100% !important;
+		padding: 14px 44px 14px 16px !important;
+		border-radius: 12px !important;
+		border: 1px solid #d2d2d7 !important;
+		font-size: 17px !important;
+		background: #fff !important;
+		color: #1d1d1f !important;
+		outline: none !important;
+		text-align: center;
+		letter-spacing: 2px;
+		font-weight: 600;
+	}
+
+	.sync-input-group input:focus {
+		border-color: #0071e3 !important;
+		box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1) !important;
+	}
+
+	.apple-button-arrow {
+		position: absolute;
+		right: 8px;
+		top: 50%;
+		transform: translateY(-50%);
+		background: #0071e3;
+		color: white;
+		border: none;
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		transition: transform 0.2s, background 0.2s;
+	}
+
+	.apple-button-arrow:hover {
+		background: #0077ed;
+		transform: translateY(-50%) scale(1.05);
+	}
+</style>

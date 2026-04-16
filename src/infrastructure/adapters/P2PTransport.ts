@@ -1,40 +1,48 @@
-import Peer from 'peerjs';
+import { WebRTCManager } from './WebRTCManager';
+import type { BitIDService } from '../../lib/bitid';
+import { DeviceSyncService } from '../../lib/sync';
 
 export class P2PTransport {
-  private peer: any;
-  private connections: Map<string, any> = new Map();
+  private webrtc: WebRTCManager;
+  private syncService?: DeviceSyncService;
+  private bitid?: BitIDService;
   private peerIdToPubKey: Map<string, string> = new Map();
+  private pubKeyToDevices: Map<string, Set<string>> = new Map();
   private apiUrl = "https://bitid-api.inled.es";
   private onMessageCb?: (msg: any) => void;
   private onCallCb?: (call: any) => void;
   private onConnectionCb?: (peerPubKey: string) => void;
   private myPubKey: string = '';
+  private myPeerId: string = '';
   private presenceMap: Map<string, { status: 'online' | 'offline', lastSeen: number }> = new Map();
   private discoverySet: Set<string> = new Set();
 
-  async initialize(pubKey: string) {
-    // Usamos el hash de la pubKey como ID de PeerJS para que sea encontrable
-    const peerId = await this.hashPubKey(pubKey);
+  constructor() {
+    this.webrtc = new WebRTCManager();
+    this.webrtc.onDataReceived((fromId, data) => {
+      this.handleIncomingData(fromId, data);
+    });
+    this.webrtc.onConnectionOpened((fromId) => {
+      this.handleConnectionOpened(fromId);
+    });
+  }
+
+  async initialize(pubKey: string, bitid: BitIDService) {
+    this.bitid = bitid;
+    this.syncService = new DeviceSyncService(bitid);
     this.myPubKey = pubKey;
-    this.peerIdToPubKey.set(peerId, pubKey);
     
-    this.peer = new Peer(peerId, {
-      debug: 2
-    });
-
-    this.peer.on('open', (id: string) => {
-      console.log('Mi ID de PeerJS es:', id);
-      this.startHeartbeatLoop();
-    });
-
-    this.peer.on('connection', (conn: any) => {
-      this.setupConnection(conn);
-    });
-
-    this.peer.on('call', (call: any) => {
-      console.log('Llamada entrante de:', call.peer);
-      if (this.onCallCb) this.onCallCb(call);
-    });
+    // El peerId ahora es determinista por dispositivo
+    const deviceId = this.bitid.getDeviceId();
+    this.myPeerId = await this.hashPeerId(pubKey, deviceId);
+    
+    this.peerIdToPubKey.set(this.myPeerId, pubKey);
+    
+    await this.webrtc.initialize(this.myPeerId);
+    await this.syncService.registerDevice(pubKey);
+    
+    console.log('Mi ID de WebRTC (Multi-Device) es:', this.myPeerId);
+    this.startHeartbeatLoop();
   }
 
   onMessageReceived(cb: (msg: any) => void) {
@@ -50,7 +58,12 @@ export class P2PTransport {
   }
 
   getPeer() {
-    return this.peer;
+    return {
+      id: this.myPeerId,
+      on: (event: string, cb: any) => {
+        if (event === 'call') this.onCallCb = cb;
+      }
+    };
   }
 
   async hashPubKey(pubKey: string): Promise<string> {
@@ -60,170 +73,162 @@ export class P2PTransport {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
   }
 
+  private async hashPeerId(pubKey: string, deviceId: string): Promise<string> {
+    const msgUint8 = new TextEncoder().encode(pubKey + deviceId);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+  }
+
   private startHeartbeatLoop() {
     setInterval(() => {
-      this.connections.forEach((conn, peerId) => {
-        if (conn.open) {
-          conn.send({ type: '__heartbeat__', senderPubKey: this.myPubKey, timestamp: Date.now() });
+      this.peerIdToPubKey.forEach((pubKey, peerId) => {
+        if (peerId !== this.myPeerId) {
+          try {
+            this.webrtc.send(peerId, { type: '__heartbeat__', senderPubKey: this.myPubKey, timestamp: Date.now() });
+          } catch (e) {}
         }
       });
 
-      // Cleanup local presence: si no hemos visto a alguien en 15s (3 latidos perdidos), marcar offline
       const now = Date.now();
       this.presenceMap.forEach((data, pubKey) => {
-        if (now - data.lastSeen > 15000) {
+        if (now - data.lastSeen > 30000) {
           this.presenceMap.set(pubKey, { status: 'offline', lastSeen: data.lastSeen });
         }
       });
-    }, 5000); // Latido cada 5 segundos
+    }, 10000);
   }
 
-  private setupConnection(conn: any) {
-    this.connections.set(conn.peer, conn);
-    
-    const notifyReady = () => {
-      console.log(`Conexión P2P abierta con: ${conn.peer}`);
-      const pubKey = this.peerIdToPubKey.get(conn.peer);
-      if (this.onConnectionCb && pubKey) {
-        this.onConnectionCb(pubKey);
-      }
-    };
-
-    if (conn.open) {
-      notifyReady();
-    } else {
-      conn.on('open', notifyReady);
-    }
-
-    conn.on('data', (data: any) => {
-      if (data.senderPubKey) {
-        this.peerIdToPubKey.set(conn.peer, data.senderPubKey);
-        // Actualizar presencia al recibir cualquier dato
-        this.presenceMap.set(data.senderPubKey, { status: 'online', lastSeen: Date.now() });
-      }
+  private handleIncomingData(fromId: string, data: any) {
+    if (data.senderPubKey) {
+      this.peerIdToPubKey.set(fromId, data.senderPubKey);
       
-      // Filtrar mensajes internos de control
-      if (data.type === '__heartbeat__') {
-        return; 
+      let devices = this.pubKeyToDevices.get(data.senderPubKey);
+      if (!devices) {
+        devices = new Set();
+        this.pubKeyToDevices.set(data.senderPubKey, devices);
       }
+      devices.add(fromId);
 
-      console.log('Mensaje recibido P2P:', data);
-      if (this.onMessageCb) this.onMessageCb(data);
-    });
+      this.presenceMap.set(data.senderPubKey, { status: 'online', lastSeen: Date.now() });
 
-    conn.on('close', () => {
-      this.connections.delete(conn.peer);
-      const pubKey = this.peerIdToPubKey.get(conn.peer);
-      if (pubKey) {
-        this.presenceMap.set(pubKey, { status: 'offline', lastSeen: Date.now() });
-        this.discoverySet.delete(pubKey);
+      // Si es otro de mis dispositivos, iniciar sincronización si es necesario
+      if (data.senderPubKey === this.myPubKey && data.type === '__heartbeat__') {
+         // Podríamos disparar un evento de sync aquí
+         this.onMessageCb?.({ type: 'device-sync-ping', fromDeviceId: fromId });
       }
-    });
+    }
+    
+    if (data.type === '__heartbeat__') return; 
 
-    conn.on('error', () => {
-      this.connections.delete(conn.peer);
-      const pubKey = this.peerIdToPubKey.get(conn.peer);
-      if (pubKey) {
-        this.presenceMap.set(pubKey, { status: 'offline', lastSeen: Date.now() });
-        this.discoverySet.delete(pubKey);
-      }
-    });
+    console.log('Mensaje recibido WebRTC:', data);
+    if (this.onMessageCb) this.onMessageCb(data);
+  }
+
+  private handleConnectionOpened(fromId: string) {
+    const pubKey = this.peerIdToPubKey.get(fromId);
+    if (this.onConnectionCb && pubKey) {
+      this.onConnectionCb(pubKey);
+    }
   }
 
   async connectToPeer(targetPubKey: string): Promise<boolean> {
-    const targetPeerId = await this.hashPubKey(targetPubKey);
-    this.peerIdToPubKey.set(targetPeerId, targetPubKey);
-    const existing = this.connections.get(targetPeerId);
-    if (existing && existing.open) {
-      return true;
-    }
-    
-    return new Promise((resolve) => {
-      console.log(`[P2P] Connecting to peer: ${targetPeerId}`);
-      const conn = this.peer.connect(targetPeerId);
-      
-      conn.on('open', () => {
-        console.log(`[P2P] Connection opened with: ${targetPeerId}`);
-        this.setupConnection(conn);
-        resolve(true);
-      });
+    if (!this.syncService) return false;
 
-      conn.on('error', (err: any) => {
-        console.error(`[P2P] Connection error with ${targetPeerId}:`, err);
-        resolve(false);
-      });
+    const devices = await this.syncService.getActiveDevices(targetPubKey);
+    if (devices.length === 0) return false;
+
+    let atLeastOne = false;
+    for (const deviceId of devices) {
+      const peerId = await this.hashPeerId(targetPubKey, deviceId);
+      this.peerIdToPubKey.set(peerId, targetPubKey);
       
-      // Fallback timeout increased to 10s for slow networks
-      setTimeout(() => {
-        if (!this.connections.has(targetPeerId)) {
-          console.warn(`[P2P] Connection timeout with: ${targetPeerId}`);
-          resolve(false);
-        }
-      }, 10000);
-    });
+      try {
+        await this.webrtc.connect(peerId);
+        atLeastOne = true;
+      } catch (err) {}
+    }
+
+    return atLeastOne;
   }
 
   async sendP2PMessage(targetPubKey: string, message: any) {
-    const targetPeerId = await this.hashPubKey(targetPubKey);
-    const conn = this.connections.get(targetPeerId);
-    if (conn && conn.open) {
-      conn.send(message);
+    const devices = this.pubKeyToDevices.get(targetPubKey);
+    
+    if (devices && devices.size > 0) {
+      let sentCount = 0;
+      devices.forEach(peerId => {
+        try {
+          this.webrtc.send(peerId, message);
+          sentCount++;
+        } catch (e) {
+          devices.delete(peerId);
+        }
+      });
+      if (sentCount > 0) return;
+    }
+
+    const connected = await this.connectToPeer(targetPubKey);
+    if (connected) {
+      setTimeout(() => {
+        const updatedDevices = this.pubKeyToDevices.get(targetPubKey);
+        updatedDevices?.forEach(peerId => {
+          try { this.webrtc.send(peerId, message); } catch (err) {}
+        });
+      }, 1000);
     } else {
-      const connected = await this.connectToPeer(targetPubKey);
-      if (connected) {
-        this.connections.get(targetPeerId).send(message);
-      } else {
-        console.warn("Peer no conectado o offline.");
-        throw new Error("offline");
-      }
+      throw new Error("offline");
     }
   }
 
   async callPeer(targetPubKey: string, stream: MediaStream) {
-    const targetPeerId = await this.hashPubKey(targetPubKey);
-    return this.peer.call(targetPeerId, stream);
+    const devices = await this.syncService?.getActiveDevices(targetPubKey) || [];
+    if (devices.length === 0) throw new Error("offline");
+
+    const peerId = await this.hashPeerId(targetPubKey, devices[0]);
+    await this.webrtc.connect(peerId, stream);
+    
+    return {
+      on: (event: string, cb: any) => {
+        if (event === 'stream') {
+           this.webrtc.onRemoteStream((id, remoteStream) => {
+             if (id === peerId) cb(remoteStream);
+           });
+        }
+      },
+      close: () => {}
+    };
   }
 
   async isConnected(targetPubKey: string): Promise<boolean> {
-    const targetPeerId = await this.hashPubKey(targetPubKey);
-    const conn = this.connections.get(targetPeerId);
-    return !!(conn && conn.open);
+    const devices = this.pubKeyToDevices.get(targetPubKey);
+    if (!devices) return false;
+    
+    for (const peerId of devices) {
+      const pc = this.webrtc.getPeerConnection(peerId);
+      if (pc?.connectionState === 'connected') return true;
+    }
+    return false;
   }
 
-  /**
-   * Intenta descubrir a un peer si no estamos conectados.
-   * Útil para refrescar estados online sin intervención del usuario.
-   */
   async discover(pubKey: string) {
     if (this.discoverySet.has(pubKey)) return;
     if (await this.isConnected(pubKey)) return;
 
     this.discoverySet.add(pubKey);
-    console.log(`[P2P Discovery] Saludo inicial a: ${pubKey.substring(0,8)}...`);
-    
-    // Intentamos conectar. Si falla, el error lo maneja connectToPeer.
-    // No usamos 'await' aquí para no bloquear el hilo principal.
     this.connectToPeer(pubKey).then(success => {
       if (!success) {
-        // Si falla, permitimos reintentar en 60 segundos
         setTimeout(() => this.discoverySet.delete(pubKey), 60000);
-      } else {
-        // Si conecta, se queda en el set hasta que se cierre la conexión
-        // (lo gestionamos en setupConnection)
       }
     });
   }
 
   async getPresence(pubKey: string): Promise<'online' | 'offline'> {
-    // 1. Si está conectado activamente, está online
     if (await this.isConnected(pubKey)) return 'online';
-    
-    // 2. Si lo hemos visto recientemente vía heartbeat u otros mensajes
     const cached = this.presenceMap.get(pubKey);
-    if (cached && cached.status === 'online' && (Date.now() - cached.lastSeen < 15000)) {
+    if (cached && cached.status === 'online' && (Date.now() - cached.lastSeen < 60000)) {
       return 'online';
     }
-
     return 'offline';
   }
 }

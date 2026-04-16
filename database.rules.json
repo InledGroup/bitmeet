@@ -1,0 +1,19 @@
+{
+  "rules": {
+    "signaling": {
+      ".read": true,
+      ".write": true
+    },
+    "users": {
+      ".read": true,
+      ".write": true
+    },
+    "pairing": {
+      "$code": {
+        ".read": true,
+        ".write": "!data.exists() || !newData.exists()",
+        ".validate": "newData.hasChildren(['data', 'createdAt'])"
+      }
+    }
+  }
+}

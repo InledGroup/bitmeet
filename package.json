@@ -2,15 +2,21 @@
   "name": "lonely-mars",
   "type": "module",
   "version": "0.0.1",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "electron:dev": "electron .",
+    "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.1.10",
     "@astrojs/react": "^5.0.3",
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
     "@nanostores/react": "^1.1.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -21,11 +27,15 @@
     "nanoid": "^5.1.6",
     "nanostores": "^1.2.0",
     "peerjs": "^1.5.5",
+    "qrcode": "^1.5.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "webtorrent": "^2.8.5"
   },
   "devDependencies": {
-    "@types/webtorrent": "^0.110.1"
+    "@types/webtorrent": "^0.110.1",
+    "electron": "^41.2.1",
+    "electron-builder": "^26.8.1",
+    "electron-is-dev": "^3.0.1"
   }
 }

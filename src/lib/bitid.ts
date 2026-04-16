@@ -18,7 +18,19 @@ export class BitIDService {
   private readonly COLLEAGUES_TTL = 24 * 60 * 60 * 1000; // 24 horas
   private searchCache = new Map<string, { data: any[]; ts: number }>();
   private readonly SEARCH_TTL = 2 * 60 * 1000; // 2 min
+  private deviceId: string | null = null;
   // ───────────────────────────────────────────────────────────────────────────
+
+  getDeviceId(): string {
+    if (this.deviceId) return this.deviceId;
+    let id = localStorage.getItem("bitmeet_device_id");
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem("bitmeet_device_id", id);
+    }
+    this.deviceId = id;
+    return id;
+  }
 
   async importIdentity(data: any): Promise<void> {
     const identity = data.identity || data.metadata;
@@ -84,6 +96,21 @@ export class BitIDService {
     sessionStorage.removeItem("bitid-session");
     localStorage.removeItem("bitid_colleagues_cache");
     this.searchCache.clear();
+  }
+
+  async exportIdentity(): Promise<any> {
+    const identity = await this.storage.getIdentity();
+    const encryptedKey = await this.storage.getEncryptedKey();
+    if (!identity || !encryptedKey) return null;
+
+    return {
+      identity,
+      encryptedPrivateKey: {
+        encryptedData: Array.from(new Uint8Array(encryptedKey.encryptedData)),
+        salt: Array.from(encryptedKey.salt),
+        iv: Array.from(encryptedKey.iv)
+      }
+    };
   }
 
   /**

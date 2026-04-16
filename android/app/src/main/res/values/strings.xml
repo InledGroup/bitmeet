@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BitMeet</string>
+    <string name="title_activity_main">BitMeet</string>
+    <string name="package_name">es.inled.bitmeet</string>
+    <string name="custom_url_scheme">es.inled.bitmeet</string>
+</resources>

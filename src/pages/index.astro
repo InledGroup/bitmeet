@@ -396,8 +396,47 @@ import "../styles/global.css";
 	const checkNotifications = document.getElementById(
 		"check-notifications",
 	) as HTMLInputElement;
+	const btnShowSyncQr = document.getElementById("btn-show-sync-qr");
+	const syncQrContainer = document.getElementById("sync-qr-container");
+	const syncQrCanvas = document.getElementById("sync-qr-canvas") as HTMLCanvasElement;
+	const btnGenSyncCode = document.getElementById("btn-gen-sync-code");
+	const syncCodeDisplay = document.getElementById("sync-code-display");
+	const syncCodeValue = document.getElementById("sync-code-value");
+
+	const pairingCodeInput = document.getElementById("pairing-code-input") as HTMLInputElement;
+	const btnSyncByCode = document.getElementById("btn-sync-by-code");
 
 	let currentChatType: "direct" | "group" = "direct";
+
+	btnGenSyncCode?.addEventListener("click", async () => {
+			const identityData = await bitid.exportIdentity();
+			if (!identityData) return alert("No se pudo exportar la identidad");
+			
+			const sync = new (await import("../lib/sync")).DeviceSyncService(bitid);
+			const code = await sync.createPairingCode(identityData);
+			
+			if (syncCodeValue && syncCodeDisplay) {
+				syncCodeValue.textContent = code;
+				syncCodeDisplay.classList.remove("hidden");
+				syncQrContainer?.classList.add("hidden");
+			}
+		});
+
+		btnSyncByCode?.addEventListener("click", async () => {
+			const code = pairingCodeInput.value.trim();
+			if (code.length !== 6) return alert("Introduce un código de 6 dígitos");
+
+			const sync = new (await import("../lib/sync")).DeviceSyncService(bitid);
+			const identityData = await sync.claimPairingCode(code);
+
+			if (identityData) {
+				await bitid.importIdentity(identityData);
+				alert("¡Dispositivo vinculado con éxito!");
+				window.location.reload();
+			} else {
+				alert("Código inválido o expirado");
+			}
+		});
 	let currentGroupParticipants: string[] = [];
 	let currentGroupOwner: string | null = null;
 
@@ -437,6 +476,7 @@ import "../styles/global.css";
 
 				if (autoKey) {
 					myIdentity = id;
+					(window as any).myIdentity = id;
 					authOverlay?.classList.add("hidden");
 					teamsApp?.classList.remove("hidden");
 					const welcomeName = document.getElementById("welcome-name");
@@ -479,9 +519,22 @@ import "../styles/global.css";
 		btnOpenSettings?.addEventListener("click", () =>
 			settingsOverlay?.classList.remove("hidden"),
 		);
-		btnCloseSettings?.addEventListener("click", () =>
-			settingsOverlay?.classList.add("hidden"),
-		);
+		btnCloseSettings?.addEventListener("click", () => {
+			settingsOverlay?.classList.add("hidden");
+			syncQrContainer?.classList.add("hidden");
+		});
+
+		btnShowSyncQr?.addEventListener("click", async () => {
+			const { default: QRCode } = await import("qrcode");
+			const identityData = await bitid.exportIdentity();
+			if (!identityData) return alert("No se pudo exportar la identidad");
+
+			const dataString = JSON.stringify(identityData);
+			QRCode.toCanvas(syncQrCanvas, dataString, { width: 256, margin: 2 }, (error) => {
+				if (error) console.error(error);
+				else syncQrContainer?.classList.remove("hidden");
+			});
+		});
 
 		btnBetaClose?.addEventListener("click", () => {
 			betaModal?.classList.add("hidden");
@@ -514,6 +567,7 @@ import "../styles/global.css";
 		if (key) {
 			const id = await bitid.getIdentity();
 			myIdentity = id;
+			(window as any).myIdentity = id;
 
 			// Animación de éxito Apple ID
 			authCard?.classList.add("unlock-success");
@@ -1408,7 +1462,7 @@ import "../styles/global.css";
 
 	// 3. P2P Y NOTIFICACIONES DE LLAMADA
 	async function startP2P() {
-		await p2p.initialize(myIdentity.publicKey);
+		await p2p.initialize(myIdentity.publicKey, bitid);
 		document
 			.querySelector(".status-circle")
 			?.classList.replace("offline", "online");
@@ -1479,6 +1533,81 @@ import "../styles/global.css";
 		retryPendingMessages(); // Reintentar al conectar inicial
 
 		p2p.onMessageReceived(async (msg: any) => {
+			if (msg.type === "device-sync-ping") {
+				console.log("[Sync] Otro dispositivo detectado:", msg.fromDeviceId);
+				const lastSync = parseInt(localStorage.getItem("bitmeet_last_sync") || "0");
+				p2p.sendP2PMessage(myIdentity.publicKey, {
+					type: "device-sync-req",
+					lastSyncTs: lastSync,
+					senderPubKey: myIdentity.publicKey
+				});
+				return;
+			}
+
+			if (msg.type === "device-sync-req") {
+				console.log("[Sync] Petición de sincronización recibida de otro dispositivo");
+				const chats = await chatRepo.listAllChats();
+				const syncMessages: any[] = [];
+				const contacts = await chatRepo.listContacts();
+
+				for (const chat of chats) {
+					const newMsgs = chat.messages.filter(m => m.timestamp > msg.lastSyncTs);
+					if (newMsgs.length > 0) {
+						syncMessages.push({
+							chatId: chat.id,
+							chatName: chat.name,
+							chatType: chat.type,
+							participants: chat.participants,
+							owner: chat.owner,
+							messages: newMsgs
+						});
+					}
+				}
+
+				if (syncMessages.length > 0 || contacts.length > 0) {
+					p2p.sendP2PMessage(myIdentity.publicKey, {
+						type: "device-sync-res",
+						data: syncMessages,
+						contacts: contacts,
+						senderPubKey: myIdentity.publicKey
+					});
+				}
+				return;
+			}
+
+			if (msg.type === "device-sync-res") {
+				console.log("[Sync] Datos de sincronización recibidos");
+				if (msg.contacts) {
+					for (const c of msg.contacts) {
+						await chatRepo.saveContact(c);
+					}
+				}
+				if (msg.data) {
+					for (const chatData of msg.data) {
+						// Asegurar que el chat existe
+						const existingChat = await chatRepo.getChat(chatData.chatId);
+						if (!existingChat) {
+							await chatRepo.saveChat({
+								id: chatData.chatId,
+								name: chatData.chatName,
+								type: chatData.chatType,
+								participants: chatData.participants,
+								owner: chatData.owner,
+								messages: [],
+								lastUpdate: Date.now()
+							});
+						}
+						// Guardar mensajes
+						for (const m of chatData.messages) {
+							await chatRepo.addMessage(chatData.chatId, m);
+						}
+					}
+				}
+				localStorage.setItem("bitmeet_last_sync", Date.now().toString());
+				loadContacts();
+				return;
+			}
+
 			if (msg.type === "sync-ping") {
 				console.log(
 					`Recibido sync-ping de ${msg.senderPubKey} para chat ${msg.chatId}. Pide msgs > ${msg.lastReceivedTimestamp}`,
