@@ -1,0 +1,49 @@
+name: Build Electron App
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'release/**'
+
+jobs:
+  build:
+    if: contains(github.event.head_commit.message, '[RELEASE]')
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install RPM tool (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools
+
+      - name: Build Astro project
+        run: npm run build
+
+      - name: Build Electron app
+        run: npm run electron:build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: BitMeet-${{ matrix.os }}
+          path: dist-electron/*.{dmg,exe,msi,deb,rpm,zip}
+          if-no-files-found: warn

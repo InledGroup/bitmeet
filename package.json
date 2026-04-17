@@ -41,5 +41,38 @@
     "electron": "^41.2.1",
     "electron-builder": "^26.8.1",
     "electron-is-dev": "^3.0.1"
+  },
+  "build": {
+    "appId": "es.inled.bitmeet",
+    "productName": "BitMeet",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "resources/icon.png"
+    ],
+    "mac": {
+      "icon": "resources/icon.png",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "icon": "resources/icon.png",
+      "target": [
+        "nsis",
+        "msi"
+      ]
+    },
+    "linux": {
+      "icon": "resources/icon.png",
+      "target": [
+        "deb",
+        "rpm"
+      ]
+    }
   }
 }

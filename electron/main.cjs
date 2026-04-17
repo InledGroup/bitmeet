@@ -24,7 +24,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     title: 'BitMeet',
-    icon: path.join(__dirname, '../public/favicon.ico'),
+    icon: path.join(__dirname, '../resources/icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -52,7 +52,7 @@ function createWindow() {
           new Notification({
             title: 'BitMeet sigue activo',
             body: 'La aplicación se ha minimizado a la bandeja del sistema.',
-            icon: path.join(__dirname, '../public/favicon.ico')
+            icon: path.join(__dirname, '../resources/icon.png')
           }).show();
           // Marcamos que ya hemos avisado (usando un truco simple o localStorage en main)
         }
@@ -67,7 +67,7 @@ function createWindow() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, '../public/favicon.ico');
+  const iconPath = path.join(__dirname, '../resources/icon.png');
   const icon = nativeImage.createFromPath(iconPath);
   tray = new Tray(icon);
   
@@ -123,7 +123,7 @@ ipcMain.on('notify', (event, { title, body }) => {
   const notification = new Notification({ 
     title, 
     body,
-    icon: path.join(__dirname, '../public/favicon.ico')
+    icon: path.join(__dirname, '../resources/icon.png')
   });
   
   notification.on('click', () => {

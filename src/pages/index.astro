@@ -556,6 +556,17 @@ import "../styles/global.css";
 			}
 		});
 
+		document.getElementById("btn-skip-sync")?.addEventListener("click", () => {
+			localStorage.removeItem("bitmeet_pending_full_sync");
+			authOverlay?.classList.add("hidden");
+			teamsApp?.classList.remove("hidden");
+		});
+
+		document.getElementById("btn-cancel-sync")?.addEventListener("click", () => {
+			localStorage.removeItem("bitmeet_pending_full_sync");
+			window.location.reload();
+		});
+
 		btnScanQr?.addEventListener("click", async () => {
 			// Intentar usar escáner nativo si estamos en Capacitor
 			try {
@@ -563,16 +574,21 @@ import "../styles/global.css";
 				const isCapacitor = (window as any).Capacitor?.isNativePlatform();
 
 				if (isCapacitor) {
-					const hasPermission = await BarcodeScanner.checkPermissions();
-					if (hasPermission.camera !== 'granted') {
-						const request = await BarcodeScanner.requestPermissions();
-						if (request.camera !== 'granted') return alert("Permiso de cámara denegado");
+					// 1. Verificar/Pedir permisos
+					const status = await BarcodeScanner.checkPermissions();
+					if (status.camera !== 'granted') {
+						const req = await BarcodeScanner.requestPermissions();
+						if (req.camera !== 'granted') return alert("Permiso de cámara denegado");
 					}
 
-					// IMPORTANTE: Para que se vea la cámara en Android, el fondo debe ser transparente
+					// 2. IMPORTANTE: Activar transparencia TOTAL
 					document.documentElement.classList.add("barcode-scanner-active");
 					document.body.classList.add("barcode-scanner-active");
 					document.getElementById("barcode-scanner-ui")?.classList.add("visible");
+					
+					// Ocultar TODO el contenido para que el visor nativo sea visible
+					if (authOverlay) authOverlay.style.display = "none";
+					if (teamsApp) teamsApp.style.display = "none";
 
 					try {
 						const result = await BarcodeScanner.startScan({
@@ -585,10 +601,12 @@ import "../styles/global.css";
 							btnSyncByCode?.click();
 						}
 					} finally {
-						// Limpiar siempre al terminar
+						// 3. Restaurar UI
 						document.documentElement.classList.remove("barcode-scanner-active");
 						document.body.classList.remove("barcode-scanner-active");
 						document.getElementById("barcode-scanner-ui")?.classList.remove("visible");
+						if (authOverlay) authOverlay.style.display = "";
+						if (teamsApp) teamsApp.style.display = "";
 					}
 					return;
 				}
@@ -635,9 +653,7 @@ import "../styles/global.css";
 				const { BarcodeScanner } = await import("@capacitor-mlkit/barcode-scanning");
 				await BarcodeScanner.stopScan();
 			} catch(e) {}
-			document.body.classList.remove("barcode-scanner-active");
-			document.getElementById("barcode-scanner-ui")?.classList.remove("visible");
-			authOverlay?.classList.remove("hidden");
+			// La restauración se hace en el 'finally' del startScan
 		});
 
 		document.getElementById("btn-close-qr")?.addEventListener("click", async () => {

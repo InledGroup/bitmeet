@@ -156,6 +156,10 @@ export class WebRTCManager {
     }
   }
 
+  getPeerConnection(targetId: string): RTCPeerConnection | undefined {
+    return this.peerConnections.get(targetId);
+  }
+
   private closeConnection(targetId: string) {
     const pc = this.peerConnections.get(targetId);
     if (pc) {

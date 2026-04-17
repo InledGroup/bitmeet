@@ -4,7 +4,7 @@
 <section id="auth-overlay" class="auth-overlay">
 	<div class="auth-card" id="auth-card">
 		<div class="auth-header">
-			<img src="/bitid-animated.gif" alt="BitID Logo" class="apple-id-logo" />
+			<img src="https://hosted.inled.es/bitid-animated.gif" alt="BitID Logo" class="apple-id-logo" crossorigin="anonymous" />
 			<h1 id="auth-title">BitID</h1>
 		</div>
 		
@@ -193,7 +193,10 @@
 				<div id="sync-progress-bar" style="height: 100%; width: 0%; background: #0071e3; transition: width 0.3s ease;"></div>
 			</div>
 
-			<button id="btn-cancel-sync" style="margin-top: 32px; background: none; border: none; color: #0066cc; font-size: 14px; cursor: pointer; font-weight: 500;">Cancelar y volver</button>
+			<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 32px;">
+				<button id="btn-skip-sync" class="apple-button-secondary" style="width: 100%;">Omitir y entrar ahora</button>
+				<button id="btn-cancel-sync" style="background: none; border: none; color: #ff3b30; font-size: 14px; cursor: pointer; font-weight: 500;">Cancelar sincronización</button>
+			</div>
 		</div>	</div>
 </section>
 

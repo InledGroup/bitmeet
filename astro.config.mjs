@@ -8,6 +8,7 @@ import react from '@astrojs/react';
 // modo correcto. Cloudflare Pages servirá el directorio dist/ directamente.
 export default defineConfig({
   output: 'static',
+  base: './',
   integrations: [react()],
   vite: {
     optimizeDeps: {
