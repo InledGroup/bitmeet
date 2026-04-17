@@ -1,10 +1,23 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
 
 let mainWindow;
 let tray;
 let isQuitting = false;
+
+// Evitar múltiples instancias
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -15,7 +28,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.cjs')
+      preload: path.join(__dirname, 'preload.cjs'),
+      backgroundThrottling: false // Importante para que no se pause en segundo plano
     }
   });
 
@@ -25,26 +39,43 @@ function createWindow() {
 
   mainWindow.loadURL(url);
 
-  // Comportamiento de "cerrar" -> Minimizar al tray
+  // Comportamiento de "cerrar" -> Ocultar la ventana
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault();
       mainWindow.hide();
+      
+      // Notificar al usuario la primera vez que se oculta
+      if (process.platform === 'win32' || process.platform === 'darwin') {
+        const firstHide = !app.isDefaultProtocolClient('bitmeet-hidden-notice');
+        if (firstHide) {
+          new Notification({
+            title: 'BitMeet sigue activo',
+            body: 'La aplicación se ha minimizado a la bandeja del sistema.',
+            icon: path.join(__dirname, '../public/favicon.ico')
+          }).show();
+          // Marcamos que ya hemos avisado (usando un truco simple o localStorage en main)
+        }
+      }
     }
     return false;
   });
 
-  if (isDev) {
-    mainWindow.webContents.openDevTools();
-  }
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
 function createTray() {
-  const icon = nativeImage.createFromPath(path.join(__dirname, '../public/favicon.ico'));
+  const iconPath = path.join(__dirname, '../public/favicon.ico');
+  const icon = nativeImage.createFromPath(iconPath);
   tray = new Tray(icon);
   
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Abrir BitMeet', click: () => mainWindow.show() },
+    { label: 'Abrir BitMeet', click: () => {
+      mainWindow.show();
+      mainWindow.focus();
+    }},
     { type: 'separator' },
     { label: 'Salir', click: () => {
       isQuitting = true;
@@ -56,7 +87,12 @@ function createTray() {
   tray.setContextMenu(contextMenu);
   
   tray.on('click', () => {
-    mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
+    if (mainWindow.isVisible()) {
+      mainWindow.hide();
+    } else {
+      mainWindow.show();
+      mainWindow.focus();
+    }
   });
 }
 
@@ -64,8 +100,17 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
 
+  // Registrar protocolo para que las notificaciones puedan abrir la app
+  if (!app.isDefaultProtocolClient('bitmeet')) {
+    app.setAsDefaultProtocolClient('bitmeet');
+  }
+
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    } else {
+      mainWindow.show();
+    }
   });
 });
 
@@ -73,14 +118,25 @@ app.on('before-quit', () => {
   isQuitting = true;
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    // En Mac es común que la app siga abierta sin ventanas
-  }
+// Manejo de notificaciones desde el frontend
+ipcMain.on('notify', (event, { title, body }) => {
+  const notification = new Notification({ 
+    title, 
+    body,
+    icon: path.join(__dirname, '../public/favicon.ico')
+  });
+  
+  notification.on('click', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+  
+  notification.show();
 });
 
-// Notificaciones desde el renderizador (opcional, Capacitor/Web lo maneja, pero Electron puede potenciarlo)
-const { ipcMain } = require('electron');
-ipcMain.on('notify', (event, { title, body }) => {
-  new Notification({ title, body }).show();
+// Canal para pedir permisos (Electron siempre los tiene, pero para mantener paridad)
+ipcMain.handle('request-notification-permission', async () => {
+  return 'granted';
 });

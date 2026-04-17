@@ -21,7 +21,8 @@ export class P2PTransport {
   private presenceSubscriptions: Map<string, () => void> = new Map();
 
   constructor() {
-    this.webrtc = new WebRTCManager();
+    // IMPORTANTE: Namespace 'p2p' para no chocar con las llamadas
+    this.webrtc = new WebRTCManager('p2p');
     this.presenceProvider = new FirebasePresenceProvider();
     
     this.webrtc.onDataReceived((fromId, data) => {
@@ -136,14 +137,38 @@ export class P2PTransport {
 
       const now = Date.now();
       this.presenceMap.forEach((data, pubKey) => {
+        // Ignorarnos a nosotros mismos
+        if (pubKey === this.myPubKey) return;
+
         // Timeout de presencia P2P más estricto: 12 segundos (aprox 3 heartbeats perdidos)
         if (now - data.lastSeen > 12000) {
           if (data.status !== 'offline') {
+            console.log(`[P2PTransport] Peer ${pubKey} timed out via P2P. Checking global presence for retry...`);
             this.presenceMap.set(pubKey, { status: 'offline', lastSeen: data.lastSeen });
+            this.checkAndRetryConnection(pubKey);
           }
         }
       });
     }, 3500);
+  }
+
+  private async checkAndRetryConnection(pubKey: string) {
+    try {
+      const safeId = await this.hashPubKey(pubKey);
+      const status = await this.presenceProvider.getRemoteStatus(safeId);
+      
+      if (status !== 'offline') {
+        console.log(`[P2PTransport] Peer ${pubKey} is still online in Firebase (${status}). Retrying P2P connection...`);
+        // Intentamos reconectar
+        this.connectToPeer(pubKey).catch(err => {
+          console.warn(`[P2PTransport] Retry connection to ${pubKey} failed:`, err);
+        });
+      } else {
+        console.log(`[P2PTransport] Peer ${pubKey} is also offline in Firebase. No retry.`);
+      }
+    } catch (err) {
+      console.warn(`[P2PTransport] Error during checkAndRetryConnection for ${pubKey}:`, err);
+    }
   }
 
   private handleIncomingData(fromId: string, data: any) {
@@ -210,6 +235,14 @@ export class P2PTransport {
 
       this.peerIdToPubKey.set(peerId, targetPubKey);
       
+      // Registrar dispositivo en el mapa inverso para que isConnected lo detecte mientras conecta
+      let devs = this.pubKeyToDevices.get(targetPubKey);
+      if (!devs) {
+        devs = new Set();
+        this.pubKeyToDevices.set(targetPubKey, devs);
+      }
+      devs.add(peerId);
+      
       try {
         await this.webrtc.connect(peerId);
         atLeastOne = true;
@@ -246,14 +279,30 @@ export class P2PTransport {
   }
 
   async sendP2PMessage(targetPubKey: string, message: any) {
+    // Si el mensaje es para mí mismo, lo procesamos localmente y evitamos timeout de red
+    if (targetPubKey === this.myPubKey) {
+      console.log("[P2PTransport] Local loopback message detected, processing locally");
+      if (this.onMessageCb) {
+        this.onMessageCb({
+          ...message,
+          senderPubKey: this.myPubKey,
+          senderUsername: (window as any).myIdentity?.username || "Yo"
+        });
+      }
+      // No retornamos aquí todavía, intentamos enviarlo a OTROS dispositivos nuestros si están online
+    }
+
     const devices = this.pubKeyToDevices.get(targetPubKey);
     
     if (devices && devices.size > 0) {
       let sentCount = 0;
       devices.forEach(peerId => {
         try {
-          this.webrtc.send(peerId, message);
-          sentCount++;
+          const pc = this.webrtc.getPeerConnection(peerId);
+          if (pc?.connectionState === 'connected') {
+            this.webrtc.send(peerId, message);
+            sentCount++;
+          }
         } catch (e) {
           devices.delete(peerId);
         }
@@ -263,12 +312,25 @@ export class P2PTransport {
 
     const connected = await this.connectToPeer(targetPubKey);
     if (connected) {
-      setTimeout(() => {
+      // Esperar a que al menos un canal se abra, reintentando durante 5 segundos
+      for (let i = 0; i < 10; i++) {
+        await new Promise(resolve => setTimeout(resolve, 500));
         const updatedDevices = this.pubKeyToDevices.get(targetPubKey);
-        updatedDevices?.forEach(peerId => {
-          try { this.webrtc.send(peerId, message); } catch (err) {}
-        });
-      }, 1500);
+        if (updatedDevices && updatedDevices.size > 0) {
+          let sentCount = 0;
+          updatedDevices.forEach(peerId => {
+            try {
+              // Verificamos si podemos enviar (manager tiene canal abierto)
+              this.webrtc.send(peerId, message);
+              sentCount++;
+            } catch (err) {
+              // Si falla el envío (canal no abierto), seguimos intentando
+            }
+          });
+          if (sentCount > 0) return;
+        }
+      }
+      throw new Error("timeout-connecting");
     } else {
       throw new Error("offline");
     }
@@ -305,7 +367,11 @@ export class P2PTransport {
     
     for (const peerId of devices) {
       const pc = this.webrtc.getPeerConnection(peerId);
-      if (pc?.connectionState === 'connected') return true;
+      // Consideramos conectado si el PC está conectado. 
+      // El data channel se abrirá pronto si el PC está conectado.
+      if (pc && (pc.connectionState === 'connected' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed')) {
+        return true;
+      }
     }
     return false;
   }

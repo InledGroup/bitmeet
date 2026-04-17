@@ -9,6 +9,11 @@ import react from '@astrojs/react';
 export default defineConfig({
   output: 'static',
   integrations: [react()],
+  vite: {
+    optimizeDeps: {
+      include: ['qrcode', 'html5-qrcode']
+    }
+  },
   server: {
     port: 4323,
   },

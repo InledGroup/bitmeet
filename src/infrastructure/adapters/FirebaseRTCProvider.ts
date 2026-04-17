@@ -1,5 +1,5 @@
 import { rtdb } from '../../lib/firebase';
-import { ref, set, onValue, push, remove, onDisconnect } from 'firebase/database';
+import { ref, onValue, push, remove, onDisconnect, update, set } from 'firebase/database';
 
 export interface SignalMessage {
   type: 'offer' | 'answer' | 'candidate';
@@ -9,12 +9,20 @@ export interface SignalMessage {
 }
 
 export class FirebaseRTCProvider {
+  private activeOnDisconnects: Set<string> = new Set();
+
   /**
-   * Envía una señal (offer, answer o candidate) a un destinatario.
+   * Envía una señal a un destinatario.
    */
   async sendSignal(targetId: string, myId: string, signal: Omit<SignalMessage, 'timestamp'>) {
+    // Usamos la ruta plana que sabemos que funciona con las reglas actuales
     const signalingRef = ref(rtdb, `signaling/${targetId}/${myId}`);
     
+    if (!this.activeOnDisconnects.has(targetId)) {
+      onDisconnect(signalingRef).remove();
+      this.activeOnDisconnects.add(targetId);
+    }
+
     if (signal.type === 'candidate') {
       const candidatesRef = ref(rtdb, `signaling/${targetId}/${myId}/candidates`);
       await push(candidatesRef, {
@@ -29,13 +37,8 @@ export class FirebaseRTCProvider {
         timestamp: Date.now()
       });
     }
-
-    onDisconnect(signalingRef).remove();
   }
 
-  /**
-   * Escucha mensajes dirigidos a mí.
-   */
   listenForSignals(myId: string, callback: (from: string, signal: SignalMessage) => void) {
     const mySignalingRef = ref(rtdb, `signaling/${myId}`);
     
@@ -45,8 +48,6 @@ export class FirebaseRTCProvider {
 
       Object.keys(data).forEach(fromId => {
         const signal = data[fromId];
-        
-        // Evitar procesar señales muy viejas (más de 30s)
         const now = Date.now();
         
         if (signal.type && (now - signal.timestamp < 30000)) {
@@ -57,7 +58,6 @@ export class FirebaseRTCProvider {
             timestamp: signal.timestamp
           });
           
-          // Si es oferta o respuesta, la borramos para que no se re-procese
           if (signal.type === 'offer' || signal.type === 'answer') {
             this.clearSignaling(myId, fromId);
           }
@@ -82,6 +82,11 @@ export class FirebaseRTCProvider {
 
   async clearSignaling(myId: string, fromId: string) {
     const signalingRef = ref(rtdb, `signaling/${myId}/${fromId}`);
-    await remove(signalingRef);
+    await update(signalingRef, {
+      type: null,
+      data: null,
+      timestamp: null,
+      from: null,
+    });
   }
 }

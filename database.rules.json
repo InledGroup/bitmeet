@@ -1,6 +1,14 @@
 {
   "rules": {
     "signaling": {
+      "p2p": {
+        ".read": true,
+        ".write": true
+      },
+      "calls": {
+        ".read": true,
+        ".write": true
+      },
       ".read": true,
       ".write": true
     },
@@ -11,6 +19,12 @@
     "presence": {
       ".read": true,
       ".write": true
+    },
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": true
+      }
     },
     "pairing": {
       "$code": {

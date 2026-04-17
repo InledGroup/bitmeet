@@ -4,7 +4,7 @@
 <section id="auth-overlay" class="auth-overlay">
 	<div class="auth-card" id="auth-card">
 		<div class="auth-header">
-			<img src="https://hosted.inled.es/bitid-animated.gif" alt="BitID Logo" class="apple-id-logo" />
+			<img src="/bitid-animated.gif" alt="BitID Logo" class="apple-id-logo" />
 			<h1 id="auth-title">BitID</h1>
 		</div>
 		
@@ -30,14 +30,14 @@
 
 				<div class="auth-divider">o mediante código / QR</div>
 
-				<div style="display: flex; gap: 8px; width: 100%; align-items: stretch;">
-					<div class="sync-input-group" style="flex: 1; position: relative;">
+				<div class="apple-sync-row">
+					<div class="sync-input-wrapper">
 						<input type="text" id="pairing-code-input" placeholder="Código de 6 dígitos" maxlength="6" />
-						<button id="btn-sync-by-code" class="apple-button-arrow" title="Confirmar código">
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+						<button id="btn-sync-by-code" class="apple-arrow-button" title="Confirmar código">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
 						</button>
 					</div>
-					<button id="btn-scan-qr" title="Escanear código QR" style="flex-shrink: 0; width: 50px; background: #f2f2f7; border: none; color: #0071e3; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+					<button id="btn-scan-qr" class="apple-qr-button" title="Escanear código QR">
 						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
 							<rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
@@ -46,9 +46,136 @@
 						</svg>
 					</button>
 				</div>
-				<div id="qr-reader-container" class="hidden" style="width: 100%; margin-top: 16px; border-radius: 16px; overflow: hidden; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+				<div id="qr-reader-container" class="hidden apple-qr-scanner-container">
 					<div id="qr-reader"></div>
-				</div>			</div>
+					<button id="btn-close-qr" class="apple-button-text">Cancelar Escaneo</button>
+				</div>
+			</div>
+
+			<p style="margin-top: 32px; font-size: 12px; color: #86868b;">Si no tienes un ID, créalo en <a href="https://id.inled.es" target="_blank" style="color: #0066cc; text-decoration: none;">id.inled.es</a></p>
+		</div>
+	</div>
+</section>
+
+<style>
+	.apple-sync-row {
+		display: flex;
+		gap: 12px;
+		width: 100%;
+		align-items: center;
+	}
+
+	.sync-input-wrapper {
+		position: relative;
+		flex: 1;
+	}
+
+	.sync-input-wrapper input {
+		width: 100% !important;
+		padding: 12px 48px 12px 16px !important;
+		border-radius: 14px !important;
+		border: 1px solid #d2d2d7 !important;
+		font-size: 16px !important;
+		background: #f5f5f7 !important;
+		color: #1d1d1f !important;
+		outline: none !important;
+		transition: all 0.2s ease;
+		font-weight: 500;
+	}
+
+	.sync-input-wrapper input:focus {
+		background: #fff !important;
+		border-color: #0071e3 !important;
+		box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1) !important;
+	}
+
+	.apple-arrow-button {
+		position: absolute;
+		right: 6px;
+		top: 50%;
+		transform: translateY(-50%);
+		background: #0071e3;
+		color: white;
+		border: none;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s;
+	}
+
+	.apple-arrow-button:hover {
+		background: #0077ed;
+		transform: translateY(-50%) scale(1.05);
+	}
+
+	.apple-qr-button {
+		width: 44px;
+		height: 44px;
+		background: #f5f5f7;
+		border: none;
+		color: #0071e3;
+		border-radius: 14px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.apple-qr-button:hover {
+		background: #e8e8ed;
+		color: #0077ed;
+	}
+
+	.apple-qr-scanner-container {
+		width: 100%;
+		margin-top: 16px;
+		border-radius: 20px;
+		overflow: hidden;
+		background: #000;
+		box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding-bottom: 12px;
+	}
+
+	#qr-reader {
+		width: 100% !important;
+		border: none !important;
+	}
+
+	.apple-button-text {
+		background: transparent;
+		border: none;
+		color: #0071e3;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		padding: 8px 16px;
+		margin-top: 8px;
+	}
+
+	/* Ocultar botones internos de html5-qrcode que son feos */
+	#qr-reader button {
+		background: #0071e3 !important;
+		color: white !important;
+		border: none !important;
+		border-radius: 8px !important;
+		padding: 8px 16px !important;
+		font-family: inherit !important;
+		font-weight: 600 !important;
+		cursor: pointer !important;
+	}
+
+	#qr-reader __dashboard_section_csr_button {
+		display: none !important;
+	}
+			</div>
 
 			<p style="margin-top: 32px; font-size: 12px; color: #86868b;">Si no tienes un ID, créalo en <a href="https://id.inled.es" target="_blank" style="color: #0066cc; text-decoration: none;">id.inled.es</a></p>
 		</div>

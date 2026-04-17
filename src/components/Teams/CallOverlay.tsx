@@ -91,6 +91,7 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       }
       setLocalStream(stream);
       currentStreamRef.current = stream;
+      transportRef.current.setLocalStream(stream);
       return stream;
     } catch {
       if (video) return getMedia(false);

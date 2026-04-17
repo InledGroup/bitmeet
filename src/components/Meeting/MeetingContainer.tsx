@@ -13,6 +13,11 @@ import { BitIDService, type BitID } from '../../lib/bitid';
 import { PeerJSMediaTransport } from '../../infrastructure/adapters/PeerJSMediaTransport';
 import { FirebaseSignalingProvider } from '../../infrastructure/adapters/FirebaseSignalingProvider';
 import type { Participant, MeetingMessage } from '../../core/webrtc/domain';
+import { 
+  sendNotification, 
+  requestNotificationPermission, 
+  playNotificationSound 
+} from '../../lib/notifications';
 
 interface Props {
   roomId: string;
@@ -56,30 +61,21 @@ export default function MeetingContainer({ roomId }: Props) {
       }
     }
     initIdentity();
-    audioRef.current = new Audio('/notify.mp3');
     
     // Request permission if default
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
+    requestNotificationPermission();
   }, []);
 
   const playNotification = (msg?: MeetingMessage) => {
     if (!notificationsEnabled) return;
 
-    if (audioRef.current) {
-      audioRef.current.play().catch(e => console.warn("Error playing sound", e));
-    }
+    playNotificationSound();
     
-    if (document.hidden && msg && "Notification" in window && Notification.permission === "granted") {
-      const notification = new Notification(`Message from ${msg.senderName}`, {
+    if (document.hidden && msg) {
+      sendNotification(`Message from ${msg.senderName}`, msg.text, {
         body: msg.text,
         icon: '/favicon.svg'
       });
-      notification.onclick = () => {
-        window.focus();
-        setIsChatOpen(true);
-      };
     }
   };
 

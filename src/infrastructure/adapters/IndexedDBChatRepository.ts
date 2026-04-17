@@ -114,6 +114,11 @@ export class IndexedDBChatRepository implements IChatRepository {
         return;
       }
       chat.messages.push(message);
+      // Mantener mensajes ordenados por timestamp
+      chat.messages.sort((a, b) => a.timestamp - b.timestamp);
+      
+      // Actualizar fecha del chat
+      chat.lastUpdate = Math.max(chat.lastUpdate, message.timestamp);
       
       // Manejar mensajes de sistema para actualizar metadata del grupo
       if (chat.type === "group" && message.type === "system") {
@@ -179,7 +184,17 @@ export class IndexedDBChatRepository implements IChatRepository {
   async markAsRead(chatId: string): Promise<void> {
     const chat = await this.getChat(chatId);
     if (chat) {
-      chat.lastReadTimestamp = Date.now();
+      const lastMsgTs = chat.messages.length > 0 ? Math.max(...chat.messages.map(m => m.timestamp)) : 0;
+      chat.lastReadTimestamp = Math.max(Date.now(), lastMsgTs);
+      await this.saveChat(chat);
+    }
+  }
+
+  async markAllAsRead(): Promise<void> {
+    const chats = await this.listAllChats();
+    for (const chat of chats) {
+      const lastMsgTs = chat.messages.length > 0 ? Math.max(...chat.messages.map(m => m.timestamp)) : 0;
+      chat.lastReadTimestamp = Math.max(Date.now(), lastMsgTs);
       await this.saveChat(chat);
     }
   }
