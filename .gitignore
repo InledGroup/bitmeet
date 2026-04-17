@@ -43,3 +43,4 @@ firebase-debug.log*
 .firebase/
 .firebaserc
 # Do NOT ignore firebase.json, firestore.rules, etc.
+dist-electron/
