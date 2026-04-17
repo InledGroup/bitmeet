@@ -1,10 +1,29 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
+const { autoUpdater } = require('electron-updater');
 
 let mainWindow;
 let tray;
 let isQuitting = false;
+
+// Configuración básica del AutoUpdater
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('update-available', () => {
+  new Notification({
+    title: 'BitMeet: Actualización disponible',
+    body: 'Se está descargando una nueva versión automáticamente.'
+  }).show();
+});
+
+autoUpdater.on('update-downloaded', () => {
+  new Notification({
+    title: 'BitMeet: Lista para instalar',
+    body: 'La actualización se aplicará al reiniciar la aplicación.'
+  }).show();
+});
 
 // Evitar múltiples instancias
 if (!app.requestSingleInstanceLock()) {
@@ -99,6 +118,11 @@ function createTray() {
 app.whenReady().then(() => {
   createWindow();
   createTray();
+  
+  // Buscar actualizaciones (solo en producción)
+  if (!isDev) {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 
   // Registrar protocolo para que las notificaciones puedan abrir la app
   if (!app.isDefaultProtocolClient('bitmeet')) {

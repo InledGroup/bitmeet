@@ -7,6 +7,9 @@ on:
       - master
       - 'release/**'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     if: contains(github.event.head_commit.message, '[RELEASE]')
@@ -44,6 +47,40 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: BitMeet-${{ matrix.os }}
+          name: artifacts-${{ matrix.os }}
           path: dist-electron/*.{dmg,exe,msi,deb,rpm,zip}
-          if-no-files-found: warn
+          if-no-files-found: error
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+          pattern: artifacts-*
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          body: |
+            Release generada automáticamente por commit [RELEASE].
+            Mensaje del commit: ${{ github.event.head_commit.message }}
+          files: |
+            all-artifacts/*.dmg
+            all-artifacts/*.exe
+            all-artifacts/*.msi
+            all-artifacts/*.deb
+            all-artifacts/*.rpm
+            all-artifacts/*.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

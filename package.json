@@ -22,6 +22,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "astro": "^6.1.7",
+    "electron-updater": "^6.8.3",
     "firebase": "^12.10.0",
     "frimousse": "^0.3.0",
     "html5-qrcode": "^2.3.8",
@@ -45,6 +46,13 @@
   "build": {
     "appId": "es.inled.bitmeet",
     "productName": "BitMeet",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "InledGroup",
+        "repo": "bitmeet"
+      }
+    ],
     "directories": {
       "output": "dist-electron"
     },
