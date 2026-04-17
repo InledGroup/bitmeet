@@ -2420,7 +2420,7 @@ import "../styles/global.css";
 				receiveCall(
 					roomId,
 					pendingCall,
-					p2p.getPeer(),
+					null,
 					undefined,
 					pendingCallPubKey,
 					name,
@@ -2509,7 +2509,7 @@ import "../styles/global.css";
 					receiveCall(
 						roomId,
 						pendingCall,
-						p2p.getPeer(),
+						null,
 						undefined,
 						pendingCallPubKey,
 						name,
@@ -2524,7 +2524,7 @@ import "../styles/global.css";
 					receiveCall(
 						roomId,
 						null,
-						p2p.getPeer(),
+						null,
 						undefined,
 						pendingCallPubKey,
 						name,
@@ -2634,7 +2634,7 @@ import "../styles/global.css";
 			// Y AHORA, pasamos el mapa completo a nuestro propio CallOverlay
 			startCall(
 				roomId,
-				p2p.getPeer(),
+				null,
 				async () => {
 					const myPeerId = await p2p.hashPubKey(myIdentity.publicKey);
 
@@ -2724,7 +2724,7 @@ import "../styles/global.css";
 
 			startCall(
 				roomId,
-				p2p.getPeer(),
+				null,
 				async () => {
 					const myPeerId = await p2p.hashPubKey(myIdentity.publicKey);
 					console.log(

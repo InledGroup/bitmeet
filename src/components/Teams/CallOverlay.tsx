@@ -3,7 +3,8 @@ import {
   Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, AlertCircle, Loader2, MonitorUp, MonitorOff,
   MessageSquare, UserPlus, Search, Send, X, Plus, Check, ChevronDown, Maximize2, Bell, Pin, PinOff
 } from 'lucide-react';
-import { PeerJSMediaTransport } from '../../infrastructure/adapters/PeerJSMediaTransport';
+import { FirebaseMediaTransport } from '../../infrastructure/adapters/FirebaseMediaTransport';
+import { PeerJSMediaTransport } from '../../infrastructure/adapters/PeerJSMediaTransport'; // Solo para el hashId estático
 import { BitIDService, type BitID } from '../../lib/bitid';
 import VideoGrid from '../Meeting/VideoGrid';
 import type { Participant } from '../../core/webrtc/domain';
@@ -16,9 +17,10 @@ interface Props {
   existingPeer?: any;
   onReady?: () => void;
   invitedPeers?: Record<string, { username: string, pubKey: string }>;
+  callerName?: string;
 }
 
-export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall, existingPeer, onReady, invitedPeers }: Props) {
+export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall, existingPeer, onReady, invitedPeers, callerName }: Props) {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [identity, setIdentity] = useState<BitID | null>((window as any).myIdentity || null);
@@ -33,7 +35,8 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
   const [toast, setToast] = useState<{ sender: string, content: string } | null>(null);
   const [quickReply, setQuickReply] = useState("");
   
-  const transportRef = useRef(new PeerJSMediaTransport());
+  // USAMOS EL NUEVO TRANSPORTE DE FIREBASE
+  const transportRef = useRef(new FirebaseMediaTransport(roomId));
   const bitidRef = useRef(new BitIDService());
   const currentStreamRef = useRef<MediaStream | null>(null);
   const initializedRef = useRef(false);
@@ -84,6 +87,7 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         audio: true, 
         video: video ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false 
       });
+      (window as any).currentCallStream = stream;
       if (currentStreamRef.current) {
         const oldTrack = currentStreamRef.current.getVideoTracks()[0];
         const newTrack = stream.getVideoTracks()[0];
@@ -105,7 +109,7 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
     if (track) {
       track.enabled = !track.enabled;
       setParticipants(p => p.map(x => x.isLocal ? { ...x, audioEnabled: track.enabled } : x));
-      transportRef.current.broadcastData({ type: 'status', audioEnabled: track.enabled });
+      transportRef.current.sendToPeer('*', { type: 'status', audioEnabled: track.enabled });
     }
   };
 
@@ -116,13 +120,13 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       const s = await getMedia(true);
       if (s) {
         setParticipants(p => p.map(x => x.isLocal ? { ...x, stream: s, videoEnabled: true } : x));
-        transportRef.current.broadcastData({ type: 'status', videoEnabled: true });
+        transportRef.current.sendToPeer('*', { type: 'status', videoEnabled: true });
       }
       return;
     }
     track.enabled = !track.enabled;
     setParticipants(p => p.map(x => x.isLocal ? { ...x, videoEnabled: track.enabled } : x));
-    transportRef.current.broadcastData({ type: 'status', videoEnabled: track.enabled });
+    transportRef.current.sendToPeer('*', { type: 'status', videoEnabled: track.enabled });
   };
 
   useEffect(() => {
@@ -131,19 +135,25 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
 
     const handleCallAccepted = async (e: any) => {
       const data = e.detail;
-      const myId = transportRef.current.getPeerId() || transportRef.current.getPeer()?.id;
-      if (!myId || data.peerId === myId) return;
+      const targetPeerId = await PeerJSMediaTransport.hashId(data.peerId);
+      const myId = transportRef.current.getPeerId();
+      
+      if (!myId || targetPeerId === myId) return;
 
+      console.log('[BitMeet] Invitation accepted by:', targetPeerId);
+      
       setParticipants(prev => {
-        if (prev.find(p => p.peerId === data.peerId)) return prev;
+        if (prev.find(p => p.peerId === targetPeerId)) return prev;
         return [...prev, {
-          id: data.peerId, peerId: data.peerId, name: data.senderUsername || invitedPeers?.[data.peerId]?.username || "Usuario",
+          id: targetPeerId, peerId: targetPeerId, name: data.senderUsername || "Usuario",
           isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
         }];
       });
 
-      if (myId < data.peerId) {
-        transportRef.current.connect(data.peerId, currentStreamRef.current as any, { name: (window as any).myIdentity?.username });
+      // Solo el que tiene ID menor inicia la conexión técnica (Polite Peer)
+      if (myId < targetPeerId) {
+        console.log('[BitMeet] Initiating WebRTC connection to:', targetPeerId);
+        transportRef.current.connect(targetPeerId, currentStreamRef.current as any);
       }
     };
 
@@ -158,14 +168,25 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       if (id) setIdentity(id);
 
       const stream = await getMedia();
-      const peerId = await transportRef.current.initialize(id?.publicKey || 'anonymous', existingPeer);
+      const myPeerId = await PeerJSMediaTransport.hashId(id?.publicKey || 'anonymous');
+      await transportRef.current.initialize(myPeerId);
       
+      const hashedInvitedPeers: Record<string, { username: string, pubKey: string }> = {};
+      if (invitedPeers) {
+        for (const [k, v] of Object.entries(invitedPeers)) {
+          const hId = await PeerJSMediaTransport.hashId(k);
+          hashedInvitedPeers[hId] = v;
+        }
+      }
+
       window.addEventListener('bitmeet:call-accepted', handleCallAccepted);
       window.addEventListener('bitmeet:new-message', handleNewMessage);
       if (onReady) onReady();
 
       setParticipants([{
-        id: id?.publicKey || 'local', peerId, name: id?.username || 'Yo',
+        id: myPeerId,
+        peerId: myPeerId, 
+        name: id?.username || 'Yo',
         stream: stream || undefined as any, isLocal: true,
         audioEnabled: stream?.getAudioTracks()[0]?.enabled ?? false,
         videoEnabled: stream?.getVideoTracks()[0]?.enabled ?? false,
@@ -173,22 +194,29 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       }]);
 
       transportRef.current.onRemoteStream((rPeerId, rStream, rData) => {
+        console.log('[BitMeet] Remote stream from:', rPeerId);
         setParticipants(prev => {
-          const name = rData?.name || invitedPeers?.[rPeerId]?.username || "Participante";
+          let name = rData?.name || hashedInvitedPeers[rPeerId]?.username || "Participante";
+          if (isIncoming && callerName && (rPeerId === incomingCall?.peer || rPeerId === incomingCall?.id)) {
+            name = callerName;
+          }
+
           const exists = prev.find(p => p.peerId === rPeerId);
-          if (exists) return prev.map(p => p.peerId === rPeerId ? { ...p, stream: rStream, name } : p);
+          if (exists) {
+            return prev.map(p => p.peerId === rPeerId ? { 
+              ...p, stream: rStream, 
+              name: (p.name === 'Participante' || p.name === 'Usuario') ? name : p.name 
+            } : p);
+          }
           return [...prev, { id: rPeerId, peerId: rPeerId, stream: rStream, name, isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false }];
         });
       });
 
-      transportRef.current.onIncomingCall(async (call) => {
-        while (!currentStreamRef.current) await new Promise(r => setTimeout(r, 100));
-        transportRef.current.answer(call, currentStreamRef.current as any);
-      });
-
       transportRef.current.onConnectionOpened((rPeerId) => {
+        console.log('[BitMeet] Connection opened with:', rPeerId);
         transportRef.current.sendToPeer(rPeerId, {
-          type: 'status', name: (window as any).myIdentity?.username || 'Usuario',
+          type: 'status', 
+          name: (window as any).myIdentity?.username || 'Usuario',
           audioEnabled: currentStreamRef.current?.getAudioTracks()[0]?.enabled ?? false,
           videoEnabled: currentStreamRef.current?.getVideoTracks()[0]?.enabled ?? false
         });
@@ -198,7 +226,12 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         if (data.type === 'leaving') {
           setParticipants(prev => prev.filter(p => p.peerId !== pId));
         } else if (data.type === 'status') {
-          setParticipants(prev => prev.map(p => p.peerId === pId ? { ...p, name: data.name || p.name, audioEnabled: data.audioEnabled ?? p.audioEnabled, videoEnabled: data.videoEnabled ?? p.videoEnabled } : p));
+          setParticipants(prev => prev.map(p => p.peerId === pId ? { 
+            ...p, 
+            name: data.name || p.name, 
+            audioEnabled: data.audioEnabled ?? p.audioEnabled, 
+            videoEnabled: data.videoEnabled ?? p.videoEnabled 
+          } : p));
         }
       });
 
@@ -206,21 +239,26 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
         setParticipants(prev => prev.filter(p => p.peerId !== pId));
       });
 
-      if (isIncoming && incomingCall) transportRef.current.answer(incomingCall, currentStreamRef.current as any);
+      // En WebRTC puro, al entrar en la sala, intentamos conectar con los invitados
       if (invitedPeers) {
-        Object.entries(invitedPeers).forEach(([tId, info]) => {
-          if (tId !== peerId && peerId < tId) {
-            setParticipants(p => p.find(x => x.peerId === tId) ? p : [...p, { id: tId, peerId: tId, name: info.username || "Participante", isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false }]);
-            transportRef.current.connect(tId, currentStreamRef.current as any, { name: (window as any).myIdentity?.username });
+        for (const [rawId, info] of Object.entries(invitedPeers)) {
+          const tId = await PeerJSMediaTransport.hashId(rawId);
+          if (tId !== myPeerId && myPeerId < tId) {
+            console.log('[BitMeet] Calling peer:', tId);
+            setParticipants(p => p.find(x => x.peerId === tId) ? p : [...p, { 
+              id: tId, peerId: tId, name: info.username || "Participante", 
+              isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false 
+            }]);
+            transportRef.current.connect(tId, currentStreamRef.current as any);
           }
-        });
+        }
       }
       setIsInitializing(false);
     }
 
     init();
     return () => {
-      transportRef.current.broadcastData({ type: 'leaving' });
+      transportRef.current.sendToPeer('*', { type: 'leaving' });
       window.removeEventListener('bitmeet:call-accepted', handleCallAccepted);
       window.removeEventListener('bitmeet:new-message', handleNewMessage);
       transportRef.current.disconnect();

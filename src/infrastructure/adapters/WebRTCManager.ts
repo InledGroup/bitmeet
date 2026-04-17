@@ -17,30 +17,36 @@ export class WebRTCManager {
   private onDataReceivedCb?: (fromId: string, data: any) => void;
   private onConnectionOpenedCb?: (id: string) => void;
   private onConnectionClosedCb?: (id: string) => void;
-  private onIncomingConnectionCb?: (fromId: string) => void;
+  private onIncomingOfferCb?: (fromId: string, offer: any) => void;
 
   private pendingCandidates: Map<string, RTCIceCandidateInit[]> = new Map();
+  private processedSignals: Set<string> = new Set();
   private localStream?: MediaStream;
 
-  constructor() {
-    this.signaling = new FirebaseRTCProvider();
+  constructor(namespace: string) {
+    this.signaling = new FirebaseRTCProvider(namespace);
   }
 
   async initialize(myId: string) {
     this.myId = myId;
-    console.log(`[WebRTC] Listening for ID: ${myId}`);
     this.signaling.listenForSignals(myId, async (fromId, signal) => {
+      // Evitar procesar lo mismo varias veces
+      const signalKey = `${fromId}-${signal.type}-${signal.timestamp}`;
+      if (this.processedSignals.has(signalKey)) return;
+      this.processedSignals.add(signalKey);
+      setTimeout(() => this.processedSignals.delete(signalKey), 10000);
+
       await this.handleSignal(fromId, signal);
     });
   }
 
   setLocalStream(stream: MediaStream) {
     this.localStream = stream;
-    // Si ya hay conexiones abiertas, inyectar el stream para que no se vea en negro
     this.peerConnections.forEach(pc => {
       stream.getTracks().forEach(track => {
-        const alreadyAdded = pc.getSenders().find(s => s.track?.id === track.id);
-        if (!alreadyAdded) pc.addTrack(track, stream);
+        if (!pc.getSenders().find(s => s.track?.id === track.id)) {
+          pc.addTrack(track, stream);
+        }
       });
     });
   }
@@ -50,29 +56,27 @@ export class WebRTCManager {
 
     try {
       if (signal.type === 'offer') {
-        if (!pc) pc = this.createPeerConnection(fromId);
+        // Lógica de "Polite Peer" para evitar Glare
+        const isPolite = this.myId < fromId;
+        const hasOfferInProgress = pc && (pc.signalingState !== 'stable' || this.dataChannels.has(fromId));
         
-        await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-        
-        const candidates = this.pendingCandidates.get(fromId) || [];
-        for (const cand of candidates) {
-          await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+        if (hasOfferInProgress && !isPolite) {
+           console.log(`[WebRTC] Glare detected, ignoring offer from ${fromId}`);
+           return;
         }
-        this.pendingCandidates.delete(fromId);
 
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        await this.signaling.sendSignal(fromId, this.myId, { type: 'answer', from: this.myId, data: answer });
-
-        if (this.onIncomingConnectionCb) this.onIncomingConnectionCb(fromId);
+        if (this.onIncomingOfferCb) {
+          this.onIncomingOfferCb(fromId, signal.data);
+        } else {
+          // Si no hay callback de oferta (es P2P puro), auto-respondemos
+          await this.createAnswer(fromId, signal.data);
+        }
 
       } else if (signal.type === 'answer') {
         if (pc) {
           await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
           const candidates = this.pendingCandidates.get(fromId) || [];
-          for (const cand of candidates) {
-            await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
-          }
+          for (const cand of candidates) await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
           this.pendingCandidates.delete(fromId);
         }
       } else if (signal.type === 'candidate') {
@@ -84,11 +88,26 @@ export class WebRTCManager {
         }
       }
     } catch (err) {
-      console.error(`[WebRTC] Error handling signal ${signal.type}:`, err);
+      console.error(`[WebRTC] Signal Error:`, err);
     }
   }
 
+  async createAnswer(fromId: string, offer: any) {
+    const pc = this.createPeerConnection(fromId);
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    
+    const candidates = this.pendingCandidates.get(fromId) || [];
+    for (const cand of candidates) await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+    this.pendingCandidates.delete(fromId);
+
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await this.signaling.sendSignal(fromId, this.myId, { type: 'answer', from: this.myId, data: answer });
+  }
+
   private createPeerConnection(targetId: string): RTCPeerConnection {
+    if (this.peerConnections.has(targetId)) return this.peerConnections.get(targetId)!;
+
     const pc = new RTCPeerConnection(this.iceServers);
     this.peerConnections.set(targetId, pc);
 
@@ -97,8 +116,11 @@ export class WebRTCManager {
     }
 
     pc.ontrack = (event) => {
-      if (this.onRemoteStreamCb && event.streams[0]) {
-        this.onRemoteStreamCb(targetId, event.streams[0]);
+      console.log(`[WebRTC] Track received from ${targetId}:`, event.track.kind);
+      if (this.onRemoteStreamCb) {
+        // Asegurar que tenemos un stream. Si el navegador no lo da, creamos uno.
+        const stream = event.streams[0] || new MediaStream([event.track]);
+        this.onRemoteStreamCb(targetId, stream);
       }
     };
 
@@ -109,9 +131,11 @@ export class WebRTCManager {
     };
 
     pc.onconnectionstatechange = () => {
+      // IMPORTANTE: No cerrar en 'disconnected', es normal que parpadee. 
+      // Solo cerrar en 'failed'.
       if (pc.connectionState === 'connected') {
         this.onConnectionOpenedCb?.(targetId);
-      } else if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) {
+      } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         this.closeConnection(targetId);
       }
     };
@@ -134,13 +158,25 @@ export class WebRTCManager {
       }
     };
     channel.onopen = () => this.onConnectionOpenedCb?.(targetId);
+    channel.onclose = () => this.onConnectionClosedCb?.(targetId);
   }
 
   async connect(targetId: string, stream?: MediaStream) {
-    if (this.peerConnections.has(targetId)) return;
     if (stream) this.localStream = stream;
-
     const pc = this.createPeerConnection(targetId);
+    
+    // Si ya estamos conectando, no envíes otra oferta
+    if (pc.signalingState !== 'stable') return;
+
+    // Asegurar que todos los tracks locales están en esta PC
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => {
+        if (!pc.getSenders().find(s => s.track?.id === track.id)) {
+           pc.addTrack(track, this.localStream!);
+        }
+      });
+    }
+
     const channel = pc.createDataChannel('chat');
     this.setupDataChannel(targetId, channel);
 
@@ -151,13 +187,9 @@ export class WebRTCManager {
 
   send(targetId: string, data: any) {
     const channel = this.dataChannels.get(targetId);
-    if (channel && channel.readyState === 'open') {
+    if (channel?.readyState === 'open') {
       channel.send(typeof data === 'string' ? data : JSON.stringify(data));
     }
-  }
-
-  getPeerConnection(targetId: string): RTCPeerConnection | undefined {
-    return this.peerConnections.get(targetId);
   }
 
   private closeConnection(targetId: string) {
@@ -174,11 +206,13 @@ export class WebRTCManager {
   onDataReceived(cb: (id: string, d: any) => void) { this.onDataReceivedCb = cb; }
   onConnectionOpened(cb: (id: string) => void) { this.onConnectionOpenedCb = cb; }
   onConnectionClosed(cb: (id: string) => void) { this.onConnectionClosedCb = cb; }
-  onIncomingConnection(cb: (id: string) => void) { this.onIncomingConnectionCb = cb; }
+  onIncomingOffer(cb: (id: string, offer: any) => void) { this.onIncomingOfferCb = cb; }
 
   disconnect() {
     this.peerConnections.forEach(pc => pc.close());
     this.peerConnections.clear();
     this.dataChannels.clear();
+    this.processedSignals.clear();
   }
+  getPeerConnection(targetId: string) { return this.peerConnections.get(targetId); }
 }

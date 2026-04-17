@@ -16,6 +16,7 @@ export default function CallWrapper() {
       existingPeer={$call.existingPeer}
       onReady={$call.onReady}
       invitedPeers={$call.invitedPeers}
+      callerName={$call.remoteUsername}
       onHangup={endCall}
     />
   );
