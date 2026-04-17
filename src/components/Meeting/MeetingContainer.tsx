@@ -125,7 +125,8 @@ export default function MeetingContainer({ roomId }: Props) {
       });
 
       transportRef.current.onConnectionClosed((remotePeerId) => {
-        setParticipants(prev => prev.filter(p => p.peerId !== remotePeerId));
+        console.log(`[BitMeet] Connection closed with ${remotePeerId}. Removing from state.`);
+        setParticipants(prev => prev.filter(p => p.id !== remotePeerId && p.peerId !== remotePeerId));
       });
 
       setParticipants([{
@@ -142,9 +143,21 @@ export default function MeetingContainer({ roomId }: Props) {
       setIsJoined(true);
       setIsReady(true);
 
-      // Heartbeat
+      // Heartbeat & Watchdog
       heartbeatRef.current = setInterval(() => {
+        // Enviar latido
         signalingRef.current.updateParticipant(roomId, myParticipantId.current, {});
+        
+        // Limpiar participantes inactivos (Watchdog)
+        setParticipants(prev => {
+           const now = Date.now();
+           // No borramos al local, y borramos a los que no han actualizado su lastSeen en 15s.
+           // lastSeen viene de Firebase como un serverTimestamp que en el estado local 
+           // puede ser complicado comparar si no lo guardamos bien. 
+           // Pero Firebase emite 'removed' cuando alguien deja la sala manualmente.
+           // Para el watchdog usaremos la señal de "failed" de WebRTC (ya implementada arriba)
+           return prev;
+        });
       }, 5000);
     } catch (err) {
       console.error("[BitMeet] Failed to start meeting:", err);
@@ -155,8 +168,9 @@ export default function MeetingContainer({ roomId }: Props) {
     if (!isJoined) return;
 
     const cleanup = () => {
+      console.log("[BitMeet] Manual cleanup on leave/unload");
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
-      signalingRef.current.leaveRoom(roomId, myParticipantId.current);
+      signalingRef.current.leaveRoom(roomId, myParticipantId.current).catch(() => {});
       transportRef.current.disconnect();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (currentStreamRef.current && currentStreamRef.current !== localStream) {
@@ -188,10 +202,15 @@ export default function MeetingContainer({ roomId }: Props) {
         }
 
         if (change.type === 'added') {
+          console.log(`[BitMeet] Participant added in signaling: ${participantId}. Initiating connect...`);
           updateParticipantStatus(participantId, data);
-          transportRef.current.connect(data.peerId, localStream, { ...data, id: participantId });
+          // Importante: No conectamos si ya existe
+          transportRef.current.connect(participantId, localStream, { ...data, id: participantId });
         } else if (change.type === 'removed') {
+          console.log(`[BitMeet] Participant removed from signaling: ${participantId}. Cleaning up.`);
           setParticipants(prev => prev.filter(p => p.id !== participantId));
+          // Forzamos cierre de PC si existiera
+          (transportRef.current as any).webrtc?.closeConnection?.(participantId);
         } else if (change.type === 'modified') {
           updateParticipantStatus(participantId, data);
         }
@@ -202,13 +221,14 @@ export default function MeetingContainer({ roomId }: Props) {
   }, [isReady, localStream, roomId]);
 
   const handleRemoteStream = (peerId: string, stream: MediaStream, data: any) => {
+    console.log(`[BitMeet] Received remote stream from ${peerId}`);
     setParticipants(prev => {
-      const exists = prev.find(p => p.peerId === peerId);
+      const exists = prev.find(p => p.id === peerId || p.peerId === peerId);
       if (exists) {
-        return prev.map(p => p.peerId === peerId ? { 
+        return prev.map(p => (p.id === peerId || p.peerId === peerId) ? { 
           ...p, 
           stream,
-          id: data.id || p.id,
+          peerId: peerId, // Aseguramos que el peerId sea el que viene del transporte
           name: (data.name && data.name !== `User-${peerId.slice(0,4)}`) ? data.name : p.name,
           audioEnabled: data.audioEnabled ?? data.audio ?? p.audioEnabled,
           videoEnabled: data.videoEnabled ?? data.video ?? p.videoEnabled,
@@ -216,7 +236,7 @@ export default function MeetingContainer({ roomId }: Props) {
         } : p);
       }
       return [...prev, {
-        id: data.id || peerId,
+        id: peerId, // El ID ahora es el mismo que el peerId
         peerId,
         stream,
         name: data.name || `User-${peerId.slice(0,4)}`,

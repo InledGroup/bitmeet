@@ -40,6 +40,16 @@ export class IndexedDBIdentityStorage {
     ]);
   }
 
+  async clearIdentity(): Promise<void> {
+    const db = await this.getDB();
+    const tx = db.transaction(this.storeName, "readwrite");
+    const store = tx.objectStore(this.storeName);
+    await Promise.all([
+      this.promisify(store.delete("metadata")),
+      this.promisify(store.delete("encryptedPrivateKey")),
+    ]);
+  }
+
   private promisify(request: IDBRequest): Promise<any> {
     return new Promise((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);

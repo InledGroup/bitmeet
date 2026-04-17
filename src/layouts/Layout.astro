@@ -177,15 +177,27 @@ const { title } = Astro.props;
 		background: #0062CC;
 		transform: scale(0.98);
 	}
+.status-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+	margin-right: 8px;
+}
+.status-dot.available, .status-dot.online { background: #34C759; box-shadow: 0 0 8px rgba(52,199,89,0.5); }
+.status-dot.busy { background: #FF3B30; box-shadow: 0 0 8px rgba(255,59,48,0.5); }
+.status-dot.in-call { 
+	background: #FF3B30; 
+	box-shadow: 0 0 8px rgba(255,59,48,0.5); 
+	animation: status-pulse-red 2s infinite;
+}
+.status-dot.offline { background: #86868B; }
 
-	.status-dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		display: inline-block;
-	}
-	.status-dot.online { background: #34C759; box-shadow: 0 0 8px rgba(52,199,89,0.5); }
-	.status-dot.offline { background: #86868B; }
+@keyframes status-pulse-red {
+	0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+	70% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); }
+	100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+}
 
 	/* --- Call Overlay --- */
 	#call-overlay {

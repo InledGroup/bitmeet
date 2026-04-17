@@ -23,6 +23,7 @@
     "astro": "^6.1.7",
     "firebase": "^12.10.0",
     "frimousse": "^0.3.0",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.576.0",
     "nanoid": "^5.1.6",
     "nanostores": "^1.2.0",

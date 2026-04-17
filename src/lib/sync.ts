@@ -1,5 +1,5 @@
 import { rtdb } from './firebase';
-import { ref, set, onValue, onDisconnect, serverTimestamp, get } from 'firebase/database';
+import { ref, set, onValue, onDisconnect, serverTimestamp, get, remove } from 'firebase/database';
 import type { BitIDService } from './bitid';
 
 export class DeviceSyncService {
@@ -62,6 +62,21 @@ export class DeviceSyncService {
     return Object.keys(data).filter(deviceId => {
       // Solo devolver dispositivos que estuvieron online en los últimos 5 minutos
       return data[deviceId].status === 'online' || (now - (data[deviceId].lastSeen || 0) < 300000);
+    });
+  }
+
+  listenToDevices(pubKey: string, callback: (deviceIds: string[]) => void) {
+    this.hashPubKey(pubKey).then(pubKeyHash => {
+      const devicesRef = ref(rtdb, `users/${pubKeyHash}/devices`);
+      onValue(devicesRef, (snapshot) => {
+        if (!snapshot.exists()) return callback([]);
+        const data = snapshot.val();
+        const now = Date.now();
+        const activeIds = Object.keys(data).filter(deviceId => {
+          return data[deviceId].status === 'online' || (now - (data[deviceId].lastSeen || 0) < 300000);
+        });
+        callback(activeIds);
+      });
     });
   }
 

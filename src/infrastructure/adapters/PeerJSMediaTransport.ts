@@ -57,35 +57,22 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
   }
 
   async initialize(participantId: string, existingPeer?: any): Promise<string> {
-    const msgUint8 = new TextEncoder().encode(participantId);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const deterministicId = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
-
-    this.peerId = deterministicId;
-    await this.webrtc.initialize(deterministicId);
+    // Ya no usamos hash determinístico para evitar discrepancias con el ID de Firebase
+    this.peerId = participantId;
+    await this.webrtc.initialize(participantId);
     
-    console.log('[BitMeet] WebRTC (Firebase) Initialized with ID:', deterministicId);
-    return deterministicId;
+    console.log('[BitMeet] WebRTC (Firebase) Initialized with ID:', participantId);
+    return participantId;
   }
 
   connect(peerId: string, stream: MediaStream, initialData: any): void {
+    // Aseguramos que pasamos el stream inicial si existe
     this.webrtc.connect(peerId, stream);
   }
 
   answer(call: any, stream: MediaStream): void {
-    // In our manual WebRTC implementation, "answering" is handled by handleSignal
-    // But we might need to add the stream to the existing PC
-    const pc = this.webrtc.getPeerConnection(call.peer);
-    if (pc) {
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-      // Re-negotiate
-      pc.createOffer().then(offer => {
-        pc.setLocalDescription(offer);
-        // This part is tricky because handleSignal handles the logic.
-        // For simplicity, let's assume connect/answer flow is managed by WebRTCManager
-      });
-    }
+    // En nuestra implementación manual, el stream se añade al PC existente
+    this.webrtc.addStream(call.peer, stream);
   }
 
   broadcastData(data: any): void {

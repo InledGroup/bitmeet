@@ -8,6 +8,10 @@
       ".read": true,
       ".write": true
     },
+    "presence": {
+      ".read": true,
+      ".write": true
+    },
     "pairing": {
       "$code": {
         ".read": true,

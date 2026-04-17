@@ -292,9 +292,27 @@ import "../styles/global.css";
 	import { startCall, receiveCall, recordMissedCall } from "../lib/callStore";
 	import { getWebTorrentClient } from "../lib/webtorrent";
 
+	import { callStore } from "../lib/callStore";
+
 	// Estado global
 	const bitid = new BitIDService();
 	const p2p = new P2PTransport();
+
+	// --- Sincronización Automática de Estado en Llamada ---
+	callStore.subscribe((state) => {
+		if (state.isOpen) {
+			p2p.setStatus("in-call");
+			const myDot = document.getElementById("my-status-dot");
+			if (myDot) myDot.className = "status-circle in-call";
+		} else {
+			// Solo volver a 'available' si estábamos 'in-call'
+			if (p2p.getStatus() === "in-call") {
+				p2p.setStatus("available");
+				const myDot = document.getElementById("my-status-dot");
+				if (myDot) myDot.className = "status-circle available";
+			}
+		}
+	});
 	const chatRepo = new IndexedDBChatRepository();
 	(window as any).chatRepo = chatRepo;
 	const calendarRepo = new IndexedDBCalendarRepository();
@@ -405,6 +423,8 @@ import "../styles/global.css";
 
 	const pairingCodeInput = document.getElementById("pairing-code-input") as HTMLInputElement;
 	const btnSyncByCode = document.getElementById("btn-sync-by-code");
+	const btnScanQr = document.getElementById("btn-scan-qr");
+	const qrReaderContainer = document.getElementById("qr-reader-container");
 
 	let currentChatType: "direct" | "group" = "direct";
 
@@ -431,11 +451,29 @@ import "../styles/global.css";
 
 			if (identityData) {
 				await bitid.importIdentity(identityData);
-				alert("¡Dispositivo vinculado con éxito!");
+				localStorage.setItem("bitmeet_pending_full_sync", "true");
+				alert("¡Dispositivo vinculado con éxito! Vamos a sincronizar tu historial.");
 				window.location.reload();
 			} else {
 				alert("Código inválido o expirado");
 			}
+		});
+
+		btnScanQr?.addEventListener("click", async () => {
+			qrReaderContainer?.classList.remove("hidden");
+			const { Html5QrcodeScanner } = await import("html5-qrcode");
+			const html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+			html5QrcodeScanner.render((decodedText) => {
+				if (decodedText.startsWith("bitmeet:sync:")) {
+					const code = decodedText.split(":")[2];
+					pairingCodeInput.value = code;
+					html5QrcodeScanner.clear();
+					qrReaderContainer?.classList.add("hidden");
+					btnSyncByCode?.click();
+				}
+			}, (error) => {
+				// ignore
+			});
 		});
 	let currentGroupParticipants: string[] = [];
 	let currentGroupOwner: string | null = null;
@@ -477,8 +515,17 @@ import "../styles/global.css";
 				if (autoKey) {
 					myIdentity = id;
 					(window as any).myIdentity = id;
-					authOverlay?.classList.add("hidden");
-					teamsApp?.classList.remove("hidden");
+
+					const pendingFullSync = localStorage.getItem("bitmeet_pending_full_sync") === "true";
+					if (pendingFullSync) {
+						authUnlockView?.classList.add("hidden");
+						authImportView?.classList.add("hidden");
+						document.getElementById("auth-sync-progress-view")?.classList.remove("hidden");
+					} else {
+						authOverlay?.classList.add("hidden");
+						teamsApp?.classList.remove("hidden");
+					}
+
 					const welcomeName = document.getElementById("welcome-name");
 					if (welcomeName) welcomeName.textContent = id.username;
 					console.log("[BitMeet] Starting P2P...");
@@ -515,14 +562,65 @@ import "../styles/global.css";
 				);
 			});
 		}
+	}
 
-		btnOpenSettings?.addEventListener("click", () =>
-			settingsOverlay?.classList.remove("hidden"),
-		);
+	// --- Gestión de Mi Estado ---
+	const initStatusManagement = () => {
+		const myStatusDot = document.getElementById("my-status-dot");
+		const statusMenu = document.getElementById("status-menu");
+		const statusOptions = document.querySelectorAll(".status-option");
+
+		if (!myStatusDot) return; // Blindaje contra errores de carga
+
+		// Recuperar último estado guardado
+		const savedStatus = (localStorage.getItem("bitmeet_my_status") as any) || "available";
+		myStatusDot.className = `status-circle ${savedStatus}`;
+
+		myStatusDot.addEventListener("click", (e) => {
+			e.stopPropagation();
+			statusMenu?.classList.toggle("hidden");
+		});
+
+		document.addEventListener("click", () => {
+			statusMenu?.classList.add("hidden");
+		});
+
+		statusOptions.forEach((option) => {
+			option.addEventListener("click", async (e) => {
+				const status = (e.currentTarget as HTMLElement).dataset.status as any;
+				await p2p.setStatus(status);
+				localStorage.setItem("bitmeet_my_status", status);
+				myStatusDot.className = `status-circle ${status}`;
+				statusMenu?.classList.add("hidden");
+			});
+		});
+	};
+
+	// Lógica de cancelación de sincronización
+	document.getElementById("btn-cancel-sync")?.addEventListener("click", async () => {
+		localStorage.removeItem("bitmeet_pending_full_sync");
+		await bitid.clearIdentity();
+		window.location.reload();
+	});
+
+	// --- Ajustes ---
+	const initSettings = () => {
+		const btnOpenSettings = document.getElementById("btn-open-settings");
+		const btnCloseSettings = document.getElementById("btn-close-settings");
+		const settingsOverlay = document.getElementById("teams-settings-overlay");
+
+		btnOpenSettings?.addEventListener("click", () => {
+			settingsOverlay?.classList.remove("hidden");
+		});
+
 		btnCloseSettings?.addEventListener("click", () => {
 			settingsOverlay?.classList.add("hidden");
 			syncQrContainer?.classList.add("hidden");
 		});
+	};
+	
+	initStatusManagement();
+	initSettings();
 
 		btnShowSyncQr?.addEventListener("click", async () => {
 			const { default: QRCode } = await import("qrcode");
@@ -557,7 +655,6 @@ import "../styles/global.css";
 		document.getElementById("btn-back-to-calls")?.addEventListener("click", () => {
 			teamsApp?.classList.remove("chat-active");
 		});
-	}
 
 	// 0. AUTH EVENT LISTENERS
 	btnUnlockApp?.addEventListener("click", async () => {
@@ -572,8 +669,17 @@ import "../styles/global.css";
 			// Animación de éxito Apple ID
 			authCard?.classList.add("unlock-success");
 			setTimeout(async () => {
-				authOverlay?.classList.add("hidden");
-				teamsApp?.classList.remove("hidden");
+				const pendingFullSync = localStorage.getItem("bitmeet_pending_full_sync") === "true";
+				if (pendingFullSync) {
+					authCard?.classList.remove("unlock-success"); // Quitamos animación por si acaso
+					authUnlockView?.classList.add("hidden");
+					authImportView?.classList.add("hidden");
+					document.getElementById("auth-sync-progress-view")?.classList.remove("hidden");
+				} else {
+					authOverlay?.classList.add("hidden");
+					teamsApp?.classList.remove("hidden");
+				}
+
 				const welcomeName = document.getElementById("welcome-name");
 				if (welcomeName) welcomeName.textContent = id!.username;
 				await startP2P();
@@ -1300,7 +1406,7 @@ import "../styles/global.css";
 				const isConnected = await p2p.isConnected(otherPubKey);
 				const isOnline =
 					isConnected ||
-					(await p2p.getPresence(otherPubKey)) === "online";
+					(await p2p.getPresence(otherPubKey)) !== "offline";
 
 				// Si no está conectado pero sabemos que está online, intentamos forzar conexión
 				if (!isConnected && isOnline) {
@@ -1406,7 +1512,7 @@ import "../styles/global.css";
 							const isConnected = await p2p.isConnected(pubKey);
 							if (
 								!isConnected &&
-								(await p2p.getPresence(pubKey)) === "online"
+								(await p2p.getPresence(pubKey)) !== "offline"
 							) {
 								await p2p.connectToPeer(pubKey);
 							}
@@ -1462,11 +1568,30 @@ import "../styles/global.css";
 
 	// 3. P2P Y NOTIFICACIONES DE LLAMADA
 	async function startP2P() {
+		const savedStatus = (localStorage.getItem("bitmeet_my_status") as any) || "available";
 		await p2p.initialize(myIdentity.publicKey, bitid);
-		document
-			.querySelector(".status-circle")
-			?.classList.replace("offline", "online");
+		await p2p.setStatus(savedStatus); // Sincronizar estado inicial persistido
+
+		const myDot = document.getElementById("my-status-dot");
+		if (myDot) myDot.className = `status-circle ${savedStatus}`;
+
+		// Carga inmediata de contactos
 		await loadContacts();
+		
+		// Sincronización Multi-dispositivo: Intentar conectar con mis otros dispositivos de inmediato
+		console.log("[BitMeet] Iniciando auto-sincronización multi-dispositivo...");
+		p2p.connectToPeer(myIdentity.publicKey);
+		
+		// Conexión Ipso Facto: Intentamos conectar con todos los que parezcan online
+		const colleagues = await bitid.getColleagues();
+		colleagues.forEach(c => {
+			p2p.getPresence(c.public_key).then(status => {
+				if (status !== 'offline') {
+					console.log(`[BitMeet] Auto-connecting to online peer: ${c.username}`);
+					p2p.connectToPeer(c.public_key);
+				}
+			});
+		});
 
 		// RE-ACTIVAR SEEDING DE ÚLTIMAS 24H
 		try {
@@ -1522,6 +1647,31 @@ import "../styles/global.css";
 		p2p.onPeerConnected(async (pubKey: string) => {
 			console.log(`Peer conectado: ${pubKey}, sincronizando...`);
 
+			if (pubKey === myIdentity.publicKey) {
+				console.log("[Sync] Mi otro dispositivo conectado...");
+				
+				const pendingFullSync = localStorage.getItem("bitmeet_pending_full_sync") === "true";
+				if (pendingFullSync) {
+					console.log("[Sync] Iniciando CLONACIÓN COMPLETA de DB...");
+					const progressText = document.getElementById("sync-progress-text");
+					if (progressText) progressText.textContent = "Obteniendo datos del dispositivo origen...";
+					
+					p2p.sendP2PMessage(myIdentity.publicKey, {
+						type: "full-sync-req",
+						senderPubKey: myIdentity.publicKey
+					});
+					return;
+				}
+
+				const lastSync = parseInt(localStorage.getItem("bitmeet_last_sync") || "0");
+				p2p.sendP2PMessage(myIdentity.publicKey, {
+					type: "device-sync-req",
+					lastSyncTs: lastSync,
+					senderPubKey: myIdentity.publicKey
+				});
+				return;
+			}
+
 			// 1. Reintentar mensajes que nosotros tenemos como pendientes
 			retryPendingMessages(pubKey);
 
@@ -1552,16 +1702,15 @@ import "../styles/global.css";
 
 				for (const chat of chats) {
 					const newMsgs = chat.messages.filter(m => m.timestamp > msg.lastSyncTs);
-					if (newMsgs.length > 0) {
-						syncMessages.push({
-							chatId: chat.id,
-							chatName: chat.name,
-							chatType: chat.type,
-							participants: chat.participants,
-							owner: chat.owner,
-							messages: newMsgs
-						});
-					}
+					// Sincronizamos el chat siempre para asegurar que la estructura (grupos) se replique
+					syncMessages.push({
+						chatId: chat.id,
+						chatName: chat.name,
+						chatType: chat.type,
+						participants: chat.participants,
+						owner: chat.owner,
+						messages: newMsgs
+					});
 				}
 
 				if (syncMessages.length > 0 || contacts.length > 0) {
@@ -1572,6 +1721,67 @@ import "../styles/global.css";
 						senderPubKey: myIdentity.publicKey
 					});
 				}
+				return;
+			}
+
+			if (msg.type === "full-sync-req") {
+				console.log("[Sync] Petición de clonación de historial recibida.");
+				const contacts = await chatRepo.listContacts();
+				const chats = await chatRepo.listAllChats();
+
+				// Enviar contactos primero
+				p2p.sendP2PMessage(myIdentity.publicKey, {
+					type: "full-sync-res-chunk",
+					dataType: "contacts",
+					data: contacts
+				}).catch(e => console.error("Error enviando contactos:", e));
+
+				// Enviar chats uno por uno (para evitar límites de WebRTC)
+				for (let i = 0; i < chats.length; i++) {
+					await p2p.sendP2PMessage(myIdentity.publicKey, {
+						type: "full-sync-res-chunk",
+						dataType: "chat",
+						data: chats[i],
+						progress: Math.round(((i + 1) / chats.length) * 100)
+					}).catch(e => console.error(`Error enviando chat ${i}:`, e));
+					// Pequeña pausa para no saturar el canal
+					await new Promise(res => setTimeout(res, 50));
+				}
+
+				p2p.sendP2PMessage(myIdentity.publicKey, {
+					type: "full-sync-res-done"
+				});
+				return;
+			}
+
+			if (msg.type === "full-sync-res-chunk") {
+				if (msg.dataType === "contacts" && msg.data) {
+					for (const c of msg.data) await chatRepo.saveContact(c);
+				} else if (msg.dataType === "chat" && msg.data) {
+					await chatRepo.saveChat(msg.data);
+					const bar = document.getElementById("sync-progress-bar");
+					if (bar) bar.style.width = `${msg.progress}%`;
+				}
+				return;
+			}
+
+			if (msg.type === "full-sync-res-done") {
+				console.log("[Sync] Clonación finalizada.");
+				localStorage.removeItem("bitmeet_pending_full_sync");
+				localStorage.setItem("bitmeet_last_sync", Date.now().toString());
+
+				const view = document.getElementById("auth-sync-progress-view");
+				const bar = document.getElementById("sync-progress-bar");
+				const txt = document.getElementById("sync-progress-text");
+				if (bar) bar.style.width = "100%";
+				if (txt) txt.textContent = "¡Historial clonado correctamente!";
+				
+				setTimeout(() => {
+					view?.classList.add("hidden");
+					authOverlay?.classList.add("hidden");
+					teamsApp?.classList.remove("hidden");
+					loadContacts();
+				}, 1500);
 				return;
 			}
 
@@ -1715,12 +1925,20 @@ import "../styles/global.css";
 
 			if (msg.type === "chat" || msg.type === "system") {
 				const isGroup = !!msg.groupId;
+				
+				// Determinar el interlocutor real para el chatId
+				let otherPubKey = msg.senderPubKey;
+				if (!isGroup && msg.senderPubKey === myIdentity.publicKey && msg.receiverPubKey) {
+					// El mensaje fue enviado por nuestro otro dispositivo
+					otherPubKey = msg.receiverPubKey;
+				}
+
 				const chatId = isGroup
 					? msg.groupId
-					: await getChatId(msg.senderPubKey, myIdentity.publicKey);
+					: await getChatId(otherPubKey, myIdentity.publicKey);
 
-				// Verificar bloqueo
-				const contact = await chatRepo.getContact(msg.senderPubKey);
+				// Verificar bloqueo usando la clave del otro usuario
+				const contact = await chatRepo.getContact(otherPubKey);
 				if (contact?.isBlocked) return;
 
 				let text = msg.content;
@@ -1739,7 +1957,7 @@ import "../styles/global.css";
 					id: msg.id,
 					senderPubKey: msg.senderPubKey,
 					senderUsername: msg.senderUsername,
-					receiverPubKey: isGroup ? undefined : myIdentity.publicKey,
+					receiverPubKey: msg.receiverPubKey || (isGroup ? undefined : myIdentity.publicKey),
 					groupId: isGroup ? msg.groupId : undefined,
 					content: text,
 					timestamp: msg.timestamp,
@@ -1835,14 +2053,15 @@ import "../styles/global.css";
 						scrollToBottom();
 					}
 
-					if (!isGroup && !isGroup) {
-						// Actualizar nombre si era desconocido
+					if (!isGroup) {
+						// Actualizar nombre si era desconocido, a no ser que seamos nosotros mismos
 						const nameEl =
 							document.getElementById("active-chat-name");
 						if (
 							nameEl &&
 							nameEl.textContent?.includes("Desconocido") &&
-							msg.senderUsername
+							msg.senderUsername &&
+							msg.senderPubKey !== myIdentity.publicKey
 						) {
 							nameEl.textContent = msg.senderUsername;
 							await chatRepo.saveContact({
@@ -2613,18 +2832,14 @@ import "../styles/global.css";
 			all
 				.filter((c) => !c.isGroup)
 				.map(async (c) => {
-					const isConnected = await p2p.isConnected(c.publicKey);
-					if (isConnected) {
-						c.online_status = "online";
-					} else {
-						// Consultar presencia local P2P
-						const status = await p2p.getPresence(c.publicKey);
-						c.online_status = status;
+					// Consultar presencia global (Firebase + P2P)
+					const status = await p2p.getPresence(c.publicKey);
+					c.online_status = status;
 
-						// Si no está conectado, intentamos el auto-descubrimiento P2P
-						if (status === "offline") {
-							p2p.discover(c.publicKey);
-						}
+					// Si no está conectado a nivel P2P pero Firebase dice que está online, 
+					// p2p.getPresence ya dispara la reconexión proactiva internamente.
+					if (status === "offline") {
+						p2p.discover(c.publicKey);
 					}
 				}),
 		);
@@ -2639,18 +2854,24 @@ import "../styles/global.css";
 		const statusEl = document.getElementById("active-chat-status")!;
 		const statusDot = document.getElementById("active-chat-status-dot")!;
 
-		const connected = await p2p.isConnected(currentChatPubKey);
-		statusEl.textContent = connected ? "Conexión Segura" : "Offline";
-		statusDot.className = `status-dot ${connected ? "online" : "offline"}`;
+		const status = await p2p.getPresence(currentChatPubKey);
+		
+		const statusLabels: Record<string, string> = {
+			available: "Disponible",
+			busy: "No disponible",
+			"in-call": "En llamada",
+			offline: "Desconectado"
+		};
+
+		statusEl.textContent = statusLabels[status as string] || "Desconectado";
+		statusDot.className = `status-dot ${status}`;
 	}
 
-	// Refresco periódico cada 30s. Las llamadas a BitID API están cacheadas
-	// en BitIDService (TTL 5 min), así que sólo se envían peticiones reales
-	// ~12 veces/hora en lugar de ~720/hora.
+	// Refresco periódico más rápido (cada 5s) para estados vivos
 	setInterval(() => {
 		loadContacts();
 		retryPendingMessages();
-	}, 30000);
+	}, 5000);
 
 	async function loadColleagues() {
 		const colleagues = await bitid.getColleagues();
@@ -2680,9 +2901,13 @@ import "../styles/global.css";
 						c.lastMessage ||
 						(c.isGroup
 							? `${c.participants.length} participantes`
-							: c.online_status === "online"
+							: c.online_status === "available"
 								? "Disponible"
-								: "Desconectado");
+								: c.online_status === "busy"
+									? "No disponible"
+									: c.online_status === "in-call"
+										? "En llamada"
+										: "Desconectado");
 
 					return `
 					<div class="chat-item ${c.isUnread ? "unread" : ""} ${c.isGroup ? "group-item" : ""} ${isActive ? "active" : ""}" 
@@ -2692,7 +2917,7 @@ import "../styles/global.css";
 						<div class="chat-info">
 							<div class="chat-row">
 								<strong>${c.isGroup ? "👥 " : ""}${c.username}</strong> 
-								${c.online_status ? `<span class="status-dot ${c.online_status === "online" ? "online" : "offline"}"></span>` : ""}
+								${c.online_status ? `<span class="status-dot ${c.online_status}"></span>` : ""}
 							</div>
 							<div class="preview ${c.isUnread ? "unread" : ""}">${previewText}</div>
 						</div>
@@ -3756,6 +3981,7 @@ import "../styles/global.css";
 					id: msgId,
 					senderPubKey: myIdentity.publicKey,
 					senderUsername: myIdentity.username,
+					receiverPubKey: !isGroup ? currentChatPubKey : undefined,
 					content: ciphertext,
 					timestamp,
 					iv: msgIv,
@@ -3841,40 +4067,37 @@ import "../styles/global.css";
 				id: msgId,
 				senderPubKey: myIdentity.publicKey,
 				senderUsername: myIdentity.username,
+				receiverPubKey: !isGroup ? currentChatPubKey : undefined,
 				content: ciphertext,
 				timestamp,
 				iv,
 				groupId: isGroup ? currentChatId : undefined,
 			};
 
-			if (isGroup) {
-				// Broadcast a todos los participantes excepto yo
-				const others = currentGroupParticipants.filter(
-					(p) => p !== myIdentity.publicKey,
-				);
-				let sentCount = 0;
-				await Promise.all(
-					others.map(async (pubKey) => {
-						try {
-							await p2p.sendP2PMessage(pubKey, p2pPayload);
-							sentCount++;
-						} catch (err) {
-							console.warn(`Could not send message to ${pubKey}`);
-						}
-					}),
-				);
-				if (sentCount > 0) {
-					rawMessage.status = "sent";
-					updateMessageUIStatus(msgId, "sent");
-				}
-			} else {
-				try {
-					await p2p.sendP2PMessage(currentChatPubKey!, p2pPayload);
-					rawMessage.status = "sent";
-					updateMessageUIStatus(msgId, "sent");
-				} catch (err) {
-					console.warn("Peer offline.");
-				}
+			const targets = isGroup
+				? currentGroupParticipants.filter(
+						(p) => p !== myIdentity.publicKey,
+					)
+				: [currentChatPubKey!];
+
+			let sentToRecipient = false;
+			await Promise.all(
+				targets.map(async (pubKey) => {
+					try {
+						await p2p.sendP2PMessage(pubKey, p2pPayload);
+						sentToRecipient = true;
+					} catch (err) {
+						console.warn(`Could not send message to ${pubKey}`);
+					}
+				}),
+			);
+
+			// Sincronización en tiempo real con mis otros dispositivos
+			p2p.sendP2PMessage(myIdentity.publicKey, p2pPayload).catch(() => {});
+
+			if (sentToRecipient) {
+				rawMessage.status = "sent";
+				updateMessageUIStatus(msgId, "sent");
 			}
 
 			await chatRepo.addMessage(currentChatId, rawMessage);

@@ -113,13 +113,12 @@ export class WebRTCManager {
       console.log(`[WebRTC Debug] Connection state with ${targetId} changed to: ${pc.connectionState}`);
       if (pc.connectionState === 'connected') {
         console.log(`[WebRTC Debug] Connected successfully with ${targetId}`);
-        this.signaling.clearSignaling(this.myId, targetId);
+        // No borramos aquí para permitir re-negociaciones si fueran necesarias, 
+        // pero sí marcamos como estable.
         this.makingOffer.set(targetId, false);
-      } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-        console.log(`[WebRTC Debug] Connection failed/closed with ${targetId}. Cleaning up.`);
-        this.peerConnections.delete(targetId);
-        this.dataChannels.delete(targetId);
-        this.makingOffer.set(targetId, false);
+      } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed' || pc.connectionState === 'disconnected') {
+        console.log(`[WebRTC Debug] Connection ${pc.connectionState} with ${targetId}. Cleaning up.`);
+        this.closeConnection(targetId);
       }
     };
 
@@ -130,6 +129,7 @@ export class WebRTCManager {
     // Renegociación automática
     pc.onnegotiationneeded = async () => {
       try {
+        console.log(`[WebRTC Debug] Negotiation needed for ${targetId}`);
         this.makingOffer.set(targetId, true);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -142,6 +142,21 @@ export class WebRTCManager {
     };
 
     return pc;
+  }
+
+  private closeConnection(targetId: string) {
+    const pc = this.peerConnections.get(targetId);
+    if (pc) {
+      pc.close();
+      this.peerConnections.delete(targetId);
+    }
+    this.dataChannels.delete(targetId);
+    this.makingOffer.delete(targetId);
+    this.ignoreOffer.delete(targetId);
+    this.onConnectionClosedCb?.(targetId);
+    // Limpiamos señalización en Firebase para que el otro no intente reconectar
+    this.signaling.clearSignaling(this.myId, targetId);
+    this.signaling.clearSignaling(targetId, this.myId);
   }
 
   private setupDataChannel(targetId: string, channel: RTCDataChannel) {
@@ -159,8 +174,12 @@ export class WebRTCManager {
   }
 
   async connect(targetId: string, stream?: MediaStream) {
-    if (this.peerConnections.has(targetId)) return;
+    if (this.peerConnections.has(targetId)) {
+       console.log(`[WebRTC Debug] Already connecting/connected to ${targetId}`);
+       return;
+    }
 
+    console.log(`[WebRTC Debug] Initiating connection to ${targetId}`);
     const pc = this.createPeerConnection(targetId);
     
     if (stream) {
@@ -169,25 +188,23 @@ export class WebRTCManager {
 
     const channel = pc.createDataChannel('chat');
     this.setupDataChannel(targetId, channel);
-
-    // No creamos la oferta manualmente aquí, dejamos que onnegotiationneeded lo haga
-    // para cumplir con el estándar de Perfect Negotiation.
   }
 
   send(targetId: string, data: any) {
     const channel = this.dataChannels.get(targetId);
     if (channel && channel.readyState === 'open') {
       channel.send(JSON.stringify(data));
-    } else {
-      throw new Error("Channel not open");
     }
   }
 
   async addStream(targetId: string, stream: MediaStream) {
     const pc = this.peerConnections.get(targetId);
     if (pc) {
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-      // onnegotiationneeded se disparará solo
+      stream.getTracks().forEach(track => {
+        // Evitar duplicados
+        const exists = pc.getSenders().find(s => s.track?.id === track.id);
+        if (!exists) pc.addTrack(track, stream);
+      });
     }
   }
 
@@ -196,9 +213,16 @@ export class WebRTCManager {
   }
 
   disconnect() {
-    this.peerConnections.forEach(pc => pc.close());
+    console.log("[WebRTC Debug] Disconnecting all peers and cleaning up signaling");
+    this.peerConnections.forEach((pc, targetId) => {
+      this.signaling.clearSignaling(this.myId, targetId);
+      this.signaling.clearSignaling(targetId, this.myId);
+      pc.close();
+    });
     this.peerConnections.clear();
     this.dataChannels.clear();
     this.processedSignals.clear();
+    this.makingOffer.clear();
+    this.ignoreOffer.clear();
   }
 }

@@ -98,6 +98,12 @@ export class BitIDService {
     this.searchCache.clear();
   }
 
+  async clearIdentity(): Promise<void> {
+    await this.storage.clearIdentity();
+    this.lock();
+    localStorage.removeItem("bitid_colleagues_cache");
+  }
+
   async exportIdentity(): Promise<any> {
     const identity = await this.storage.getIdentity();
     const encryptedKey = await this.storage.getEncryptedKey();

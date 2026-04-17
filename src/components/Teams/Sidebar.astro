@@ -20,8 +20,16 @@
 		<div class="sidebar-icon profile-trigger" id="btn-logout" title="Cerrar sesión">
 			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
 		</div>
-		<div class="sidebar-icon profile-trigger" style="pointer-events: none;">
-			<div class="status-circle offline"></div>
+		<div class="sidebar-icon status-selector-container">
+			<div class="status-circle available" id="my-status-dot"></div>
+			<div class="status-menu hidden" id="status-menu">
+				<div class="status-option" data-status="available">
+					<span class="status-dot available"></span> Disponible
+				</div>
+				<div class="status-option" data-status="busy">
+					<span class="status-dot busy"></span> No disponible
+				</div>
+			</div>
 		</div>
 	</div>
 </aside>
@@ -60,9 +68,94 @@
 		background: #FFFFFF;
 		box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 	}
-	.status-circle { width: 10px; height: 10px; border-radius: 50%; }
+
+	/* --- Estados --- */
+	.status-circle { 
+		width: 12px; 
+		height: 12px; 
+		border-radius: 50%; 
+		transition: all 0.3s ease; 
+	}
 	.status-circle.offline { background: #86868B; }
-	.status-circle.online { background: #34C759; box-shadow: 0 0 8px rgba(52,199,89,0.5); }
+	.status-circle.available, .status-circle.online { 
+		background: #34C759; 
+		box-shadow: 0 0 8px rgba(52,199,89,0.4); 
+	}
+	.status-circle.busy { 
+		background: #FF3B30; 
+		box-shadow: 0 0 8px rgba(255,59,48,0.4); 
+	}
+	.status-circle.in-call { 
+		background: #FF3B30; 
+		animation: status-pulse-red 2s infinite; 
+	}
+
+	.status-selector-container {
+		position: relative;
+		cursor: pointer;
+	}
+
+	.status-menu {
+		position: absolute;
+		left: 55px;
+		bottom: 10px;
+		background: rgba(255, 255, 255, 0.85);
+		backdrop-filter: blur(20px) saturate(180%);
+		-webkit-backdrop-filter: blur(20px) saturate(180%);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		border-radius: 14px;
+		box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+		padding: 6px;
+		width: 170px;
+		z-index: 1000;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.dark .status-menu {
+		background: rgba(44, 44, 46, 0.85);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.status-menu.hidden {
+		display: none;
+	}
+
+	.status-option {
+		padding: 10px 12px;
+		border-radius: 10px;
+		display: flex;
+		align-items: center;
+		font-size: 14px;
+		font-weight: 500;
+		color: var(--apple-text);
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.status-option:hover {
+		background: rgba(0, 0, 0, 0.05);
+	}
+
+	.dark .status-option:hover {
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	.status-dot { 
+		width: 10px; 
+		height: 10px; 
+		border-radius: 50%; 
+		margin-right: 12px; 
+	}
+	.status-dot.available { background: #34C759; box-shadow: 0 0 5px rgba(52,199,89,0.3); }
+	.status-dot.busy { background: #FF3B30; box-shadow: 0 0 5px rgba(255,59,48,0.3); }
+
+	@keyframes status-pulse-red {
+		0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+		70% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); }
+		100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+	}
 
 	@media (max-width: 768px) {
 		.apple-sidebar {
@@ -91,7 +184,7 @@
 			margin-bottom: 0;
 		}
 		.sidebar-icon:last-child {
-			display: none; /* Ocultar status dot solo en movil para ganar espacio si hace falta */
+			display: none; 
 		}
 	}
 </style>

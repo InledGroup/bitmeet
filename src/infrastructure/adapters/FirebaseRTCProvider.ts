@@ -57,8 +57,10 @@ export class FirebaseRTCProvider {
             timestamp: signal.timestamp
           });
           
-          // Importante: Marcar como procesado o borrar después de procesar Ofertas/Respuestas
-          // para evitar bucles de estado, pero WebRTCManager ya debería manejar el estado PC.
+          // Si es oferta o respuesta, la borramos para que no se re-procese
+          if (signal.type === 'offer' || signal.type === 'answer') {
+            this.clearSignaling(myId, fromId);
+          }
         }
         
         if (signal.candidates) {
