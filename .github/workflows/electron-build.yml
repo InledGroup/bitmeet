@@ -41,6 +41,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools
 
       - name: Build Electron app
+        shell: bash
         run: |
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             npm run electron:build -- --linux --x64 --arm64
