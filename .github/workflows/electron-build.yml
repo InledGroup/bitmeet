@@ -93,6 +93,9 @@ jobs:
             xattr -r -d com.apple.quarantine /Applications/BitMeet.app
             ```
 
+            ### 🐧 Notas para Linux
+            Se han incluido binarios para arquitecturas x64 y ARM64 (deb, rpm, AppImage).
+
             ### 📝 Cambios
             ${{ github.event.head_commit.message }}
           files: |
