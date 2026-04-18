@@ -1,4 +1,3 @@
-
 ---
 import LegalLayout from '../../layouts/LegalLayout.astro';
 ---
@@ -6,35 +5,40 @@ import LegalLayout from '../../layouts/LegalLayout.astro';
 <LegalLayout title="Política de Privacidad">
   <h1>Política de Privacidad</h1>
 
-  <p>En BitMeet, la privacidad de tus comunicaciones es nuestra prioridad absoluta. Esta Política de Privacidad describe cómo manejamos la información cuando utilizas nuestro servicio, en estricto cumplimiento del <strong>Reglamento General de Protección de Datos (RGPD) de la UE</strong> y la <strong>Ley Orgánica 3/2018 (LOPDGDD)</strong> de España.</p>
+  <p>En Bitmeet, la privacidad de tus comunicaciones es nuestra prioridad absoluta. Esta Política de Privacidad describe cómo manejamos la información cuando utilizas nuestro servicio, en estricto cumplimiento del Reglamento General de Protección de Datos (RGPD) de la UE y la Ley Orgánica 3/2018 (LOPDGDD) de España.</p>
 
   <h2>1. Responsable del Tratamiento</h2>
-  <p>El responsable del tratamiento de los datos es Jaime González Herráiz (Inled Group), con email de contacto hi@inled.es.</p>
+  <p>El responsable del tratamiento de los datos es Jaime González Herráiz (Inled Group), con correo electrónico de contacto: hi@inled.es.</p>
 
-  <h2>2. Datos que Recopilamos y Base Legitimadora</h2>
-  <p>En cumplimiento con el principio de <strong>Minimización de Datos</strong>, BitMeet procesa los siguientes datos técnicos:</p>
+  <h2>2. Autenticación mediante BitID</h2>
+  <p>Bitmeet no utiliza sistemas de gestión de identidad centralizados tradicionales. Utilizamos <strong>BitID</strong>, un sistema basado en criptografía de clave pública y privada. Las claves se generan y encriptan localmente en tu dispositivo mediante una contraseña maestra que solo tú conoces. Bitmeet nunca almacena tu contraseña ni accede a tus claves privadas.</p>
+
+  <h2>3. Datos Recopilados y Base Legitimadora</h2>
+  <p>Bitmeet opera bajo el principio de Minimización de Datos, procesando únicamente lo estrictamente necesario para la operatividad técnica:</p>
   <ul>
-    <li><strong>Identificadores Técnicos (Peer IDs e IPs):</strong> Para establecer la conexión Punto a Punto mediante WebRTC.</li>
-    <li><strong>Identificador de Sala y Nombre de Participante:</strong> Datos temporales para la organización de la sesión.</li>
+    <li><strong>Identificadores Técnicos (Peer IDs e IPs):</strong> Necesarios para establecer la conexión Punto a Punto (P2P) mediante WebRTC.</li>
+    <li><strong>Metadatos de Sesión:</strong> Datos temporales para la organización de la sesión (ej. ID de sala).</li>
+    <li><strong>Datos de usuario:</strong> Para poder conectarte con otros usuarios, tu usuario de BitID se almacena junto a tu clave pública en la infraestructura de Cloudflare. Asimismo, si perteneces a una empresa, se almacenan los compañeros de empresa para que te aparezcan como contactos automaticos</li>
   </ul>
-  <p><strong>Base legal:</strong> El tratamiento es estrictamente necesario para la prestación del servicio de comunicaciones solicitado (Art. 6.1.b RGPD). <strong>No se recogen datos con fines publicitarios, analíticos ni de rastreo comercial.</strong></p>
+  <p>No se recogen datos con fines publicitarios, analíticos ni de rastreo comercial.</p>
 
-  <h2>3. Cifrado de Extremo a Extremo (E2EE)</h2>
-  <p>BitMeet implementa un diseño de <strong>Privacidad por Defecto</strong>:</p>
+  <h2>4. Cifrado de Extremo a Extremo (E2EE)</h2>
+  <p>Bitmeet implementa un diseño de <strong>Privacidad por Defecto</strong>:</p>
   <ul>
-    <li><strong>Media (Audio y Vídeo):</strong> Se transmite directamente entre navegadores (P2P) y nunca pasa por los servidores de BitMeet.</li>
-    <li><strong>Datos de Sesión (Chat y Señalización):</strong> Cifrados con AES-GCM 256-bit. Las claves de cifrado se generan localmente en tu dispositivo y nunca se transmiten al servidor. <strong>Es técnicamente imposible que el titular acceda al contenido de tus comunicaciones.</strong></li>
+    <li><strong>Media (Audio y Vídeo):</strong> Se transmite directamente entre navegadores (P2P) y nunca pasa por nuestros servidores.</li>
+    <li><strong>Datos de Sesión (Chat y Señalización):</strong> Se transmiten cifrados con AES-GCM 256-bit. Las claves se generan localmente; es técnicamente imposible que el titular acceda al contenido de tus comunicaciones.</li>
+    <li><strong>Cifrado predeterminado:</strong>El protocolo que utilizamos (WebRTC) ya cifra los mensajes de punto a punto</li>
   </ul>
 
-  <h2>4. Destinatarios y Transferencias Internacionales</h2>
-  <p>Utilizamos <strong>Firebase (Google Cloud)</strong> para la señalización técnica. Al ser una plataforma global, los metadatos de conexión técnica podrían procesarse fuera de la UE. Esta transferencia está regulada por el <strong>Marco de Privacidad de Datos UE-EE.UU.</strong> y Cláusulas Contractuales Tipo, garantizando un nivel de protección adecuado según el RGPD.</p>
+  <h2>5. Infraestructura y Transferencias Internacionales</h2>
+  <p>Utilizamos Firebase (Google Cloud) y Cloudflare únicamente para la señalización técnica y almacenamiento de nombre de usuario y clave publica así como empresa a la que perteneces (si un administrador ha creado una en BitID). Al ser una plataforma global, los metadatos de conexión técnica podrían procesarse fuera de la UE. Esta transferencia está regulada por el Marco de Privacidad de Datos UE-EE.UU. y Cláusulas Contractuales Tipo.</p>
 
-  <h2>5. Plazo de Conservación y Retención de Datos</h2>
-  <p>No almacenamos ni grabamos tus llamadas. Todos los metadatos técnicos de señalización son <strong>efímeros</strong> y se eliminan automáticamente tras finalizar la sesión. BitMeet <strong>no retiene registros de actividad</strong> de quién se comunicó con quién una vez finalizada la sesión técnica necesaria para la conexión.</p>
+  <h2>6. Conservación de Datos</h2>
+  <p>No almacenamos ni grabamos tus llamadas. Los metadatos de señalización son <strong>efímeros</strong> y se eliminan automáticamente tras finalizar la sesión. Bitmeet no conserva registros históricos de actividad sobre quién se comunicó con quién.</p>
 
-  <h2>6. Derechos de los Usuarios</h2>
-  <p>Tienes derecho a acceder, rectificar o suprimir tus datos. Dado que BitMeet no vincula sesiones a identidades reales permanentes, la supresión se ejerce automáticamente al cerrar el navegador o la sala. Puedes contactar con hi@inled.es para cualquier consulta o dirigirte a la <strong>Agencia Española de Protección de Datos (AEPD)</strong> para presentar una reclamación.</p>
+  <h2>7. Derechos de los Usuarios</h2>
+  <p>Tienes derecho a acceder, rectificar o suprimir tus datos. Dado que Bitmeet no vincula sesiones a identidades reales permanentes, la supresión se ejerce automáticamente al cerrar el navegador o la sala. Puedes contactar con hi@inled.es para cualquier consulta o dirigirte a la <strong>Agencia Española de Protección de Datos (AEPD)</strong> para presentar una reclamación.</p>
 
-  <h2>7. Cookies</h2>
-  <p>BitMeet <strong>no utiliza cookies de seguimiento ni publicidad</strong>. Únicamente empleamos el almacenamiento local del navegador (LocalStorage) para fines técnicos (Art. 22.2 LSSICE), como recordar el estado de tu micrófono/cámara durante la sesión. No se requiere banner de cookies al ser uso estrictamente técnico.</p>
+  <h2>8. Cookies</h2>
+  <p>Bitmeet <strong>no utiliza cookies de seguimiento ni publicidad</strong>. Únicamente empleamos el almacenamiento local del navegador (LocalStorage) para fines técnicos (Art. 22.2 LSSICE), como recordar el estado de tu micrófono/cámara durante la sesión. No se requiere banner de cookies al ser uso estrictamente técnico.</p>
 </LegalLayout>

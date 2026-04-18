@@ -1,0 +1,236 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Bitmeet - Mensajería Privada, Llamadas y Archivos P2P">
+  <script is:inline>
+    document.documentElement.classList.add('scrollable-page');
+  </script>
+  
+  <header>
+    <div class="nav-content">
+      <a href="/landing" class="brand">Bitmeet</a>
+      <nav id="desktop-nav">
+        <a href="#features">Funciones</a>
+        <a href="https://github.com/InledGroup/bitmeet" target="_blank">Código Abierto</a>
+        <a href="/login" class="nav-cta">Entrar</a>
+      </nav>
+      <button id="menu-toggle" class="menu-toggle">☰</button>
+    </div>
+    <nav id="mobile-nav" class="mobile-nav hidden">
+      <a href="#features">Funciones</a>
+      <a href="https://github.com/InledGroup/bitmeet" target="_blank">Código Abierto</a>
+      <a href="/login" class="nav-cta">Entrar</a>
+    </nav>
+  </header>
+
+  <script is:inline>
+    const toggle = document.getElementById('menu-toggle');
+    const nav = document.getElementById('mobile-nav');
+    toggle.addEventListener('click', () => {
+      nav.classList.toggle('hidden');
+    });
+  </script>
+
+  <main class="dark-mode">
+    <section class="hero">
+      <img src="https://hosted.inled.es/bitmeet-blueshape-whitebg.png" alt="Bitmeet Logo" class="logo" />
+      <h1>Bitmeet</h1>
+      <p>Privacidad empresarial y personal gracias a la comunicación P2P sin servidores.</p>
+      <div class="cta-group">
+        <a href="/" class="cta-fill">Entrar al inicio</a>
+        <a href="https://id.inled.es" class="cta-pill">Crear cuenta BitID</a>
+      </div>
+    </section>
+
+    <section id="features" class="features">
+      <h2 class="section-heading">Arquitectura P2P de nueva generación</h2>
+      <div class="grid">
+        <div class="feature-card">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <h3>Privacidad</h3>
+          <p>Encriptación y conexiones punto a punto, asegurando que tus comunicaciones sean tuyas y solo tuyas.</p>
+        </div>
+        <div class="feature-card">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          <h3>Videollamadas P2P</h3>
+          <p>Videollamadas con la máxima definición que permita tu wifi y dispositivo. Con soporte para envío de pantalla e invitación a nuevos participantes y PIP integrado.</p>
+        </div>
+        <div class="feature-card">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><polyline points="16 16 12 12 8 16"></polyline></svg>
+          <h3>Archivos Ilimitados</h3>
+          <p>Transferencia directa vía protocolo Torrent con nuestro innovador sistema BitShare, que encripta tus archivos antes de enviarlos y los desencripta automáticamente cuando tú pulsas para descargarlos..</p>
+        </div>
+        <div class="feature-card">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <h3>Calendario</h3>
+          <p>Gestión de reuniones programadas y tiempos no disponibilidad.</p>
+        </div>
+        <div class="feature-card">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon lucide lucide-satellite-dish"><path d="M4 10a7.31 7.31 0 0 0 10 10Z"/><path d="m9 15 3-3"/><path d="M17 13a6 6 0 0 0-6-6"/><path d="M21 13A10 10 0 0 0 11 3"/></svg>
+          <h3>Estado en vivo</h3>
+          <p>Información en tiempo real sobre el estado de tus contactos y disponibilidad.</p>
+        </div>
+        <div class="feature-card">
+         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="icon bi bi-github" viewBox="0 0 16 16">
+  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+</svg>
+          <h3>Código abierto</h3>
+          <p>El código de Bitmeet es completamente abierto, transparente y auditable. Todo en un único repo que puedes leerte en menos de una hora.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="turn-section">
+      <div class="content">
+        <h2>Bring Your Own TURN</h2>
+        <p>En algunas situaciones (como los datos móviles o redes empresariales) es necesario usar un servidor TURN para establecer la conexión P2P. Bitmeet permite integrar tu propia infraestructura de servidores TURN. Tú decides la ruta de tus comunicaciones.</p>
+      </div>
+    </section>
+
+    <section class="auth-section">
+      <div class="content">
+        <h2>Identidad BitID</h2>
+        <p>Accede mediante BitID en <a href="https://id.inled.es" style="color: #0071e3;">id.inled.es</a>. Un sistema de autenticación basado en pares de claves criptográficas encriptadas con tu contraseña maestra.</p>
+      </div>
+    </section>
+
+    <section class="download-section">
+      <div class="content">
+        <h2>Descarga Bitmeet</h2>
+        <p>Disponible para escritorio. Android próximamente.</p>
+        <div class="cta-group" style="margin-top: 32px; justify-content: center;">
+          <a href="https://github.com/InledGroup/bitmeet/releases" class="cta-fill">Windows, macOS y Linux</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-section">
+      <div class="content">
+        <h2>¿Solución empresarial?</h2>
+        <p>Ya sea que necesites una nueva funcionalidad o una adaptación de la plataforma, estamos encantados de tu interés. Contacta con nosotros en:</p>
+        <div class="cta-group" style="margin-top: 32px; justify-content: center;">
+          <a href="mailto:hi@inled.es" class="cta-pill">hi@inled.es</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="hero-cta">
+      <h2>Entra y empieza a comunicarte.</h2>
+      <a href="/" class="cta-fill">Ir al inicio</a>
+    </section>
+
+    <footer>
+      <p>&copy; 2026 Inled Group&reg;. Licenciado bajo MIT-INLED. Consulta <a href="https://license.inled.es">license.inled.es</a> para conocer como te beneficia la licencia</p>
+      <nav>
+        <a href="/legal/terminos">Términos</a>
+        <a href="/legal/privacidad">Privacidad</a>
+        <a href="/legal/aviso-legal">Aviso Legal</a>
+      </nav>
+    </footer>
+  </main>
+
+<style>
+  header {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 12px 20px;
+    border-bottom: 1px solid #222;
+  }
+
+  .nav-content { max-width: 980px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  .brand { font-weight: 600; text-decoration: none; color: #fff; font-size: 18px; }
+  
+  header nav#desktop-nav { display: flex; gap: 24px; align-items: center; }
+  header nav a { color: rgba(255, 255, 255, 0.6); text-decoration: none; font-size: 14px; }
+  header nav a.nav-cta { 
+    background: #fff; 
+    color: #000; 
+    padding: 6px 16px; 
+    border-radius: 980px;
+    font-weight: 500;
+  }
+  
+  .menu-toggle { display: none; background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+  .mobile-nav { display: none; }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    #desktop-nav { display: none; }
+    .menu-toggle { display: block; }
+    .mobile-nav { 
+      display: flex; flex-direction: column; gap: 16px; 
+      padding: 20px; background: #000; border-top: 1px solid #222;
+      position: absolute; width: 100%; left: 0; top: 100%;
+    }
+    .mobile-nav.hidden { display: none !important; }
+    
+    .hero { padding: 80px 20px; }
+    h1 { font-size: 40px; }
+    .hero p { font-size: 18px; }
+    
+    .cta-group { flex-direction: column; width: 100%; }
+    .cta-fill, .cta-pill { width: 100%; text-align: center; }
+  }
+
+  .dark-mode {
+    background: #000;
+    color: #fff;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+  }
+
+  .hero, .hero-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 180px 20px;
+    text-align: center;
+  }
+
+  .hero-cta h2 { font-size: 40px; margin-bottom: 32px; }
+
+  .logo { width: 64px; margin-bottom: 32px; }
+
+  h1 { font-size: 56px; font-weight: 600; line-height: 1.07; letter-spacing: -0.28px; margin-bottom: 16px; }
+
+  .hero p { font-size: 21px; line-height: 1.47; color: rgba(255, 255, 255, 0.6); margin-bottom: 48px; }
+
+  .cta-group { display: flex; gap: 16px; }
+
+  .cta-fill { background: #0071e3; color: #fff; padding: 12px 32px; border-radius: 980px; text-decoration: none; font-size: 17px; }
+
+  .cta-pill { background: rgba(255,255,255,0.1); color: #fff; padding: 12px 32px; border-radius: 980px; text-decoration: none; font-size: 17px; }
+
+  .features, .turn-section, .auth-section, .download-section, .contact-section { max-width: 980px; margin: 0 auto; padding: 80px 20px; }
+
+  .section-heading { font-size: 40px; font-weight: 600; line-height: 1.1; text-align: center; margin-bottom: 64px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; justify-items: center; }
+
+  .feature-card { background: #111; padding: 40px; border-radius: 20px; text-align: center; }
+
+  .icon { color: #0071e3; margin-bottom: 24px; }
+
+  .feature-card h3 { font-size: 21px; font-weight: 600; margin-bottom: 12px; }
+
+  .feature-card p { font-size: 17px; color: rgba(255, 255, 255, 0.6); }
+
+  .turn-section, .auth-section, .download-section, .contact-section { text-align: center; border-top: 1px solid #222; }
+
+  .content { max-width: 700px; margin: 0 auto; }
+
+  .turn-section h2, .auth-section h2, .download-section h2, .contact-section h2 { font-size: 40px; font-weight: 600; margin-bottom: 24px; letter-spacing: -0.28px; }
+  .turn-section p, .auth-section p, .download-section p, .contact-section p { font-size: 21px; line-height: 1.47; color: rgba(255, 255, 255, 0.6); }
+
+  .hero-cta { background: #111; padding: 100px 20px; }
+
+  footer { text-align: center; padding: 40px; font-size: 14px; color: #666; border-top: 1px solid #222; }
+  footer nav { margin-top: 16px; display: flex; gap: 16px; justify-content: center; }
+  footer a { color: #666; text-decoration: none; }
+  
+  .badge { background: rgba(0, 113, 227, 0.1); color: #0071e3; padding: 6px 12px; border-radius: 980px; font-size: 12px; margin-bottom: 24px; font-weight: 600; }
+</style>

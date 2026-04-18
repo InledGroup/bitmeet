@@ -4,109 +4,103 @@ import '../styles/global.css';
 const { title } = Astro.props;
 ---
 
-<html lang="es">
+<html lang="es" class="scrollable-page">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title} | BitMeet</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+		<title>{title} | Bitmeet</title>
 	</head>
-	<body>
-    <header class="header">
-      <div class="container nav-content">
-        <a href="/" class="logo">Bit<span style="color: var(--accent)">Meet</span></a>
-        <a href="/" class="btn btn-primary" style="padding: 0.5rem 1rem;">Volver</a>
+	<body class="dark-mode">
+    <header>
+      <div class="nav-content">
+        <a href="/landing" class="brand">Bitmeet</a>
+        <nav id="desktop-nav">
+          <a href="/#features">Funciones</a>
+          <a href="https://github.com/InledGroup/bitmeet" target="_blank">Código Abierto</a>
+          <a href="/login" class="nav-cta">Entrar</a>
+        </nav>
+        <button id="menu-toggle" class="menu-toggle">☰</button>
       </div>
+      <nav id="mobile-nav" class="mobile-nav hidden">
+        <a href="/#features">Funciones</a>
+        <a href="https://github.com/InledGroup/bitmeet" target="_blank">Código Abierto</a>
+        <a href="/login" class="nav-cta">Entrar</a>
+      </nav>
     </header>
 
-		<main class="container legal-content">
+    <script is:inline>
+      const toggle = document.getElementById('menu-toggle');
+      const nav = document.getElementById('mobile-nav');
+      toggle.addEventListener('click', () => {
+        nav.classList.toggle('hidden');
+      });
+    </script>
+
+		<main class="legal-content">
       <slot />
 		</main>
 
     <footer class="footer">
-      <div class="container footer-content">
-        <p>&copy; {new Date().getFullYear()} Inled Group. Code licensed under GNU GPLv3.0.</p>
-        <nav class="footer-links">
-          <a href="/legal/aviso-legal">Aviso Legal</a>
-          <a href="/legal/privacidad">Privacidad</a>
-          <a href="/legal/terminos">Términos</a>
-        </nav>
-      </div>
+      <p>&copy; 2026 Inled Group&reg;.</p>
+      <nav>
+        <a href="/legal/terminos">Términos</a>
+        <a href="/legal/privacidad">Privacidad</a>
+        <a href="/legal/aviso-legal">Aviso Legal</a>
+      </nav>
     </footer>
 
-    <style>
-      .header {
-        padding: 1.5rem 0;
-        border-bottom: 1px solid var(--card-bg);
-      }
-      .nav-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .logo {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: white;
-        text-decoration: none;
-      }
-      .legal-content {
-        max-width: 800px;
-        margin-top: 4rem;
-        margin-bottom: 6rem;
-        line-height: 1.7;
-      }
-      :global(.legal-content h1) {
-        font-size: 2.5rem;
-        margin-bottom: 2rem;
-        color: white;
-      }
-      :global(.legal-content h2) {
-        font-size: 1.5rem;
-        margin-top: 2.5rem;
-        margin-bottom: 1rem;
-        color: var(--accent);
-      }
-      :global(.legal-content p) {
-        margin-bottom: 1.25rem;
-        color: var(--text-secondary);
-      }
-      :global(.legal-content ul) {
-        margin-bottom: 1.25rem;
-        padding-left: 1.5rem;
-        color: var(--text-secondary);
-      }
-      :global(.legal-content li) {
-        margin-bottom: 0.5rem;
+    <style is:global>
+      .dark-mode {
+        background: #000;
+        color: #fff;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", sans-serif;
+        min-height: 100vh;
       }
 
-      .footer {
-        padding: 2rem 0;
-        border-top: 1px solid var(--card-bg);
-        color: var(--text-secondary);
-        font-size: 0.875rem;
+      header {
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(20px);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        padding: 12px 20px;
+        border-bottom: 1px solid #222;
       }
-      .footer-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
+      .nav-content { max-width: 980px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+      .brand { font-weight: 600; text-decoration: none; color: #fff; font-size: 18px; }
+      header nav#desktop-nav { display: flex; gap: 24px; align-items: center; }
+      header nav a { color: rgba(255, 255, 255, 0.6); text-decoration: none; font-size: 14px; }
+      header nav a.nav-cta { background: #fff; color: #000; padding: 6px 16px; border-radius: 980px; font-weight: 500; }
+      
+      .menu-toggle { display: none; background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+      .mobile-nav { display: none; }
+
+      .legal-content {
+        max-width: 800px;
+        margin: 80px auto;
+        padding: 0 20px;
+        line-height: 1.6;
       }
-      .footer-links {
-        display: flex;
-        gap: 2rem;
-      }
-      .footer-links a {
-        color: var(--text-secondary);
-        text-decoration: none;
-      }
-      .footer-links a:hover {
-        color: var(--accent);
+      .legal-content h1 { font-size: 40px; margin-bottom: 40px; font-weight: 600; color: #fff; }
+      .legal-content h2 { font-size: 24px; margin-top: 40px; margin-bottom: 16px; color: #0071e3; }
+      .legal-content p, .legal-content li { color: rgba(255, 255, 255, 0.8); margin-bottom: 16px; }
+      .legal-content ul, .legal-content ol { margin-bottom: 16px; padding-left: 20px; color: rgba(255, 255, 255, 0.8); }
+      .legal-content li { margin-bottom: 8px; }
+
+      .footer { text-align: center; padding: 40px; font-size: 14px; color: #666; border-top: 1px solid #222; }
+      .footer nav { margin-top: 16px; display: flex; gap: 16px; justify-content: center; }
+      .footer a { color: #666; text-decoration: none; }
+
+      @media (max-width: 768px) {
+        #desktop-nav { display: none; }
+        .menu-toggle { display: block; }
+        .mobile-nav { 
+          display: flex; flex-direction: column; gap: 16px; 
+          padding: 20px; background: #000; border-top: 1px solid #222;
+          position: absolute; width: 100%; left: 0;
+        }
+        .mobile-nav.hidden { display: none; }
       }
     </style>
 	</body>
