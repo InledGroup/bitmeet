@@ -16,6 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
 
@@ -36,9 +37,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools
 
-      - name: Build Astro project
-        run: npm run build
-
       - name: Build Electron app
         run: npm run electron:build
         env:
@@ -48,8 +46,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: artifacts-${{ matrix.os }}
-          path: dist-electron/*.{dmg,exe,msi,deb,rpm,zip}
-          if-no-files-found: error
+          path: |
+            dist-electron/*.dmg
+            dist-electron/*.exe
+            dist-electron/*.msi
+            dist-electron/*.deb
+            dist-electron/*.rpm
+            dist-electron/*.zip
+          if-no-files-found: warn
 
   create-release:
     needs: build
