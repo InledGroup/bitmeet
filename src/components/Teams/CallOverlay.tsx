@@ -132,30 +132,30 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
+const handleCallAccepted = async (e: any) => {
+  const data = e.detail;
+  // IMPORTANTE: data.peerId ya viene hasheado desde index.astro (myPeerId)
+  const targetPeerId = data.peerId;
+  const myId = transportRef.current.getPeerId();
 
-    const handleCallAccepted = async (e: any) => {
-      const data = e.detail;
-      const targetPeerId = await PeerJSMediaTransport.hashId(data.peerId);
-      const myId = transportRef.current.getPeerId();
-      
-      if (!myId || targetPeerId === myId) return;
+  if (!myId || targetPeerId === myId) return;
 
-      console.log('[BitMeet] Invitation accepted by:', targetPeerId);
-      
-      setParticipants(prev => {
-        if (prev.find(p => p.peerId === targetPeerId)) return prev;
-        return [...prev, {
-          id: targetPeerId, peerId: targetPeerId, name: data.senderUsername || "Usuario",
-          isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
-        }];
-      });
+  console.log('[BitMeet] Invitation accepted by:', targetPeerId);
 
-      // Solo el que tiene ID menor inicia la conexión técnica (Polite Peer)
-      if (myId < targetPeerId) {
-        console.log('[BitMeet] Initiating WebRTC connection to:', targetPeerId);
-        transportRef.current.connect(targetPeerId, currentStreamRef.current as any);
-      }
-    };
+  setParticipants(prev => {
+    if (prev.find(p => p.peerId === targetPeerId)) return prev;
+    return [...prev, {
+      id: targetPeerId, peerId: targetPeerId, name: data.senderUsername || "Usuario",
+      isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false
+    }];
+  });
+
+  // Solo el que tiene ID menor inicia la conexión técnica (Polite Peer)
+  if (myId < targetPeerId) {
+    console.log('[BitMeet] Initiating WebRTC connection to:', targetPeerId);
+    transportRef.current.connect(targetPeerId, currentStreamRef.current as any);
+  }
+};
 
     const handleNewMessage = (e: any) => {
       if (e.detail.chatId === roomId && e.detail.message.sender !== (window as any).myIdentity?.publicKey) {
@@ -171,13 +171,7 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       const myPeerId = await PeerJSMediaTransport.hashId(id?.publicKey || 'anonymous');
       await transportRef.current.initialize(myPeerId);
       
-      const hashedInvitedPeers: Record<string, { username: string, pubKey: string }> = {};
-      if (invitedPeers) {
-        for (const [k, v] of Object.entries(invitedPeers)) {
-          const hId = await PeerJSMediaTransport.hashId(k);
-          hashedInvitedPeers[hId] = v;
-        }
-      }
+      const hashedInvitedPeers = invitedPeers || {};
 
       window.addEventListener('bitmeet:call-accepted', handleCallAccepted);
       window.addEventListener('bitmeet:new-message', handleNewMessage);
@@ -242,14 +236,14 @@ export default function CallOverlay({ roomId, onHangup, isIncoming, incomingCall
       // En WebRTC puro, al entrar en la sala, intentamos conectar con los invitados
       if (invitedPeers) {
         for (const [rawId, info] of Object.entries(invitedPeers)) {
-          const tId = await PeerJSMediaTransport.hashId(rawId);
+          const tId = rawId; // Ya viene hasheado como peerId
           if (tId !== myPeerId && myPeerId < tId) {
             console.log('[BitMeet] Calling peer:', tId);
             setParticipants(p => p.find(x => x.peerId === tId) ? p : [...p, { 
               id: tId, peerId: tId, name: info.username || "Participante", 
               isLocal: false, audioEnabled: true, videoEnabled: true, isScreenSharing: false 
             }]);
-            transportRef.current.connect(tId, currentStreamRef.current as any);
+            transportRef.current.connect(tId, currentStreamRef.current as any, { senderUsername: (window as any).myIdentity?.username || "Usuario" });
           }
         }
       }

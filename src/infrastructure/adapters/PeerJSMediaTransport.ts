@@ -84,16 +84,16 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
   connect(peerId: string, stream: MediaStream, initialData: any): void {
     if (!this.peer || this.calls.has(peerId)) return;
 
-    const conn = this.peer.connect(peerId);
+    const conn = this.peer.connect(peerId, { metadata: initialData });
     this.setupDataConnection(conn);
 
-    const call = this.peer.call(peerId, stream);
+    const call = this.peer.call(peerId, stream, { metadata: initialData });
     this.setupCall(call, peerId, initialData);
   }
 
   answer(call: MediaConnection, stream: MediaStream): void {
     call.answer(stream);
-    this.setupCall(call, call.peer, { id: call.peer });
+    this.setupCall(call, call.peer, call.metadata || { id: call.peer });
   }
 
   private setupCall(call: MediaConnection, peerId: string, data: any) {

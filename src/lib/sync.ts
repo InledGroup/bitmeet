@@ -61,7 +61,7 @@ export class DeviceSyncService {
     const now = Date.now();
     return Object.keys(data).filter(deviceId => {
       // Solo devolver dispositivos que estuvieron online en los últimos 5 minutos
-      return data[deviceId].status === 'online' || (now - (data[deviceId].lastSeen || 0) < 300000);
+      return data[deviceId].status === 'online' || (now - (data[deviceId].lastSeen || 0) < 30000);
     });
   }
 
@@ -73,7 +73,7 @@ export class DeviceSyncService {
         const data = snapshot.val();
         const now = Date.now();
         const activeIds = Object.keys(data).filter(deviceId => {
-          return data[deviceId].status === 'online' || (now - (data[deviceId].lastSeen || 0) < 300000);
+          return data[deviceId].status === 'online' || (now - (data[deviceId].lastSeen || 0) < 30000);
         });
         callback(activeIds);
       });

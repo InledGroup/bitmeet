@@ -189,6 +189,8 @@ export class WebRTCManager {
     const channel = this.dataChannels.get(targetId);
     if (channel?.readyState === 'open') {
       channel.send(typeof data === 'string' ? data : JSON.stringify(data));
+    } else {
+      throw new Error(`DataChannel for ${targetId} is not open`);
     }
   }
 

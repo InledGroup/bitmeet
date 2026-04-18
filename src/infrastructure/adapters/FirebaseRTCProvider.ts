@@ -28,7 +28,14 @@ export class FirebaseRTCProvider {
       const candidatesRef = ref(rtdb, `signaling/${this.namespace}/${targetId}/${myId}/candidates`);
       await push(candidatesRef, { data: signal.data, timestamp: Date.now() });
     } else {
-      await set(signalingRef, { type: signal.type, from: myId, data: signal.data, timestamp: Date.now() });
+      await update(signalingRef, { type: signal.type, from: myId, data: signal.data, timestamp: Date.now() });
+      
+      // Auto-cleanup de ofertas para evitar que se queden en Firebase si el par está zombie
+      if (signal.type === 'offer') {
+        setTimeout(() => {
+           remove(signalingRef).catch(() => {});
+        }, 15000);
+      }
     }
   }
 

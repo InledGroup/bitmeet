@@ -218,7 +218,7 @@ export class P2PTransport {
 
     const connected = await this.connectToPeer(targetPubKey);
     if (connected) {
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 30; i++) {
         await new Promise(r => setTimeout(r, 500));
         const updated = this.pubKeyToDevices.get(targetPubKey);
         if (updated && updated.size > 0) {

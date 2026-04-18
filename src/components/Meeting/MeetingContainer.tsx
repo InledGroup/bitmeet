@@ -200,8 +200,10 @@ export default function MeetingContainer({ roomId }: Props) {
         if (change.type === 'added') {
           console.log(`[BitMeet] Participant added in signaling: ${participantId}. Initiating connect...`);
           updateParticipantStatus(participantId, data);
-          // Importante: No conectamos si ya existe
-          transportRef.current.connect(participantId, localStream, { ...data, id: participantId });
+          // Importante: No conectamos si ya existe. Solo conecta el peer "menor" para evitar glare.
+          if (myParticipantId.current < participantId) {
+            transportRef.current.connect(data.peerId || participantId, localStream, { ...data, id: participantId });
+          }
         } else if (change.type === 'removed') {
           console.log(`[BitMeet] Participant removed from signaling: ${participantId}. Cleaning up.`);
           setParticipants(prev => prev.filter(p => p.id !== participantId));
@@ -217,29 +219,30 @@ export default function MeetingContainer({ roomId }: Props) {
   }, [isReady, localStream, roomId]);
 
   const handleRemoteStream = (peerId: string, stream: MediaStream, data: any) => {
-    console.log(`[BitMeet] Received remote stream from ${peerId}`);
+    console.log(`[BitMeet] Received remote stream from ${peerId}`, data);
     setParticipants(prev => {
-      const exists = prev.find(p => p.id === peerId || p.peerId === peerId);
+      const targetId = data?.id || peerId;
+      const exists = prev.find(p => p.id === targetId || p.peerId === peerId);
       if (exists) {
-        return prev.map(p => (p.id === peerId || p.peerId === peerId) ? { 
+        return prev.map(p => (p.id === targetId || p.peerId === peerId) ? { 
           ...p, 
           stream,
           peerId: peerId, // Aseguramos que el peerId sea el que viene del transporte
-          name: (data.name && data.name !== `User-${peerId.slice(0,4)}`) ? data.name : p.name,
-          audioEnabled: data.audioEnabled ?? data.audio ?? p.audioEnabled,
-          videoEnabled: data.videoEnabled ?? data.video ?? p.videoEnabled,
-          isScreenSharing: data.isScreenSharing ?? p.isScreenSharing
+          name: (data?.name && data.name !== `User-${peerId.slice(0,4)}`) ? data.name : p.name,
+          audioEnabled: data?.audioEnabled ?? data?.audio ?? p.audioEnabled,
+          videoEnabled: data?.videoEnabled ?? data?.video ?? p.videoEnabled,
+          isScreenSharing: data?.isScreenSharing ?? p.isScreenSharing
         } : p);
       }
       return [...prev, {
-        id: peerId, // El ID ahora es el mismo que el peerId
+        id: targetId, // El ID ahora es el de signaling si está disponible
         peerId,
         stream,
-        name: data.name || `User-${peerId.slice(0,4)}`,
+        name: data?.name || `User-${peerId.slice(0,4)}`,
         isLocal: false,
-        audioEnabled: data.audioEnabled ?? data.audio ?? true,
-        videoEnabled: data.videoEnabled ?? data.video ?? true,
-        isScreenSharing: data.isScreenSharing ?? false
+        audioEnabled: data?.audioEnabled ?? data?.audio ?? true,
+        videoEnabled: data?.videoEnabled ?? data?.video ?? true,
+        isScreenSharing: data?.isScreenSharing ?? false
       }];
     });
   };
