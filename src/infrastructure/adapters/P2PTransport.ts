@@ -38,27 +38,26 @@ export class P2PTransport {
     });
   }
 
-  async initialize(pubKey: string, bitid: BitIDService) {
+  async initialize(pubKey: string, bitid: BitIDService, turnCredentials?: any) {
     this.bitid = bitid;
     this.syncService = new DeviceSyncService(bitid);
     this.myPubKey = pubKey;
-    
+
     const deviceId = this.bitid.getDeviceId();
     this.myPeerId = await this.hashPeerId(pubKey, deviceId);
-    
+
     this.peerIdToPubKey.set(this.myPeerId, pubKey);
-    await this.webrtc.initialize(this.myPeerId);
-    
+    await this.webrtc.initialize(this.myPeerId, turnCredentials);
+
     this.syncService.registerDevice(pubKey).catch(() => {});
-    
+
     this.hashPubKey(pubKey).then(safeId => {
       this.presenceProvider.setUserStatus(safeId, this.myStatus).catch(() => {});
     });
-    
+
     this.startHeartbeatLoop();
     this.startSelfSyncListener();
   }
-
   private startSelfSyncListener() {
     if (!this.syncService || !this.myPubKey) return;
     this.syncService.listenToDevices(this.myPubKey, (deviceIds) => {

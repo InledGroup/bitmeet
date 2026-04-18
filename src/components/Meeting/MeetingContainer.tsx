@@ -84,10 +84,10 @@ export default function MeetingContainer({ roomId }: Props) {
     currentStreamRef.current = settings.stream;
     
     try {
-      const peerId = await transportRef.current.initialize(myParticipantId.current);
-      
-      await signalingRef.current.joinRoom(roomId, myParticipantId.current, {
-        peerId,
+      const turnCreds = await bitidRef.current.getTurnCredentials();
+      const peerId = await transportRef.current.initialize(myParticipantId.current, undefined, turnCreds);
+
+      await signalingRef.current.joinRoom(roomId, myParticipantId.current, {        peerId,
         name: settings.name,
         audioEnabled: settings.audioEnabled,
         videoEnabled: settings.videoEnabled,

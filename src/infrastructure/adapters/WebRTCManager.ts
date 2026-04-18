@@ -27,7 +27,7 @@ export class WebRTCManager {
     this.signaling = new FirebaseRTCProvider(namespace);
   }
 
-  async initialize(myId: string) {
+  async initialize(myId: string, turnCredentials?: any) {
     this.myId = myId;
     this.signaling.listenForSignals(myId, async (fromId, signal) => {
       // Evitar procesar lo mismo varias veces
@@ -38,7 +38,33 @@ export class WebRTCManager {
 
       await this.handleSignal(fromId, signal);
     });
+
+    const iceServers = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ];
+
+    if (turnCredentials && turnCredentials.url && turnCredentials.username && turnCredentials.credential) {
+      iceServers.push({
+        urls: turnCredentials.url,
+        username: turnCredentials.username,
+        credential: turnCredentials.credential
+      });
+    }
+
+    this.peerConnectionConfig = {
+      iceServers
+    };
   }
+
+  private peerConnectionConfig: RTCConfiguration = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+  };
 
   setLocalStream(stream: MediaStream) {
     this.localStream = stream;

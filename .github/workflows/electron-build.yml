@@ -41,7 +41,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools
 
       - name: Build Electron app
-        run: npm run electron:build
+        run: |
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            npm run electron:build -- --linux --x64 --arm64
+          else
+            npm run electron:build
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -56,6 +61,7 @@ jobs:
             dist-electron/*.deb
             dist-electron/*.rpm
             dist-electron/*.zip
+            dist-electron/*.AppImage
           if-no-files-found: warn
 
   create-release:
@@ -78,8 +84,17 @@ jobs:
           tag_name: v${{ github.run_number }}
           name: Release v${{ github.run_number }}
           body: |
-            Release generada automáticamente por commit [RELEASE].
-            Mensaje del commit: ${{ github.event.head_commit.message }}
+            ## 🚀 Release v${{ github.run_number }}
+            Generada automáticamente por commit [RELEASE].
+            
+            ### 🍎 Notas para macOS
+            Si al abrir la aplicación recibes un aviso de seguridad, muévela a la carpeta **Aplicaciones** y ejecuta el siguiente comando en la Terminal:
+            ```bash
+            xattr -r -d com.apple.quarantine /Applications/BitMeet.app
+            ```
+
+            ### 📝 Cambios
+            ${{ github.event.head_commit.message }}
           files: |
             all-artifacts/*.dmg
             all-artifacts/*.exe
@@ -87,6 +102,7 @@ jobs:
             all-artifacts/*.deb
             all-artifacts/*.rpm
             all-artifacts/*.zip
+            all-artifacts/*.AppImage
           draft: false
           prerelease: false
         env:

@@ -381,6 +381,66 @@ import "../styles/global.css";
 	const importFile = document.getElementById(
 		"import-file",
 	) as HTMLInputElement;
+
+	const btnToggleTurnConfig = document.getElementById("btn-toggle-turn-config");
+	const turnConfigOverlay = document.getElementById("turn-config-overlay");
+	const btnCloseTurnModal = document.getElementById("btn-close-turn-modal");
+	const turnUrlInput = document.getElementById("turn-url") as HTMLInputElement;
+	const turnUsernameInput = document.getElementById("turn-username") as HTMLInputElement;
+	const turnCredentialInput = document.getElementById("turn-credential") as HTMLInputElement;
+	const btnSaveTurn = document.getElementById("btn-save-turn");
+	const btnClearTurn = document.getElementById("btn-clear-turn");
+
+	btnToggleTurnConfig?.addEventListener("click", async () => {
+		const turnCreds = await bitid.getTurnCredentials();
+		if (turnCreds) {
+			turnUrlInput.value = turnCreds.url || "";
+			turnUsernameInput.value = turnCreds.username || "";
+			turnCredentialInput.value = turnCreds.credential || "";
+		} else {
+			turnUrlInput.value = "";
+			turnUsernameInput.value = "";
+			turnCredentialInput.value = "";
+		}
+		turnConfigOverlay?.classList.remove("hidden");
+	});
+
+	btnCloseTurnModal?.addEventListener("click", () => {
+		turnConfigOverlay?.classList.add("hidden");
+	});
+
+	btnSaveTurn?.addEventListener("click", async () => {
+		const url = turnUrlInput.value.trim();
+		const username = turnUsernameInput.value.trim();
+		const credential = turnCredentialInput.value.trim();
+		
+		if (!url || !username || !credential) {
+			return alert("Por favor, completa todos los campos del servidor TURN.");
+		}
+
+		await bitid.saveTurnCredentials({ url, username, credential });
+		alert("Configuración TURN guardada en este dispositivo.");
+		turnConfigOverlay?.classList.add("hidden");
+	});
+
+	btnClearTurn?.addEventListener("click", async () => {
+		if (confirm("¿Estás seguro de que quieres eliminar la configuración TURN?")) {
+			await bitid.saveTurnCredentials(null);
+			turnUrlInput.value = "";
+			turnUsernameInput.value = "";
+			turnCredentialInput.value = "";
+			alert("Configuración TURN eliminada.");
+			turnConfigOverlay?.classList.add("hidden");
+		}
+	});
+
+	// Cerrar modal al hacer click fuera
+	turnConfigOverlay?.addEventListener("click", (e) => {
+		if (e.target === turnConfigOverlay) {
+			turnConfigOverlay.classList.add("hidden");
+		}
+	});
+
 	const btnAttach = document.getElementById("btn-attach");
 	const fileInput = document.getElementById("file-input") as HTMLInputElement;
 
@@ -1782,7 +1842,8 @@ import "../styles/global.css";
 	// 3. P2P Y NOTIFICACIONES DE LLAMADA
 	async function startP2P() {
 		const savedStatus = (localStorage.getItem("bitmeet_my_status") as any) || "available";
-		await p2p.initialize(myIdentity.publicKey, bitid);
+		const turnCreds = await bitid.getTurnCredentials();
+		await p2p.initialize(myIdentity.publicKey, bitid, turnCreds);
 		await p2p.setStatus(savedStatus); // Sincronizar estado inicial persistido
 
 		const myDot = document.getElementById("my-status-dot");

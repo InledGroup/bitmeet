@@ -58,6 +58,14 @@ export class BitIDService {
     this.searchCache.clear();
   }
 
+  async getTurnCredentials(): Promise<any | null> {
+    return await this.storage.getTurnCredentials();
+  }
+
+  async saveTurnCredentials(credentials: any): Promise<void> {
+    await this.storage.saveTurnCredentials(credentials);
+  }
+
   async getIdentity(): Promise<BitID | null> {
     const identity = await this.storage.getIdentity();
     if (!identity) return null;

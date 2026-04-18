@@ -169,7 +169,8 @@ const handleCallAccepted = async (e: any) => {
 
       const stream = await getMedia();
       const myPeerId = await PeerJSMediaTransport.hashId(id?.publicKey || 'anonymous');
-      await transportRef.current.initialize(myPeerId);
+      const turnCreds = await bitidRef.current.getTurnCredentials();
+      await transportRef.current.initialize(myPeerId, undefined, turnCreds);
       
       const hashedInvitedPeers = invitedPeers || {};
 

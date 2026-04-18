@@ -24,6 +24,12 @@ export class IndexedDBIdentityStorage {
     return await this.promisify(tx.objectStore(this.storeName).get("metadata"));
   }
 
+  async getTurnCredentials(): Promise<any | null> {
+    const db = await this.getDB();
+    const tx = db.transaction(this.storeName, "readonly");
+    return await this.promisify(tx.objectStore(this.storeName).get("turnCredentials"));
+  }
+
   async getEncryptedKey(): Promise<any | null> {
     const db = await this.getDB();
     const tx = db.transaction(this.storeName, "readonly");
@@ -40,6 +46,13 @@ export class IndexedDBIdentityStorage {
     ]);
   }
 
+  async saveTurnCredentials(credentials: any): Promise<void> {
+    const db = await this.getDB();
+    const tx = db.transaction(this.storeName, "readwrite");
+    const store = tx.objectStore(this.storeName);
+    await this.promisify(store.put(credentials, "turnCredentials"));
+  }
+
   async clearIdentity(): Promise<void> {
     const db = await this.getDB();
     const tx = db.transaction(this.storeName, "readwrite");
@@ -47,6 +60,7 @@ export class IndexedDBIdentityStorage {
     await Promise.all([
       this.promisify(store.delete("metadata")),
       this.promisify(store.delete("encryptedPrivateKey")),
+      this.promisify(store.delete("turnCredentials")),
     ]);
   }
 

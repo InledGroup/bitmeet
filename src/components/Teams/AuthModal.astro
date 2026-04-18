@@ -52,12 +52,163 @@
 				</div>
 			</div>
 
+			<div style="margin-top: 24px; border-top: 1px solid #e5e5ea; padding-top: 16px;">
+				<button id="btn-toggle-turn-config" class="apple-button-text" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; color: #0071e3; font-weight: 500;">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+					Configuración necesaria para conexiones fuera de misma Wifi (TURN)
+				</button>
+			</div>
+
 			<p style="margin-top: 32px; font-size: 12px; color: #86868b;">Si no tienes un ID, créalo en <a href="https://id.inled.es" target="_blank" style="color: #0066cc; text-decoration: none;">id.inled.es</a></p>
+		</div>
+
+		<div id="auth-sync-progress-view" class="auth-view hidden" style="text-align: center;">
+			<div style="margin-bottom: 24px;">
+				<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="spin-animation">
+					<path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+				</svg>
+			</div>
+			<h2 style="font-size: 20px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px;">Sincronizando historial...</h2>
+			<p id="sync-progress-text" style="font-size: 14px; color: #86868b; margin-bottom: 24px;">Conectando con tu otro dispositivo...</p>
+
+			<div style="width: 100%; height: 6px; background: #e5e5ea; border-radius: 3px; overflow: hidden;">
+				<div id="sync-progress-bar" style="height: 100%; width: 0%; background: #0071e3; transition: width 0.3s ease;"></div>
+			</div>
+
+			<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 32px;">
+				<button id="btn-skip-sync" class="apple-button-secondary" style="width: 100%;">Omitir y entrar ahora</button>
+				<button id="btn-cancel-sync" style="background: none; border: none; color: #ff3b30; font-size: 14px; cursor: pointer; font-weight: 500;">Cancelar sincronización</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modal TURN -->
+	<div id="turn-config-overlay" class="turn-modal-overlay hidden">
+		<div class="turn-modal-card">
+			<div class="turn-modal-header">
+				<h3>Servidor TURN</h3>
+				<button id="btn-close-turn-modal" class="turn-close-btn">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+				</button>
+			</div>
+			<div class="turn-modal-body">
+				<details class="turn-details">
+					<summary>¿Qué es un servidor TURN y por qué lo necesito?</summary>
+					<div class="turn-explanation">
+						<p>Para entender qué es un servidor <strong>TURN</strong> (<em>Traversal Using Relays around NAT</em>), primero hay que entender el problema que resuelve: la mayoría de los dispositivos en internet no tienen una dirección pública directa; están escondidos detrás de routers y firewalls (NAT).</p>
+
+						<h4>¿Qué es exactamente?</h4>
+						<p>Imagina que quieres enviarle un paquete a un amigo, pero ambos viven en edificios con seguridad privada que no permite la entrada de extraños.</p>
+
+						<ul>
+							<li><strong>STUN (El informador):</strong> Es como un guardia que solo te dice cuál es tu dirección exterior. Si el firewall de tu amigo es permisivo, puedes enviarle el paquete directamente.</li>
+							<li><strong>TURN (El intermediario):</strong> Si los firewalls son muy estrictos y bloquean la conexión directa, el servidor TURN actúa como un <strong>mensajero</strong>. Tú le das el paquete al servidor, y el servidor se lo entrega a tu amigo.</li>
+						</ul>
+
+						<p>Es el último recurso en una conexión WebRTC cuando el P2P (punto a punto) falla.</p>
+
+						<hr />
+						<h4>¿Puedo desplegar mi propio servidor TURN?</h4>
+						<p>Sí, por supuesto. Puedes desplegar tu propio servidor TURN utilizando software de código abierto como <strong>Coturn</strong>. De esta manera, esto sería mil veces más privado que alternativas como Microsoft Teams.</p>
+
+						<hr />
+
+						<h4>¿Se lleva mis datos?</h4>
+						<p>Esta es la pregunta del millón. Aquí la respuesta corta y la técnica:</p>
+
+						<h5>1. ¿Puede ver lo que digo o muestro? (Privacidad de contenido)</h5>
+						<p><strong>No.</strong> WebRTC utiliza un cifrado obligatorio llamado <strong>DTLS-SRTP</strong>. Esto significa que los datos (tu voz, tu video o tus archivos) se cifran en tu dispositivo y solo se descifran en el dispositivo del receptor.</p>
+						<ul>
+							<li>El servidor TURN solo ve paquetes de datos cifrados.</li>
+							<li>Es como si el mensajero transportara una caja fuerte: sabe a quién se la lleva, pero no tiene la llave para abrirla.</li>
+						</ul>
+
+						<h5>2. ¿Qué datos sí conoce el servidor? (Metadatos)</h5>
+						<p>Aunque no vea el contenido, el servidor TURN sí conoce:</p>
+						<ul>
+							<li><strong>Tu dirección IP pública</strong> y la de la persona con la que hablas.</li>
+							<li><strong>Cuándo</strong> empezó y terminó la conexión.</li>
+							<li><strong>Cuántos datos</strong> se transfirieron (el peso de la llamada).</li>
+						</ul>
+
+						<h5>3. El riesgo de los servidores "gratuitos" desconocidos</h5>
+						<p>Si usas un servidor TURN público y sospechoso, el dueño podría:</p>
+						<ul>
+							<li>Registrar con quién hablas y desde dónde.</li>
+							<li>Realizar ataques de denegación de servicio (DoS) si el servidor se cae.</li>
+							<li>Intentar ataques de "Hombre en el medio" (<em>Man-in-the-Middle</em>), aunque el cifrado de WebRTC es muy robusto.</li>
+						</ul>
+
+						<hr />
+					
+
+						<h4>Resumen de Seguridad</h4>
+						<table class="turn-security-table">
+							<thead>
+								<tr>
+									<th>Tipo de Dato</th>
+									<th>¿Lo ve el TURN?</th>
+									<th>Riesgo</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>Video y Audio</td>
+									<td><strong>No</strong> (E2EE)</td>
+									<td>Muy bajo</td>
+								</tr>
+								<tr>
+									<td>Mensajes</td>
+									<td><strong>No</strong> (Canal datos)</td>
+									<td>Muy bajo</td>
+								</tr>
+								<tr>
+									<td>Tu IP</td>
+									<td><strong>Sí</strong></td>
+									<td>Medio</td>
+								</tr>
+								<tr>
+									<td>Metadatos</td>
+									<td><strong>Sí</strong></td>
+									<td>Bajo</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<hr />
+						<h4>¿Como protegemos al máximo tu privacidad y como puedes protegerte tú?</h4>
+						<p>BitMeet cifra las llamadas, mensajes y todo el contenido en general. Lo máximo que puede ver un servidor es lo que arriba se explica pero tú mismo puedes montarte un servidor TURN o pedirle a tu empresa que te lo de.</p>
+						<p>Hay empresas como Cloudflare que ofrecen servidores TURN con un tier gratuito muy generoso y una política de privacidad muy estricta. Si quieres saber más, <a href="https://developers.cloudflare.com/realtime/turn/">puedes entrar en la documentación de Cloudflare</a></p>
+
+						<p style="margin-top: 16px;"><strong>Conclusión:</strong> Un servidor TURN de una empresa confiable (como <a href="https://metered.ca/stun-turn" target="_blank" style="color: #0071e3; text-decoration: none;">Metered.ca</a>, Twilio o Cloudflare) es seguro. El riesgo no es el espionaje, sino el rastreo de metadatos lo cual puede dejar rastro. Si te dedicas a sectores sensibles, te recomendamos que te montes tu propio servidor TURN. De esta manera tendrías pleno control del camino de los datos y no tendrás que pasar por caja si te lo montas en tu propia infra.</p>
+					</div>
+				</details>
+
+				<div class="turn-form-group">
+					<div class="turn-input-container">
+						<label>Servidor URL</label>
+						<input type="text" id="turn-url" placeholder="turn:mi-servidor.com:3478" />
+					</div>
+					<div class="turn-input-container">
+						<label>Usuario</label>
+						<input type="text" id="turn-username" placeholder="Usuario" />
+					</div>
+					<div class="turn-input-container">
+						<label>Contraseña</label>
+						<input type="password" id="turn-credential" placeholder="Contraseña" />
+					</div>
+				</div>
+
+				<div class="turn-modal-footer">
+					<button id="btn-save-turn" class="apple-button-primary">Guardar Configuración</button>
+					<button id="btn-clear-turn" class="apple-button-text" style="color: #ff3b30; margin-top: 12px; font-weight: 500; width: 100%;">Eliminar configuración</button>
+				</div>
+			</div>
 		</div>
 	</div>
 </section>
 
-<style>
+<style is:global>
 	.apple-sync-row {
 		display: flex;
 		gap: 12px;
@@ -79,12 +230,13 @@
 		background: #f5f5f7 !important;
 		color: #1d1d1f !important;
 		outline: none !important;
+		text-align: center;
+		letter-spacing: 2px;
+		font-weight: 600;
 		transition: all 0.2s ease;
-		font-weight: 500;
 	}
 
 	.sync-input-wrapper input:focus {
-		background: #fff !important;
 		border-color: #0071e3 !important;
 		box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1) !important;
 	}
@@ -175,32 +327,7 @@
 	#qr-reader __dashboard_section_csr_button {
 		display: none !important;
 	}
-			</div>
 
-			<p style="margin-top: 32px; font-size: 12px; color: #86868b;">Si no tienes un ID, créalo en <a href="https://id.inled.es" target="_blank" style="color: #0066cc; text-decoration: none;">id.inled.es</a></p>
-		</div>
-
-		<div id="auth-sync-progress-view" class="auth-view hidden" style="text-align: center;">
-			<div style="margin-bottom: 24px;">
-				<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="spin-animation">
-					<path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-				</svg>
-			</div>
-			<h2 style="font-size: 20px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px;">Sincronizando historial...</h2>
-			<p id="sync-progress-text" style="font-size: 14px; color: #86868b; margin-bottom: 24px;">Conectando con tu otro dispositivo...</p>
-
-			<div style="width: 100%; height: 6px; background: #e5e5ea; border-radius: 3px; overflow: hidden;">
-				<div id="sync-progress-bar" style="height: 100%; width: 0%; background: #0071e3; transition: width 0.3s ease;"></div>
-			</div>
-
-			<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 32px;">
-				<button id="btn-skip-sync" class="apple-button-secondary" style="width: 100%;">Omitir y entrar ahora</button>
-				<button id="btn-cancel-sync" style="background: none; border: none; color: #ff3b30; font-size: 14px; cursor: pointer; font-weight: 500;">Cancelar sincronización</button>
-			</div>
-		</div>	</div>
-</section>
-
-<style>
 	.auth-import-actions {
 		display: flex;
 		flex-direction: column;
@@ -283,5 +410,232 @@
 	}
 	.spin-animation {
 		animation: spin 1s linear infinite;
+	}
+
+	/* TURN Modal Specific Styles */
+	.turn-modal-overlay {
+		position: fixed !important;
+		top: 0 !important;
+		left: 0 !important;
+		width: 100% !important;
+		height: 100% !important;
+		background: rgba(0, 0, 0, 0.4) !important;
+		backdrop-filter: blur(20px) saturate(180%) !important;
+		-webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		z-index: 20000 !important;
+		padding: 20px !important;
+	}
+
+	.turn-modal-card {
+		background: white !important;
+		width: 100% !important;
+		max-width: 480px !important;
+		max-height: 85vh !important;
+		border-radius: 24px !important;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
+		overflow: hidden !important;
+		display: flex !important;
+		flex-direction: column !important;
+		animation: turnModalAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+	}
+
+	@keyframes turnModalAppear {
+		from { transform: scale(0.9) translateY(20px); opacity: 0; }
+		to { transform: scale(1) translateY(0); opacity: 1; }
+	}
+
+	.turn-modal-header {
+		padding: 20px 24px !important;
+		border-bottom: 1px solid #f2f2f7 !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: space-between !important;
+		flex-shrink: 0 !important;
+	}
+
+	.turn-modal-header h3 {
+		margin: 0 !important;
+		font-size: 19px !important;
+		font-weight: 700 !important;
+		color: #1d1d1f !important;
+		letter-spacing: -0.02em !important;
+	}
+
+	.turn-close-btn {
+		background: #f2f2f7 !important;
+		border: none !important;
+		width: 32px !important;
+		height: 32px !important;
+		border-radius: 50% !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		cursor: pointer !important;
+		color: #86868b !important;
+		transition: all 0.2s !important;
+	}
+
+	.turn-modal-body {
+		padding: 24px !important;
+		overflow-y: auto !important;
+		flex: 1 !important;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.turn-details {
+		margin-bottom: 24px !important;
+		background: #f5f5f7 !important;
+		border-radius: 12px !important;
+		overflow: hidden !important;
+	}
+
+	.turn-details summary {
+		padding: 14px 16px !important;
+		font-size: 14px !important;
+		font-weight: 600 !important;
+		color: #0071e3 !important;
+		cursor: pointer !important;
+		list-style: none !important;
+		display: flex !important;
+		justify-content: space-between !important;
+		align-items: center !important;
+	}
+
+	.turn-details summary::-webkit-details-marker {
+		display: none !important;
+	}
+
+	.turn-details summary::after {
+		content: '↓' !important;
+		font-size: 18px !important;
+		transition: transform 0.3s !important;
+	}
+
+	.turn-details[open] summary::after {
+		transform: rotate(180deg) !important;
+	}
+
+	.turn-explanation {
+		padding: 0 16px 20px !important;
+		font-size: 13px !important;
+		color: #424245 !important;
+		line-height: 1.5 !important;
+	}
+
+	.turn-explanation h4 {
+		font-size: 15px !important;
+		font-weight: 700 !important;
+		margin: 16px 0 8px !important;
+		color: #1d1d1f !important;
+	}
+
+	.turn-explanation h5 {
+		font-size: 13px !important;
+		font-weight: 600 !important;
+		margin: 14px 0 6px !important;
+		color: #1d1d1f !important;
+	}
+
+	.turn-explanation ul {
+		padding-left: 18px !important;
+		margin-bottom: 12px !important;
+	}
+
+	.turn-explanation li {
+		margin-bottom: 6px !important;
+	}
+
+	.turn-explanation hr {
+		border: none !important;
+		border-top: 1px solid #e5e5ea !important;
+		margin: 20px 0 !important;
+	}
+
+	.turn-security-table {
+		width: 100% !important;
+		border-collapse: collapse !important;
+		font-size: 12px !important;
+		margin: 12px 0 !important;
+		background: white !important;
+		border-radius: 8px !important;
+		overflow: hidden !important;
+		border: 1px solid #e5e5ea !important;
+	}
+
+	.turn-security-table th, .turn-security-table td {
+		padding: 10px !important;
+		text-align: left !important;
+		border-bottom: 1px solid #f2f2f7 !important;
+	}
+
+	.turn-security-table th {
+		background: #f2f2f7 !important;
+		font-weight: 600 !important;
+	}
+
+	.turn-form-group {
+		display: flex !important;
+		flex-direction: column !important;
+		gap: 16px !important;
+		margin-top: 8px !important;
+	}
+
+	.turn-input-container {
+		display: flex !important;
+		flex-direction: column !important;
+		gap: 6px !important;
+	}
+
+	.turn-input-container label {
+		font-size: 13px !important;
+		font-weight: 600 !important;
+		color: #1d1d1f !important;
+		margin-left: 4px !important;
+	}
+
+	.turn-input-container input {
+		width: 100% !important;
+		padding: 12px 16px !important;
+		border-radius: 12px !important;
+		border: 1px solid #d2d2d7 !important;
+		background: #f5f5f7 !important;
+		font-size: 16px !important;
+		color: #1d1d1f !important;
+		outline: none !important;
+		transition: all 0.2s !important;
+		font-family: inherit !important;
+	}
+
+	.turn-input-container input:focus {
+		background: white !important;
+		border-color: #0071e3 !important;
+		box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1) !important;
+	}
+
+	.turn-modal-footer {
+		margin-top: 24px !important;
+		display: flex !important;
+		flex-direction: column !important;
+		align-items: center !important;
+		flex-shrink: 0 !important;
+	}
+
+	.apple-button-secondary {
+		background: white !important;
+		color: #0071e3 !important;
+		border: 1px solid #d2d2d7 !important;
+		padding: 12px 24px !important;
+		border-radius: 20px !important;
+		font-size: 15px !important;
+		cursor: pointer !important;
+		width: 100% !important;
+		font-weight: 500 !important;
+	}
+
+	.hidden {
+		display: none !important;
 	}
 </style>

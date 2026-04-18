@@ -1,7 +1,7 @@
 import type { Participant, MeetingMessage } from "./domain";
 
 export interface IWebRTCMediaTransport {
-  initialize(participantId: string, existingPeer?: any): Promise<string>; // Returns peerId
+  initialize(participantId: string, existingPeer?: any, turnCredentials?: any): Promise<string>; // Returns peerId
   setLocalStream(stream: MediaStream): void;
   connect(peerId: string, stream: MediaStream, initialData: Partial<Participant>): void;
   answer(call: any, stream: MediaStream): void;

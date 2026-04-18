@@ -24,7 +24,7 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
   }
 
-  async initialize(participantId: string, existingPeer?: any): Promise<string> {
+  async initialize(participantId: string, existingPeer?: any, turnCredentials?: any): Promise<string> {
     // Si pasamos un peer real de PeerJS, lo usamos.
     if (existingPeer && typeof existingPeer.connect === 'function') {
         this.peer = existingPeer;
@@ -34,18 +34,27 @@ export class PeerJSMediaTransport implements IWebRTCMediaTransport {
     }
 
     this.peerId = await PeerJSMediaTransport.hashId(participantId);
-    
+
+    const iceServers = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ];
+
+    if (turnCredentials && turnCredentials.url && turnCredentials.username && turnCredentials.credential) {
+      iceServers.push({
+        urls: turnCredentials.url,
+        username: turnCredentials.username,
+        credential: turnCredentials.credential
+      });
+    }
+
     this.peer = new Peer(this.peerId!, {
       debug: 1,
       config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' }
-        ]
+        iceServers
       }
     });
-
     return new Promise((resolve) => {
       this.peer?.on('open', (id) => {
         console.log('[BitMeet] PeerJS Call Instance ready:', id);

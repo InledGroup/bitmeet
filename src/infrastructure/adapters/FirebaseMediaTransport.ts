@@ -16,9 +16,9 @@ export class FirebaseMediaTransport implements IWebRTCMediaTransport {
     this.manager = new WebRTCManager(`calls-${roomId}`);
   }
 
-  async initialize(participantId: string): Promise<string> {
+  async initialize(participantId: string, existingPeer?: any, turnCredentials?: any): Promise<string> {
     this.myId = participantId;
-    
+
     this.manager.onRemoteStream((id, stream) => {
       this.onRemoteStreamCb?.(id, stream, { id });
     });
@@ -35,10 +35,9 @@ export class FirebaseMediaTransport implements IWebRTCMediaTransport {
       this.onConnectionClosedCb?.(id);
     });
 
-    await this.manager.initialize(participantId);
+    await this.manager.initialize(participantId, turnCredentials);
     return participantId;
   }
-
   connect(peerId: string, stream: MediaStream): void {
     this.manager.setLocalStream(stream);
     this.manager.connect(peerId, stream);
