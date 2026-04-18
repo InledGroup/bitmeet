@@ -12,11 +12,11 @@
             </div>
             <div class="status-wrapper">
                 <div class="calendar-nav">
-                    <button id="cal-btn-prev" class="nav-btn" title="Mes anterior">
+                    <button id="cal-btn-prev" class="nav-btn" title="Anterior">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
                     <span id="cal-current-period">Abril 2026</span>
-                    <button id="cal-btn-next" class="nav-btn" title="Mes siguiente">
+                    <button id="cal-btn-next" class="nav-btn" title="Siguiente">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
                     </button>
                 </div>
@@ -104,6 +104,18 @@
                 <div class="form-group">
                     <label for="event-desc">Descripción</label>
                     <textarea id="event-desc" rows="3" placeholder="Detalles de la reunión..." class="apple-input"></textarea>
+                </div>
+            </div>
+
+            <div id="event-warning-container" class="event-warning hidden">
+                <div class="warning-icon">⚠️</div>
+                <div class="warning-content">
+                    <p id="warning-message"></p>
+                    <div class="ai-suggestion" id="ai-suggestion-box">
+                        <span class="ai-badge">IA Sugerencia</span>
+                        <p id="ai-suggestion-text"></p>
+                        <button type="button" id="btn-apply-suggestion" class="apple-button secondary small">Aplicar Sugerencia</button>
+                    </div>
                 </div>
             </div>
 
@@ -549,4 +561,43 @@
     .apple-button.danger:hover {
         background: #D9362B;
     }
+
+    /* Estilos de Advertencia de Solapamiento */
+    .event-warning {
+        margin-top: 16px;
+        padding: 14px;
+        background: #FFF9E6;
+        border: 1px solid #FFCC00;
+        border-radius: 12px;
+        display: flex;
+        gap: 12px;
+        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+    .warning-icon { font-size: 20px; }
+    .warning-content p { font-size: 13px; color: #856404; margin: 0; line-height: 1.4; }
+    .ai-suggestion {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed #FFCC00;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .ai-badge {
+        font-size: 10px;
+        font-weight: 700;
+        background: var(--apple-accent);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        width: fit-content;
+        text-transform: uppercase;
+    }
+    #ai-suggestion-text { font-weight: 600; color: #1D1D1F !important; }
 </style>

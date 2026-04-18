@@ -1999,6 +1999,25 @@ import "../styles/global.css";
 				return;
 			}
 
+			// --- DISPONIBILIDAD PARA CALENDARIO ---
+			if (msg.type === "availability-req") {
+				const events = await calendarRepo.listEvents(msg.startTime, msg.endTime);
+				p2p.sendP2PMessage(msg.senderPubKey, {
+					type: "availability-res",
+					reqId: msg.reqId,
+					events: events.map(e => ({ startTime: e.startTime, endTime: e.endTime, title: e.title })),
+					senderPubKey: myIdentity.publicKey,
+					senderUsername: myIdentity.username
+				});
+				return;
+			}
+
+			if (msg.type === "availability-res") {
+				const resolver = (window as any)._availabilityResolvers?.[msg.reqId];
+				if (resolver) resolver(msg);
+				return;
+			}
+
 			if (msg.type === "device-sync-res") {
 				console.log("[Sync] Datos de sincronización recibidos");
 				if (msg.contacts) {
@@ -3324,6 +3343,105 @@ import "../styles/global.css";
 	// --- LÓGICA DE CALENDARIO ---
 	let currentCalendarDate = new Date();
 	let selectedParticipants: { pubKey: string; username: string }[] = [];
+	let forceSaveEvent = false;
+
+	async function checkOverlaps(start: number, end: number, participants: string[]) {
+		const overlaps: { name: string; event: any }[] = [];
+
+		// 1. Mis propios eventos
+		const myEvents = await calendarRepo.listEvents(start, end);
+		if (myEvents.length > 0) {
+			overlaps.push({ name: "Tú", event: myEvents[0] });
+		}
+
+		// 2. Eventos de participantes (vía P2P)
+		if (participants.length > 0) {
+			const reqId = Math.random().toString(36).substring(7);
+			if (!(window as any)._availabilityResolvers) (window as any)._availabilityResolvers = {};
+
+			// Consultar a todos en paralelo
+			const dayStart = new Date(start).setHours(0, 0, 0, 0);
+			const dayEnd = new Date(start).setHours(23, 59, 59, 999);
+
+			const results = await Promise.all(participants.map(async (pubKey) => {
+				return new Promise<any>(async (resolve) => {
+					const timer = setTimeout(() => {
+						delete (window as any)._availabilityResolvers[reqId];
+						resolve(null);
+					}, 2000);
+
+					(window as any)._availabilityResolvers[reqId] = (data: any) => {
+						clearTimeout(timer);
+						delete (window as any)._availabilityResolvers[reqId];
+						resolve(data);
+					};
+
+					try {
+						await p2p.sendP2PMessage(pubKey, {
+							type: "availability-req",
+							reqId,
+							startTime: dayStart,
+							endTime: dayEnd,
+							senderPubKey: myIdentity.publicKey
+						});
+					} catch (e) {
+						clearTimeout(timer);
+						resolve(null);
+					}
+				});
+			}));
+
+			results.forEach(res => {
+				if (res && res.events) {
+					const ov = res.events.find((e: any) => 
+						(start >= e.startTime && start < e.endTime) ||
+						(end > e.startTime && end <= e.endTime) ||
+						(start <= e.startTime && end >= e.endTime)
+					);
+					if (ov) {
+						overlaps.push({ name: res.senderUsername, event: ov });
+					}
+				}
+			});
+		}
+		return overlaps;
+	}
+
+	async function findAlternativeSlot(duration: number, date: number, participants: string[]) {
+		let testStart = new Date(date);
+		testStart.setMinutes(testStart.getMinutes() + 30);
+		
+		for (let i = 0; i < 24; i++) {
+			const testEnd = testStart.getTime() + duration;
+			const overlaps = await checkOverlaps(testStart.getTime(), testEnd, participants);
+			if (overlaps.length === 0) {
+				return { start: testStart.getTime(), end: testEnd };
+			}
+			testStart.setMinutes(testStart.getMinutes() + 30);
+		}
+		return null;
+	}
+
+	document.getElementById("btn-apply-suggestion")?.addEventListener("click", () => {
+		const suggestionText = document.getElementById("ai-suggestion-text")?.getAttribute("data-value");
+		if (suggestionText) {
+			const { start, end } = JSON.parse(suggestionText);
+			const startInput = document.getElementById("event-start") as HTMLInputElement;
+			const endInput = document.getElementById("event-end") as HTMLInputElement;
+			
+			const formatDate = (ts: number) => {
+				const d = new Date(ts);
+				d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+				return d.toISOString().slice(0, 16);
+			};
+			
+			startInput.value = formatDate(start);
+			endInput.value = formatDate(end);
+			
+			document.getElementById("event-warning-container")?.classList.add("hidden");
+			forceSaveEvent = true;
+		}
+	});
 
 	document
 		.getElementById("cal-btn-close")
@@ -3331,11 +3449,25 @@ import "../styles/global.css";
 			calendarModal?.classList.add("hidden"),
 		);
 	document.getElementById("cal-btn-prev")?.addEventListener("click", () => {
-		currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+		const view = (document.getElementById("cal-view-selector") as HTMLSelectElement)?.value || "month";
+		if (view === "month") {
+			currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+		} else if (view === "week") {
+			currentCalendarDate.setDate(currentCalendarDate.getDate() - 7);
+		} else if (view === "day") {
+			currentCalendarDate.setDate(currentCalendarDate.getDate() - 1);
+		}
 		renderCalendar();
 	});
 	document.getElementById("cal-btn-next")?.addEventListener("click", () => {
-		currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+		const view = (document.getElementById("cal-view-selector") as HTMLSelectElement)?.value || "month";
+		if (view === "month") {
+			currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+		} else if (view === "week") {
+			currentCalendarDate.setDate(currentCalendarDate.getDate() + 7);
+		} else if (view === "day") {
+			currentCalendarDate.setDate(currentCalendarDate.getDate() + 1);
+		}
 		renderCalendar();
 	});
 
@@ -3600,10 +3732,19 @@ import "../styles/global.css";
 				timeStyle: "short",
 			});
 
+		// Obtener nombres de participantes
+		const participantsNames = await Promise.all(
+			(event.participants || []).map(async (pubKey) => {
+				if (pubKey === myIdentity.publicKey) return "Tú";
+				const contact = await chatRepo.getContact(pubKey);
+				return contact ? `@${contact.username}` : `Desconocido (${pubKey.substring(0, 4)})`;
+			})
+		);
+
 		contentEl.innerHTML = `
 			<div class="detail-row">
 				<strong>Cuando</strong>
-				<p>${format(event.startTime)} - ${format(event.endTime)}</p>
+				<p>${format(event.startTime)} - ${new Date(event.endTime).toLocaleTimeString("es-ES", { timeStyle: "short" })}</p>
 			</div>
 			${
 				event.description
@@ -3618,8 +3759,12 @@ import "../styles/global.css";
 				event.type === "meeting"
 					? `
 			<div class="detail-row">
+				<strong>Participantes</strong>
+				<p>${participantsNames.length > 0 ? participantsNames.join(", ") : "Ninguno"}</p>
+			</div>
+			<div class="detail-row">
 				<strong>Enlace</strong>
-				<p><a href="${event.meetingLink}" target="_blank">${event.meetingLink}</a></p>
+				<p><a href="${event.meetingLink}" target="_blank" style="color: var(--apple-accent);">${event.meetingLink}</a></p>
 			</div>
 			<div class="detail-row">
 				<strong>Organizador</strong>
@@ -3631,13 +3776,14 @@ import "../styles/global.css";
 		`;
 
 		const deleteBtn = document.getElementById("detail-event-btn-delete");
-		if (deleteBtn) {
-			// Solo el organizador puede eliminar
-			if (event.organizerPubKey === myIdentity.publicKey) {
-				deleteBtn.classList.remove("hidden");
-			} else {
-				deleteBtn.classList.add("hidden");
-			}
+		const editBtn = document.getElementById("detail-event-btn-edit");
+		
+		if (event.organizerPubKey === myIdentity.publicKey) {
+			deleteBtn?.classList.remove("hidden");
+			editBtn?.classList.remove("hidden");
+		} else {
+			deleteBtn?.classList.add("hidden");
+			editBtn?.classList.add("hidden");
 		}
 
 		eventDetailModal?.classList.remove("hidden");
@@ -3645,11 +3791,62 @@ import "../styles/global.css";
 	(window as any).showEventDetails = showEventDetails;
 
 	let currentlyOpenEventId: string | null = null;
+	let currentlyEditingEventId: string | null = null;
+
+	document.getElementById("detail-event-btn-edit")?.addEventListener("click", async () => {
+		if (!currentlyOpenEventId) return;
+		const event = await calendarRepo.getEvent(currentlyOpenEventId);
+		if (!event) return;
+
+		currentlyEditingEventId = event.id;
+		eventDetailModal?.classList.add("hidden");
+		eventModal?.classList.remove("hidden");
+		
+		// Rellenar formulario
+		(document.getElementById("event-title") as HTMLInputElement).value = event.title;
+		(document.getElementById("event-desc") as HTMLTextAreaElement).value = event.description || "";
+		
+		const formatDate = (ts: number) => {
+			const d = new Date(ts);
+			d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+			return d.toISOString().slice(0, 16);
+		};
+		
+		(document.getElementById("event-start") as HTMLInputElement).value = formatDate(event.startTime);
+		(document.getElementById("event-end") as HTMLInputElement).value = formatDate(event.endTime);
+		
+		const typeRadio = document.querySelector(`input[name="event-type"][value="${event.type}"]`) as HTMLInputElement;
+		if (typeRadio) typeRadio.checked = true;
+		
+		(document.getElementById("event-is-native") as HTMLInputElement).checked = event.isNative;
+		const linkInput = document.getElementById("event-link") as HTMLInputElement;
+		linkInput.value = event.meetingLink || "";
+		if (!event.isNative) linkInput.classList.remove("hidden");
+		else linkInput.classList.add("hidden");
+
+		// Participantes
+		selectedParticipants = await Promise.all(
+			(event.participants || []).filter(p => p !== myIdentity.publicKey).map(async (pubKey) => {
+				const contact = await chatRepo.getContact(pubKey);
+				return { pubKey, username: contact ? contact.username : pubKey.substring(0, 8) };
+			})
+		);
+		updateParticipantChips();
+
+		const submitBtn = document.querySelector("#event-form button[type='submit']");
+		if (submitBtn) submitBtn.textContent = "Actualizar Evento";
+		forceSaveEvent = false;
+	});
 
 	document.getElementById("cal-btn-add")?.addEventListener("click", () => {
 		eventModal?.classList.remove("hidden");
 		(document.getElementById("event-form") as HTMLFormElement).reset();
+		document.getElementById("event-warning-container")?.classList.add("hidden");
+		const submitBtn = document.querySelector("#event-form button[type='submit']");
+		if (submitBtn) submitBtn.textContent = "Guardar";
 		selectedParticipants = [];
+		forceSaveEvent = false;
+		currentlyEditingEventId = null;
 		updateParticipantChips();
 	});
 
@@ -3789,14 +3986,10 @@ import "../styles/global.css";
 			const title = (
 				document.getElementById("event-title") as HTMLInputElement
 			).value;
-			const start = new Date(
-				(document.getElementById("event-start") as HTMLInputElement)
-					.value,
-			).getTime();
-			const end = new Date(
-				(document.getElementById("event-end") as HTMLInputElement)
-					.value,
-			).getTime();
+			const startStr = (document.getElementById("event-start") as HTMLInputElement).value;
+			const endStr = (document.getElementById("event-end") as HTMLInputElement).value;
+			const start = new Date(startStr).getTime();
+			const end = new Date(endStr).getTime();
 			const type = (
 				document.querySelector(
 					'input[name="event-type"]:checked',
@@ -3812,7 +4005,46 @@ import "../styles/global.css";
 				document.getElementById("event-desc") as HTMLTextAreaElement
 			).value;
 
-			const eventId = Math.random().toString(36).substring(7);
+			// --- VALIDACIÓN DE SOLAPAMIENTO ---
+			if (!forceSaveEvent) {
+				const participantsKeys = selectedParticipants.map(p => p.pubKey);
+				const overlaps = await checkOverlaps(start, end, participantsKeys);
+				
+				// Excluir el evento que estamos editando del chequeo de solapamiento
+				const realOverlaps = overlaps.filter(o => o.event.id !== currentlyEditingEventId);
+
+				if (realOverlaps.length > 0) {
+					const warningContainer = document.getElementById("event-warning-container");
+					const warningMsg = document.getElementById("warning-message");
+					const aiSuggestBox = document.getElementById("ai-suggestion-box");
+					const aiSuggestText = document.getElementById("ai-suggestion-text");
+
+					if (warningContainer && warningMsg) {
+						const names = realOverlaps.map(o => `${o.name} (${new Date(o.event.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}-${new Date(o.event.endTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})})`).join(", ");
+						warningMsg.textContent = `Atención: Solapamiento detectado con ${names}.`;
+						warningContainer.classList.remove("hidden");
+
+						// Buscar alternativa "IA"
+						const duration = end - start;
+						const alternative = await findAlternativeSlot(duration, start, participantsKeys);
+						if (alternative && aiSuggestBox && aiSuggestText) {
+							const altDate = new Date(alternative.start);
+							aiSuggestText.textContent = `Horario sugerido: ${altDate.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - ${new Date(alternative.end).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+							aiSuggestText.setAttribute("data-value", JSON.stringify(alternative));
+							aiSuggestBox.classList.remove("hidden");
+						} else if (aiSuggestBox) {
+							aiSuggestBox.classList.add("hidden");
+						}
+						
+						const submitBtn = (e.target as HTMLElement).querySelector("button[type='submit']");
+						if (submitBtn) submitBtn.textContent = "Guardar de todos modos";
+						forceSaveEvent = true;
+						return;
+					}
+				}
+			}
+
+			const eventId = currentlyEditingEventId || Math.random().toString(36).substring(7);
 			const nativeLink = isNative
 				? `${window.location.origin}/room/${eventId}`
 				: link;
@@ -3827,7 +4059,7 @@ import "../styles/global.css";
 				meetingLink: nativeLink,
 				isNative,
 				organizerPubKey: myIdentity.publicKey,
-				participants: selectedParticipants.map((p) => p.pubKey),
+				participants: [myIdentity.publicKey, ...selectedParticipants.map((p) => p.pubKey)],
 				status: "confirmed",
 			};
 
@@ -3849,6 +4081,7 @@ import "../styles/global.css";
 						meetingLink: nativeLink,
 						isNative,
 						timestamp: Date.now(),
+						isUpdate: !!currentlyEditingEventId
 					};
 
 					// 1. Guardar en el chat local como 'pending' para reintento automático
@@ -3890,7 +4123,8 @@ import "../styles/global.css";
 
 			eventModal?.classList.add("hidden");
 			renderCalendar();
-			alert("Evento guardado");
+			alert(currentlyEditingEventId ? "Evento actualizado" : "Evento guardado");
+			currentlyEditingEventId = null;
 		});
 
 	// --- FIN LÓGICA DE CALENDARIO ---
