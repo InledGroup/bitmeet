@@ -1,7 +1,8 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
 const path = require('path');
-const isDev = require('electron-is-dev');
 const { autoUpdater } = require('electron-updater');
+
+const isDev = !app.isPackaged;
 
 let mainWindow;
 let tray;
