@@ -49,6 +49,7 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IS_ELECTRON: true
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

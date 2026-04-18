@@ -10,7 +10,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "electron:dev": "electron .",
-    "electron:build": "astro build --base ./ && electron-builder"
+    "electron:build": "astro build --config astro.electron.mjs && node fix-paths.mjs && electron-builder"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.1.10",
